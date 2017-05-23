@@ -1,3 +1,8 @@
+use core::iter::Iterator;
+
+use can_frame::CanFrame;
+use can_frame::CanID;
+
 struct MessageFrameHeader {
     priority: u8,
     type_id: u16,
@@ -25,6 +30,22 @@ enum UavcanHeader {
 }
 
 struct UavcanFrame {
-    header: UavcanHeader,
-    data: [u8],
+    data_pos: usize,
+    pub header: UavcanHeader,
+    pub data: [u8],
 }
+
+impl Iterator for UavcanFrame {
+    type Item = CanFrame;
+    fn next(&mut self) -> Option<CanFrame>{
+        let single_frame_transfer = self.data.len() < 8;
+        let first_frame = self.data_pos == 0;
+        let last_frame = self.data.len() - self.data_pos < 8;
+
+        let can_id = 0x00; // fix value
+        
+                
+        return Some(CanFrame{id: CanID::Extended(can_id), dlc: 0, data: [0;8]});
+    }
+}
+
