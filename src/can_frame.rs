@@ -5,7 +5,7 @@ pub enum CanID {
 
 pub struct CanFrame {
     pub id: CanID,
-    pub dlc: u8,
+    pub dlc: usize,
     pub data: [u8; 8],
 }
 
