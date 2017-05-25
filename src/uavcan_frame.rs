@@ -27,6 +27,24 @@ struct ServiceFrameHeader {
     source_node: u8,
 }
 
+impl ToCanID for MessageFrameHeader {
+    fn to_can_id(&self) -> CanID {
+        return CanID::Extended( ((self.priority as u32) << 24)&(0x1f000000) | ((self.type_id as u32) << 8)&(0x00ffff00) | (0u32 << 7) | ((self.source_node as u32))&(0x0000007f) );
+    }
+}
+
+impl ToCanID for AnonymousFrameHeader {
+    fn to_can_id(&self) -> CanID {
+        return CanID::Extended( ((self.priority as u32) << 24)&(0x1f000000) | ((self.discriminator as u32) << 10)&(0x00fffc00) | ((self.type_id as u32) << 10)&(0x00000300) | (0u32 << 7) | ((self.source_node as u32))&(0x0000007f) );
+    }
+}
+
+impl ToCanID for ServiceFrameHeader {
+    fn to_can_id(&self) -> CanID {
+        return CanID::Extended( ((self.priority as u32) << 24)&(0x1f000000) | ((self.type_id as u32) << 16)&(0x00ff0000) | ((self.request_not_response as u32) << 15) | ((self.destination_node as u32) << 8)&(0x00007f00) | (1u32 << 7) | ((self.source_node as u32) << 0)&(0x0000007f) );
+    }
+}
+
 enum UavcanHeader {
     MessageFrameHeader(MessageFrameHeader),
     AnonymousFrameHeader(AnonymousFrameHeader),
