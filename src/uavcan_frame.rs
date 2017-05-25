@@ -63,22 +63,47 @@ impl ToCanID for UavcanHeader {
 }
 
 struct UavcanFrame {
-    data_pos: usize,
     pub header: UavcanHeader,
     pub data: [u8],
 }
 
-impl Iterator for UavcanFrame {
+struct CanFrameIterator<'a> {
+    data_pos: usize,
+    uavcan_frame: &'a UavcanFrame,    
+}
+
+impl UavcanFrame {
+    fn into_can_frame_iter<'a>(&'a self) -> CanFrameIterator<'a> {
+        return CanFrameIterator{ data_pos:0, uavcan_frame: self, };
+    }
+        
+}
+
+impl<'a> Iterator for CanFrameIterator<'a>{
     type Item = CanFrame;
     fn next(&mut self) -> Option<CanFrame>{
-        let single_frame_transfer = self.data.len() < 8;
+        let single_frame_transfer = self.uavcan_frame.data.len() < 8;
         let first_frame = self.data_pos == 0;
-        let last_frame = self.data.len() - self.data_pos < 8;
+        let last_frame = self.uavcan_frame.data.len() - self.data_pos < 8;
 
-        let can_id = 0x00; // fix value
+        let can_id = self.uavcan_frame.header.to_can_id();
+        let dlc =
+            if last_frame { self.uavcan_frame.data.len() - self.data_pos + 1
+            } else { 8 };
+
+        let mut can_data: [u8; 8] = [0; 8];
         
-                
-        return Some(CanFrame{id: CanID::Extended(can_id), dlc: 0, data: [0;8]});
+        for i in 0..dlc {
+            can_data[i] = self.uavcan_frame.data[self.data_pos + i];
+        }
+        
+        self.data_pos = self.data_pos + dlc;
+                        
+        return Some(CanFrame{id: can_id, dlc: dlc, data: can_data});
+    }
+
+}
+
 
 
 
