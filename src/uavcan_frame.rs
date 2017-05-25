@@ -1,7 +1,10 @@
 use core::iter::Iterator;
 
-use can_frame::CanFrame;
-use can_frame::CanID;
+use can_frame::{CanFrame,
+                CanID,
+                ToCanID,
+};
+
 
 struct MessageFrameHeader {
     priority: u8,
