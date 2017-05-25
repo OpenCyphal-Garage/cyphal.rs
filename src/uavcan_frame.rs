@@ -51,6 +51,17 @@ enum UavcanHeader {
     ServiceFrameHeader(ServiceFrameHeader),
 }
 
+impl ToCanID for UavcanHeader {
+    fn to_can_id(&self) -> CanID {
+        let can_id = match self {
+            &UavcanHeader::MessageFrameHeader(ref x) => x.to_can_id(),
+            &UavcanHeader::AnonymousFrameHeader(ref x) => x.to_can_id(),
+            &UavcanHeader::ServiceFrameHeader(ref x) => x.to_can_id(),
+        };
+        return can_id;
+    }
+}
+
 struct UavcanFrame {
     data_pos: usize,
     pub header: UavcanHeader,
