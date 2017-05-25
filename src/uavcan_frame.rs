@@ -79,6 +79,37 @@ impl Iterator for UavcanFrame {
         
                 
         return Some(CanFrame{id: CanID::Extended(can_id), dlc: 0, data: [0;8]});
+
+
+
+#[cfg(test)]
+mod tests {
+    use uavcan_frame::*;
+    use can_frame::*;
+    use core::fmt::*;
+
+    impl PartialEq for CanID {
+        fn eq(&self, other: &CanID) -> bool {
+            return match (self, other) {
+                (&CanID::Extended(ref x), &CanID::Extended(ref y)) => x == y,
+                (&CanID::Normal(ref x), &CanID::Normal(ref y)) => x == y,
+                _ => false,
+            }
+        }    
+    }
+
+    impl Debug for CanID {
+        fn fmt(&self, f: &mut Formatter) -> Result {
+            match self {
+                &CanID::Extended(ref id) => write!(f, "Extended ID 0x{:x}", id),
+                &CanID::Normal(ref id) => write!(f, "Normal ID 0x{:x}", id),
+            }
+        }
+    }
+    
+    #[test]
+    fn message_frame_id() {
+        assert_eq!(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}.to_can_id(), CanID::Extended(0x1000aa72));
     }
 }
 
