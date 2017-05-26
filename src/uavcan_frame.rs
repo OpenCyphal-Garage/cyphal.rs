@@ -159,6 +159,20 @@ mod tests {
             }
         }
     }
+
+    impl PartialEq for CanFrame {
+        fn eq(&self, other: &CanFrame) -> bool {
+            (self.id == other.id) && (self.dlc == other.dlc) && (self.data == other.data)
+        }
+    }
+                
+    
+    impl Debug for CanFrame {
+        fn fmt(&self, f: &mut Formatter) -> Result {
+            write!(f, "CanFrame( id: {:?}, dlc: {}, and data: {:?})", self.id, self.dlc, self.data)
+        }
+    }
+                
     
     #[test]
     fn message_frame_id() {
