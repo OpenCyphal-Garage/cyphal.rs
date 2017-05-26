@@ -87,13 +87,15 @@ impl<'a> Iterator for CanFrameIterator<'a>{
         let last_frame = self.uavcan_frame.data.len() - self.data_pos < 8;
 
         let can_id = self.uavcan_frame.header.to_can_id();
-        let dlc =
-            if last_frame { self.uavcan_frame.data.len() - self.data_pos + 1
-            } else { 8 };
 
+        let (payload_length, dlc) =
+            if first_frame && !last_frame { (5,8)
+            } else if last_frame { (self.uavcan_frame.data.len() - self.data_pos, self.uavcan_frame.data.len() - self.data_pos + 1)
+            } else { (7, 8) };
+    
         let mut can_data: [u8; 8] = [0; 8];
         
-        for i in 0..dlc {
+        for i in 0..payload_length {
             can_data[i] = self.uavcan_frame.data[self.data_pos + i];
         }
         
