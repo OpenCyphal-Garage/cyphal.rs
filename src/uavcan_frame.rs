@@ -6,6 +6,8 @@ use can_frame::{CanFrame,
                 ToCanID,
 };
 
+use crc;
+
 
 struct MessageFrameHeader {
     priority: u8,
