@@ -2,7 +2,7 @@
 
 mod uavcan_frame;
 mod can_frame;
-
+mod crc;
 
 #[cfg(test)]
 mod tests {
