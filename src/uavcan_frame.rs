@@ -66,6 +66,7 @@ impl ToCanID for UavcanHeader {
 struct UavcanFrame<'a> {
     pub header: UavcanHeader,
     pub data: &'a [u8],
+    pub transfer_id: u8,
 }
 
 struct CanFrameIterator<'a> {
@@ -95,7 +96,7 @@ impl<'a> Iterator for CanFrameIterator<'a>{
             } else if end_of_transfer { (self.uavcan_frame.data.len() - self.data_pos, self.uavcan_frame.data.len() - self.data_pos + 1)
             } else { (7, 8) };
     
-        let tail_byte = TailByte{start_of_transfer: start_of_transfer, end_of_transfer: end_of_transfer, toggle: self.toggle, transfer_id: 0x00}; // todo: implement transfer_id
+        let tail_byte = TailByte{start_of_transfer: start_of_transfer, end_of_transfer: end_of_transfer, toggle: self.toggle, transfer_id: self.uavcan_frame.transfer_id}; 
         
         let mut can_data: [u8; 8] = [0; 8];
         
