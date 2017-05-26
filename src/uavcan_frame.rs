@@ -69,13 +69,14 @@ struct UavcanFrame<'a> {
 }
 
 struct CanFrameIterator<'a> {
+    toggle: bool,
     data_pos: usize,
     uavcan_frame: &'a UavcanFrame<'a>,    
 }
 
 impl<'a> UavcanFrame<'a> {
     fn into_can_frame_iter(&'a self) -> CanFrameIterator<'a> {
-        return CanFrameIterator{ data_pos:0, uavcan_frame: self, };
+        return CanFrameIterator{ data_pos:0, toggle: false,  uavcan_frame: self, };
     }
         
 }
@@ -84,23 +85,28 @@ impl<'a> Iterator for CanFrameIterator<'a>{
     type Item = CanFrame;
     fn next(&mut self) -> Option<CanFrame>{
         let single_frame_transfer = self.uavcan_frame.data.len() < 8;
-        let first_frame = self.data_pos == 0;
-        let last_frame = self.uavcan_frame.data.len() - self.data_pos < 8;
+        let start_of_transfer = self.data_pos == 0;
+        let end_of_transfer = self.uavcan_frame.data.len() - self.data_pos < 8;
 
         let can_id = self.uavcan_frame.header.to_can_id();
 
         let (payload_length, dlc) =
-            if first_frame && !last_frame { (5,8)
-            } else if last_frame { (self.uavcan_frame.data.len() - self.data_pos, self.uavcan_frame.data.len() - self.data_pos + 1)
+            if start_of_transfer && !end_of_transfer { (5,8)
+            } else if end_of_transfer { (self.uavcan_frame.data.len() - self.data_pos, self.uavcan_frame.data.len() - self.data_pos + 1)
             } else { (7, 8) };
     
+        let tail_byte = TailByte{start_of_transfer: start_of_transfer, end_of_transfer: end_of_transfer, toggle: self.toggle, transfer_id: 0x00}; // todo: implement transfer_id
+        
         let mut can_data: [u8; 8] = [0; 8];
         
         for i in 0..payload_length {
             can_data[i] = self.uavcan_frame.data[self.data_pos + i];
         }
+        can_data[dlc-1] = tail_byte.into();
+
         
         self.data_pos = self.data_pos + dlc;
+        self.toggle = !self.toggle;
                         
         return Some(CanFrame{id: can_id, dlc: dlc, data: can_data});
     }
