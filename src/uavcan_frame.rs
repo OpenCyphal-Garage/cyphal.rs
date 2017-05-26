@@ -1,4 +1,5 @@
 use core::iter::Iterator;
+use core::convert::{From, Into};
 
 use can_frame::{CanFrame,
                 CanID,
@@ -106,6 +107,25 @@ impl<'a> Iterator for CanFrameIterator<'a>{
 
 }
 
+struct TailByte {
+    start_of_transfer: bool,
+    end_of_transfer: bool,
+    toggle: bool,
+    transfer_id: u8,
+}
+
+impl Into<u8> for TailByte {
+    fn into(self) -> u8 {
+        ((self.start_of_transfer as u8) << 7) | ((self.end_of_transfer as u8) << 6) | ((self.toggle as u8) << 5) | (self.transfer_id&0x1f)
+    }
+}
+
+impl From<u8> for TailByte {
+    fn from(u: u8) -> Self {
+        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<6)) != 0, transfer_id: u&0x1f}
+    }
+}
+    
 
 
 
