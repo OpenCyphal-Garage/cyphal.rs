@@ -62,18 +62,18 @@ impl ToCanID for UavcanHeader {
     }
 }
 
-struct UavcanFrame {
+struct UavcanFrame<'a> {
     pub header: UavcanHeader,
-    pub data: [u8],
+    pub data: &'a [u8],
 }
 
 struct CanFrameIterator<'a> {
     data_pos: usize,
-    uavcan_frame: &'a UavcanFrame,    
+    uavcan_frame: &'a UavcanFrame<'a>,    
 }
 
-impl UavcanFrame {
-    fn into_can_frame_iter<'a>(&'a self) -> CanFrameIterator<'a> {
+impl<'a> UavcanFrame<'a> {
+    fn into_can_frame_iter(&'a self) -> CanFrameIterator<'a> {
         return CanFrameIterator{ data_pos:0, uavcan_frame: self, };
     }
         
