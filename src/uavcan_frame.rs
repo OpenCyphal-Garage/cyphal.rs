@@ -194,10 +194,30 @@ mod tests {
     }
 
     #[test]
-    fn can_frame_iterator_test() {
+    fn can_frame_iterator_single1() {
         let uavcan_frame = UavcanFrame{header: UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}), data: &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8], transfer_id: 0x00};
+        let can_frame = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [1, 2, 3, 4, 5, 6, 7, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0x00}.into()]};
 
-        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [1, 2, 3, 4, 5, 6, 7, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0x00}.into()]}); // fix tail byte
+        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), can_frame); // fix tail byte
     }
+
+    #[test]
+    fn can_frame_iterator_multi1() {
+        let data = [1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8];
+        
+        let uavcan_frame = UavcanFrame{header: UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}), data: &data, transfer_id: 0x00};
+
+        let crc = crc::calc(&data, 0x00);
+        let crc0 = crc as u8;
+        let crc1 = (crc >> 8) as u8;
+        
+        let can_frame0 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [crc0, crc1, 1, 2, 3, 4, 5, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0x00}.into()]};
+        let can_frame1 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 4, data: [6, 7, 8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0x00}.into(), 0, 0, 0, 0]};
+
+        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), can_frame0);
+        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), can_frame1);
+
+    }
+    
 }
 
