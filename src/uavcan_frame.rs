@@ -190,5 +190,12 @@ mod tests {
         assert_eq!(UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}).to_can_id(), CanID::Extended(0x1000aa72));
         assert_eq!(UavcanHeader::ServiceFrameHeader(ServiceFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72, destination_node: 0x11, request_not_response: true}).to_can_id(), CanID::Extended(0x10aa91f2));
     }
+
+    #[test]
+    fn can_frame_iterator_test() {
+        let uavcan_frame = UavcanFrame{header: UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}), data: &[1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8], transfer_id: 0x00};
+
+        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [1, 2, 3, 4, 5, 6, 7, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0x00}.into()]}); // fix tail byte
+    }
 }
 
