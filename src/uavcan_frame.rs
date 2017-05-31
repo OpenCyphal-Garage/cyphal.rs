@@ -108,7 +108,7 @@ impl<'a> Iterator for CanFrameIterator<'a>{
 
         self.data_pos = self.data_pos + data_length;
         self.toggle = !self.toggle;
-                        
+
         return Some(CanFrame{id: can_id, dlc: data_length+1, data: can_data});
     }
 
@@ -201,19 +201,24 @@ mod tests {
 
     #[test]
     fn can_frame_iterator_multi1() {
-        let data = [1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8];
+        let mut data = [0u8, 0u8, 1u8, 2u8, 3u8, 4u8, 5u8, 6u8, 7u8, 8u8];
         
-        let uavcan_frame = UavcanFrame{header: UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}), data: &data, transfer_id: 0x00};
-
-        let crc = crc::calc(&data, 0x00);
+        let crc = crc::calc(&data[2..], 0x00);
         let crc0 = crc as u8;
         let crc1 = (crc >> 8) as u8;
+
+        data[0] = crc0;
+        data[1] = crc1;
+        
+        let uavcan_frame = UavcanFrame{header: UavcanHeader::MessageFrameHeader(MessageFrameHeader{priority: 0x10, type_id: 0xaa, source_node: 0x72}), data: &data, transfer_id: 0x00};
         
         let can_frame0 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [crc0, crc1, 1, 2, 3, 4, 5, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0x00}.into()]};
         let can_frame1 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 4, data: [6, 7, 8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0x00}.into(), 0, 0, 0, 0]};
 
-        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), can_frame0);
-        assert_eq!(uavcan_frame.into_can_frame_iter().next().unwrap(), can_frame1);
+        let can_frame_iter = uavcan_frame.into_can_frame_iter();
+        
+        assert_eq!(can_frame_iter.next().unwrap(), can_frame0);
+        assert_eq!(can_frame_iter.next().unwrap(), can_frame1);
 
     }
     
