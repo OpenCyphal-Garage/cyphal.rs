@@ -93,25 +93,23 @@ impl<'a> Iterator for CanFrameIterator<'a>{
 
         let can_id = self.uavcan_frame.header.to_can_id();
 
-        let (payload_length, dlc) =
-            if start_of_transfer && !end_of_transfer { (5,8)
-            } else if end_of_transfer { (self.uavcan_frame.data.len() - self.data_pos, self.uavcan_frame.data.len() - self.data_pos + 1)
-            } else { (7, 8) };
+        let data_length =
+            if end_of_transfer { self.uavcan_frame.data.len() - self.data_pos
+            } else { 7 };
     
         let tail_byte = TailByte{start_of_transfer: start_of_transfer, end_of_transfer: end_of_transfer, toggle: self.toggle, transfer_id: self.uavcan_frame.transfer_id}; 
         
         let mut can_data: [u8; 8] = [0; 8];
         
-        for i in 0..payload_length {
+        for i in 0..data_length {
             can_data[i] = self.uavcan_frame.data[self.data_pos + i];
         }
-        can_data[dlc-1] = tail_byte.into();
+        can_data[data_length] = tail_byte.into();
 
-        
-        self.data_pos = self.data_pos + dlc;
+        self.data_pos = self.data_pos + data_length;
         self.toggle = !self.toggle;
                         
-        return Some(CanFrame{id: can_id, dlc: dlc, data: can_data});
+        return Some(CanFrame{id: can_id, dlc: data_length+1, data: can_data});
     }
 
 }
