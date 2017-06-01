@@ -1,38 +1,38 @@
 use core::mem::transmute;
 
-struct Bool {
+pub struct Bool {
     value: bool,
 }
 
-struct IntX {
+pub struct IntX {
     x: u8,
     value: i64,
 }
 
-struct UintX {
+pub struct UintX {
     x: u8,
     value: u64,
 }
 
-struct Float16 {
+pub struct Float16 {
     positive: bool,
     exponent: u8,
     fraction: u16,
 }
 
-struct Float32 {
+pub struct Float32 {
     value: f32,
 }
 
-struct Float64 {
+pub struct Float64 {
     value: f64,
 }
 
-struct VoidX{
+pub struct VoidX{
     x: u8,
 }
 
-enum PrimitiveDataType {
+pub enum PrimitiveDataType {
     Bool(Bool),
     IntX(IntX),
     UintX(UintX),
