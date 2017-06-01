@@ -87,6 +87,10 @@ impl<'a> UavcanFrame<'a> {
 impl<'a> Iterator for CanFrameIterator<'a>{
     type Item = CanFrame;
     fn next(&mut self) -> Option<CanFrame>{
+        if (self.data_pos >= self.uavcan_frame.data.len()) {
+            return None;
+        }
+        
         let single_frame_transfer = self.uavcan_frame.data.len() < 8;
         let start_of_transfer = self.data_pos == 0;
         let end_of_transfer = self.uavcan_frame.data.len() - self.data_pos < 8;
