@@ -150,7 +150,48 @@ impl From<u8> for TailByte {
         TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<6)) != 0, transfer_id: u&0x1f}
     }
 }
-    
+
+pub struct BuilderBlock<'a> {
+    can_frame: Option<&'a CanFrame>,
+    previous_block: Option<& 'a BuilderBlock<'a>>,
+}
+
+#[derive(Debug)]
+pub enum BuilderError {
+    FirstFrameNotStartFrame,
+    BlockAddedAfterEndFrame,
+    CRCError,
+}
+
+impl<'a> BuilderBlock<'a> {
+    pub fn new() -> BuilderBlock<'a> {
+        BuilderBlock{can_frame: None, previous_block: None}
+    }
+
+    pub fn with_can_frame(first_frame: &'a CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
+        if first_frame.is_start_frame() {
+            Ok(BuilderBlock{can_frame: Some(first_frame), previous_block: None})
+        } else {
+            Err(BuilderError::FirstFrameNotStartFrame)
+        }
+    }
+
+    pub fn add_frame(&'a self, new_frame: &'a CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
+        if self.can_frame.is_none() {
+            if new_frame.is_start_frame() {
+                Ok(BuilderBlock{previous_block: None, can_frame: Some(new_frame)})
+            } else {
+                Err(BuilderError::FirstFrameNotStartFrame)
+            }
+        } else {
+            if self.can_frame.unwrap().is_end_frame() {
+                Err(BuilderError::BlockAddedAfterEndFrame)
+            } else {
+                Ok(BuilderBlock{previous_block: Some(self), can_frame: Some(new_frame)})
+            }
+        }
+    }
+}
 
 
 
