@@ -7,6 +7,22 @@ use can_frame::{CanFrame,
 };
 
 
+impl CanFrame {
+    fn tail_byte(&self) -> TailByte {
+        TailByte::from(self.data[self.dlc-1])
+    }
+    fn is_start_frame(&self) -> bool {
+        self.tail_byte().start_of_transfer
+    }
+    fn is_end_frame(&self) -> bool {
+        self.tail_byte().end_of_transfer
+    }
+    fn is_single_frame(&self) -> bool {
+        self.is_end_frame() && self.is_start_frame()
+    }
+}
+
+
 struct MessageFrameHeader {
     priority: u8,
     type_id: u16,
