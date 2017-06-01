@@ -215,7 +215,7 @@ mod tests {
         let can_frame0 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [crc0, crc1, 1, 2, 3, 4, 5, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0x00}.into()]};
         let can_frame1 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 4, data: [6, 7, 8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0x00}.into(), 0, 0, 0, 0]};
 
-        let can_frame_iter = uavcan_frame.into_can_frame_iter();
+        let mut can_frame_iter = uavcan_frame.into_can_frame_iter();
         
         assert_eq!(can_frame_iter.next().unwrap(), can_frame0);
         assert_eq!(can_frame_iter.next().unwrap(), can_frame1);
