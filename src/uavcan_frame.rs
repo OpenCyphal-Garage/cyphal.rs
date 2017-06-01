@@ -6,8 +6,6 @@ use can_frame::{CanFrame,
                 ToCanID,
 };
 
-use crc;
-
 
 struct MessageFrameHeader {
     priority: u8,
@@ -145,6 +143,7 @@ mod tests {
     use uavcan_frame::*;
     use can_frame::*;
     use core::fmt::*;
+    use crc;
 
     impl PartialEq for CanID {
         fn eq(&self, other: &CanID) -> bool {
