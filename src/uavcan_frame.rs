@@ -152,7 +152,7 @@ impl From<u8> for TailByte {
 }
 
 pub struct BuilderBlock<'a> {
-    can_frame: Option<&'a CanFrame>,
+    can_frame: Option<CanFrame>,
     previous_block: Option<& 'a BuilderBlock<'a>>,
 }
 
@@ -168,7 +168,7 @@ impl<'a> BuilderBlock<'a> {
         BuilderBlock{can_frame: None, previous_block: None}
     }
 
-    pub fn with_can_frame(first_frame: &'a CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
+    pub fn with_can_frame(first_frame: CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
         if first_frame.is_start_frame() {
             Ok(BuilderBlock{can_frame: Some(first_frame), previous_block: None})
         } else {
@@ -176,7 +176,7 @@ impl<'a> BuilderBlock<'a> {
         }
     }
 
-    pub fn add_frame(&'a self, new_frame: &'a CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
+    pub fn add_frame(&'a self, new_frame: CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
         if self.can_frame.is_none() {
             if new_frame.is_start_frame() {
                 Ok(BuilderBlock{previous_block: None, can_frame: Some(new_frame)})
@@ -184,7 +184,7 @@ impl<'a> BuilderBlock<'a> {
                 Err(BuilderError::FirstFrameNotStartFrame)
             }
         } else {
-            if self.can_frame.unwrap().is_end_frame() {
+            if self.can_frame.as_ref().unwrap().is_end_frame() {
                 Err(BuilderError::BlockAddedAfterEndFrame)
             } else {
                 Ok(BuilderBlock{previous_block: Some(self), can_frame: Some(new_frame)})
@@ -312,11 +312,26 @@ mod tests {
         let can_frame1 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [6, 7, 8, 0, 0, 0, 0, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0x00}.into()]};
         let can_frame2 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 4, data: [6, 7, 8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0x00}.into(), 0, 0, 0, 0]};
 
-        let builder = &BuilderBlock::with_can_frame(&can_frame0).unwrap();
-        let builder = &builder.add_frame(&can_frame1).unwrap();
-        let builder = &builder.add_frame(&can_frame2).unwrap();
+        let builder = &BuilderBlock::with_can_frame(can_frame0).unwrap();
+        let builder = &builder.add_frame(can_frame1).unwrap();
+        let builder = &builder.add_frame(can_frame2).unwrap();
         
     }
+
+    #[test]
+    fn pure_crazynes() {
+        let can_frame1 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [6, 7, 8, 0, 0, 0, 0, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0x00}.into()]};
+        let can_frame2 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 4, data: [6, 7, 8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0x00}.into(), 0, 0, 0, 0]};
+
+        let builder = {
+            let can_frame0 = CanFrame{id: CanID::Extended(0x1000aa72), dlc: 8, data: [127, 127, 1, 2, 3, 4, 5, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0x00}.into()]};
+            &BuilderBlock::with_can_frame(can_frame0).unwrap()
+        };
+        let builder = &builder.add_frame(can_frame1).unwrap();
+        let builder = &builder.add_frame(can_frame2).unwrap();
+        
+    }
+
     
 }
 
