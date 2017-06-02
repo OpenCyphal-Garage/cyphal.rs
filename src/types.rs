@@ -1,5 +1,9 @@
 use core::mem::transmute;
 
+trait UavcanSerializable {
+    fn uavcan_size(&self) -> usize;
+}
+
 pub struct Bool {
     value: bool,
 }
@@ -80,5 +84,47 @@ impl From<Float32> for f32 {
 impl From<Float64> for f64 {
     fn from(t: Float64) -> f64 {
         t.value
+    }
+}
+
+impl UavcanSerializable for Bool {
+    fn uavcan_size(&self) -> usize {
+        1
+    }
+}
+
+impl UavcanSerializable for IntX {
+    fn uavcan_size(&self) -> usize {
+        self.x
+    }
+}
+
+impl UavcanSerializable for UintX {
+    fn uavcan_size(&self) -> usize {
+        self.x
+    }
+}
+
+impl UavcanSerializable for Float16 {
+    fn uavcan_size(&self) -> usize {
+        16
+    }
+}
+
+impl UavcanSerializable for Float32 {
+    fn uavcan_size(&self) -> usize {
+        32
+    }
+}
+
+impl UavcanSerializable for Float64 {
+    fn uavcan_size(&self) -> usize {
+        64
+    }
+}
+
+impl UavcanSerializable for VoidX {
+    fn uavcan_size(&self) -> usize {
+        self.x
     }
 }
