@@ -5,12 +5,12 @@ pub struct Bool {
 }
 
 pub struct IntX {
-    x: u8,
+    x: usize,
     value: i64,
 }
 
 pub struct UintX {
-    x: u8,
+    x: usize,
     value: u64,
 }
 
@@ -29,7 +29,7 @@ pub struct Float64 {
 }
 
 pub struct VoidX{
-    x: u8,
+    x: usize,
 }
 
 pub enum PrimitiveDataType {
