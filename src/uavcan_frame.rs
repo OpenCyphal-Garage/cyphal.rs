@@ -293,6 +293,30 @@ mod tests {
         
     }
 
-   
+    #[test]
+    fn uavcan_sized_length_derivation() {
+        
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: UintX,
+            health: UintX,
+            mode: UintX,
+            sub_mode: UintX,
+            vendor_specific_status_code: UintX,
+        }
+
+        let mut node_status_message = NodeStatus {
+            uptime_sec: UintX::new(32, 0),
+            health: UintX::new(2, 0),
+            mode: UintX::new(3, 0),
+            sub_mode: UintX::new(3, 0),
+            vendor_specific_status_code: UintX::new(16, 0),
+        };
+
+        assert_eq!(node_status_message.uavcan_bit_size(), 56)
+        
+        
+    }
+    
 }
 
