@@ -6,6 +6,11 @@ pub trait UavcanIndexable {
     fn field_length_from_field_num(&self, field_num: usize) -> Option<usize>;
 }
 
+pub struct f16 {
+    bitfield: u16,
+}
+
+
 pub struct Bool {
     value: bool,
 }
@@ -21,9 +26,7 @@ pub struct UintX {
 }
 
 pub struct Float16 {
-    positive: bool,
-    exponent: u8,
-    fraction: u16,
+    value: f16,
 }
 
 pub struct Float32 {
@@ -58,14 +61,9 @@ impl From<UintX> for u64 {
     }
 }
 
-impl From<Float16> for f32 {
-    fn from(t: Float16) -> f32 {
-        let positive_f32 = t.positive;
-        let exponent_f32 = t.exponent - 15 + 127;
-        let fraction_f32: u32 = (t.fraction as u32) << 13;
-        let bitvalue_f32: u32 = fraction_f32 | ((exponent_f32 as u32) << 23) | ((positive_f32 as u32) << 31);
-        let value = unsafe { transmute::<u32, f32>(bitvalue_f32) };
-        return value;        
+impl From<Float16> for f16 {
+    fn from(t: Float16) -> f16 {
+        t.value
     }
 }
 
