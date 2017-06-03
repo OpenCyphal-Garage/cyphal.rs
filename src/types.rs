@@ -36,14 +36,6 @@ pub struct VoidX{
     x: usize,
 }
 
-pub enum PrimitiveDataType {
-    Bool(Bool),
-    IntX(IntX),
-    UintX(UintX),
-    Float16(Float16),
-    Float32(Float32),
-    Float64(Float64),
-    VoidX(VoidX),
 }
 
 impl From<Bool> for bool {
