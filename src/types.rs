@@ -41,7 +41,55 @@ pub struct VoidX{
     x: usize,
 }
 
+
+
+
+
+impl Bool {
+    pub fn new(value: bool) -> Bool {
+        Bool{value: value}
+    }
 }
+
+impl IntX {
+    pub fn new(x: usize, value: i64) -> IntX {
+        IntX{x: x, value: value}
+    }
+}
+
+impl UintX {
+    pub fn new(x: usize, value: u64) -> UintX {
+        UintX{x: x, value: value}
+    }
+}
+
+impl Float16 {
+    pub fn new(value: f16) -> Float16 {
+        Float16{value: value}
+    }
+}
+
+impl Float32 {
+    pub fn new(value: f32) -> Float32 {
+        Float32{value: value}
+    }
+}
+
+impl Float64 {
+    pub fn new(value: f64) -> Float64 {
+        Float64{value: value}
+    }
+}
+
+impl VoidX {
+    pub fn new(x: usize) -> VoidX {
+        VoidX{x: x}
+    }
+}
+
+
+
+
 
 impl From<Bool> for bool {
     fn from(t: Bool) -> bool {
