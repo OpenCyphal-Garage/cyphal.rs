@@ -1,7 +1,9 @@
 use core::mem::transmute;
 
-trait UavcanSerializable {
-    fn uavcan_size(&self) -> usize;
+pub trait UavcanIndexable {
+    fn uavcan_bit_size(&self) -> usize;
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize>;
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize>;
 }
 
 pub struct Bool {
@@ -79,44 +81,152 @@ impl From<Float64> for f64 {
     }
 }
 
-impl UavcanSerializable for Bool {
-    fn uavcan_size(&self) -> usize {
+
+
+
+
+
+
+impl UavcanIndexable for Bool {
+    fn uavcan_bit_size(&self) -> usize {
         1
     }
-}
-
-impl UavcanSerializable for IntX {
-    fn uavcan_size(&self) -> usize {
-        self.x
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
     }
 }
 
-impl UavcanSerializable for UintX {
-    fn uavcan_size(&self) -> usize {
+impl UavcanIndexable for IntX {
+    fn uavcan_bit_size(&self) -> usize {
         self.x
     }
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
+    }
+
 }
 
-impl UavcanSerializable for Float16 {
-    fn uavcan_size(&self) -> usize {
+impl UavcanIndexable for UintX {
+    fn uavcan_bit_size(&self) -> usize {
+        self.x
+    }
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
+    }   
+}
+
+impl UavcanIndexable for Float16 {
+    fn uavcan_bit_size(&self) -> usize {
         16
     }
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
+    }
 }
 
-impl UavcanSerializable for Float32 {
-    fn uavcan_size(&self) -> usize {
+impl UavcanIndexable for Float32 {
+    fn uavcan_bit_size(&self) -> usize {
         32
     }
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
+    }
 }
 
-impl UavcanSerializable for Float64 {
-    fn uavcan_size(&self) -> usize {
+impl UavcanIndexable for Float64 {
+    fn uavcan_bit_size(&self) -> usize {
         64
     }
-}
-
-impl UavcanSerializable for VoidX {
-    fn uavcan_size(&self) -> usize {
-        self.x
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
     }
 }
+
+impl UavcanIndexable for VoidX {
+    fn uavcan_bit_size(&self) -> usize {
+        self.x
+    }
+    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(0)
+        } else {
+            None
+        }
+    }
+    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
+        if field_num == 0 {
+            Some(self.uavcan_bit_size())
+        } else {
+            None
+        }
+    }
+}
+
+
+
