@@ -1,7 +1,11 @@
 [package]
-name = "uavcan"
+name = "uavcan-indexable-derive"
 version = "0.1.0"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
+[lib]
+proc-macro = true
+
 [dependencies]
-uavcan-indexable-derive = {path = "uavcan-indexable-derive"}
+syn = "0.10.5"
+quote = "0.3.10"
