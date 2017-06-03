@@ -6,6 +6,14 @@ use can_frame::{CanFrame,
                 ToCanID,
 };
 
+use types::{
+    UavcanIndexable,
+    Bool,
+    IntX,
+    UintX,
+    Float16
+};
+
 
 impl CanFrame {
     fn tail_byte(&self) -> TailByte {
@@ -151,11 +159,6 @@ impl From<u8> for TailByte {
     }
 }
 
-pub struct BuilderBlock<'a> {
-    can_frame: Option<CanFrame>,
-    previous_block: Option<& 'a BuilderBlock<'a>>,
-}
-
 #[derive(Debug)]
 pub enum BuilderError {
     FirstFrameNotStartFrame,
@@ -163,36 +166,20 @@ pub enum BuilderError {
     CRCError,
 }
 
-impl<'a> BuilderBlock<'a> {
-    pub fn new() -> BuilderBlock<'a> {
-        BuilderBlock{can_frame: None, previous_block: None}
-    }
-
-    pub fn with_can_frame(first_frame: CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
-        if first_frame.is_start_frame() {
-            Ok(BuilderBlock{can_frame: Some(first_frame), previous_block: None})
-        } else {
-            Err(BuilderError::FirstFrameNotStartFrame)
-        }
-    }
-
-    pub fn add_frame(&'a self, new_frame: CanFrame) -> Result<BuilderBlock<'a>, BuilderError> {
-        if self.can_frame.is_none() {
-            if new_frame.is_start_frame() {
-                Ok(BuilderBlock{previous_block: None, can_frame: Some(new_frame)})
-            } else {
-                Err(BuilderError::FirstFrameNotStartFrame)
-            }
-        } else {
-            if self.can_frame.as_ref().unwrap().is_end_frame() {
-                Err(BuilderError::BlockAddedAfterEndFrame)
-            } else {
-                Ok(BuilderBlock{previous_block: Some(self), can_frame: Some(new_frame)})
-            }
-        }
-    }
+struct MessageBuilder<T: UavcanIndexable> {
+    message: T,
+    bytes_written: usize,
 }
 
+impl<T: UavcanIndexable> MessageBuilder<T> {
+    fn from_message(message: T) -> MessageBuilder<T> {
+        MessageBuilder{message: message, bytes_written: 0}
+    }
+    
+    fn add_can_frame(self, can_frame: &CanFrame) -> Result<MessageBuilder<T>, BuilderError> {
+        unimplemented!()
+    }
+}
 
 
 #[cfg(test)]
