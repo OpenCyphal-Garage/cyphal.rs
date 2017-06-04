@@ -334,9 +334,28 @@ mod tests {
                 }
             }
         }
+
+        #[derive(UavcanIndexable)]
+        struct TestComposite2 {
+            ns1: NodeStatus,
+            tc: TestComposite,
+            ns2: NodeStatus,
+        }
+
+        impl TestComposite2 {
+            fn new() -> TestComposite2 {
+                TestComposite2{
+                    ns1: NodeStatus::new(),
+                    tc: TestComposite::new(),
+                    ns2: NodeStatus::new(),
+                }
+            }
+        }
+
         
         assert_eq!(NodeStatus::new().number_of_primitive_fields(), 5);
         assert_eq!(TestComposite::new().number_of_primitive_fields(), 10);
+        assert_eq!(TestComposite2::new().number_of_primitive_fields(), 20);
         
         
     }
