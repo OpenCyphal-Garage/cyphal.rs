@@ -478,6 +478,42 @@ mod tests {
         
     }
 
+    #[test]
+    fn uavcan_parse_test_byte_aligned() {
+
+        #[derive(UavcanIndexable)]
+        struct Message {
+            v1: UintX,
+            v2: UintX,
+            v3: UintX,
+            v4: UintX,
+        }
+
+        impl Message {
+            fn new() -> Message{
+                Message {
+                    v1: UintX::new(8, 0),
+                    v2: UintX::new(32, 0),
+                    v3: UintX::new(16, 0),
+                    v4: UintX::new(8, 0),
+                }
+            }
+        }
+
+        let mut message = Message::new();
+        
+        let mut parser = Parser::from_message(message);
+
+        parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
+
+        let parsed_message = parser.message;
+
+        
+        assert_eq!(parsed_message.v1, UintX::new(8,17));
+        assert_eq!(parsed_message.v2, UintX::new(32,19));
+        assert_eq!(parsed_message.v3, UintX::new(16,21));
+        assert_eq!(parsed_message.v4, UintX::new(8,23));
+    }
     
 }
 
