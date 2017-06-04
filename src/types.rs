@@ -5,6 +5,35 @@ pub trait UavcanIndexable {
     fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
 }
 
+
+/// An UavcanPrimitiveField is a field of a flatted out uavcan struct
+///
+/// It's a superset of Primitive Data Types from the uavcan protocol
+/// also containing both constant and variable size arrays.
+///
+/// All primitive data types have 1 primitive fields,
+/// All composite data structures have the same number of primtiive fields
+/// as the sum of their members. Except the variable length array.
+/// This array has number of primitive fields as their members (elements)+1
+pub trait UavcanPrimitiveField{
+    fn is_constant_size(&self) -> bool;
+    /// get_size(&self) -> usize returns the number of primitive data types in this field
+    ///
+    /// for primtiive data types (non-array) it will return 1
+    fn get_size(&self) -> usize;
+    /// get_size_mut(&self) -> Option<&mut usize> returns a mutable reference to the size
+    /// if the field is of variable size, or None if the field is constant size 
+    fn get_size_mut(&self) -> Option<&mut usize>;
+    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType>;    
+}
+
+pub trait UavcanPrimitiveType{
+    fn bitlength(&self) -> usize;
+    fn set_from_bytes(&mut self, buffer: &[u8]);
+}
+
+
+
 pub struct f16 {
     bitfield: u16,
 }
@@ -136,150 +165,134 @@ impl From<Float64> for f64 {
 
 
 
+impl<T: UavcanPrimitiveField> UavcanIndexable for T {
+    fn number_of_primitive_fields(&self) -> usize{
+        self.get_size()
+    }
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>{
+        if field_number == 0 {
+            Some(self)
+        } else {
+            None
+        }
+    }
+}
 
 
-
-
-impl UavcanIndexable for Bool {
-    fn uavcan_bit_size(&self) -> usize {
+impl<T: UavcanPrimitiveType> UavcanPrimitiveField for T{
+    fn is_constant_size(&self) -> bool{
+        true
+    }
+    fn get_size(&self) -> usize{
         1
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
-        }
+    fn get_size_mut(&self) -> Option<&mut usize>{
+        None
     }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
+    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType> {
+        if index == 0 {
+            Some(self)
         } else {
             None
         }
     }
 }
 
-impl UavcanIndexable for IntX {
-    fn uavcan_bit_size(&self) -> usize {
+
+
+
+
+impl UavcanPrimitiveType for Bool {
+    fn bitlength(&self) -> usize {
+        1
+    }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        if buffer[0] & 1 == 0 {
+            self.value = false;
+        } else {
+            self.value == true;
+        }
+    }
+}
+
+impl UavcanPrimitiveType for IntX {
+    fn bitlength(&self) -> usize {
         self.x
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
+    
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        let mut temp_bm: u64 = 0;
+        for i in 0..((self.x/8) + 1) {
+            temp_bm |= (buffer[i] as u64) << i*8;
         }
-    }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
+        self.value = unsafe { transmute::<u64, i64>(temp_bm) };
     }
 
 }
 
-impl UavcanIndexable for UintX {
-    fn uavcan_bit_size(&self) -> usize {
+impl UavcanPrimitiveType for UintX {
+    fn bitlength(&self) -> usize {
         self.x
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        let mut temp_value: u64 = 0;
+        for i in 0..((self.x/8) + 1) {
+            temp_value |= (buffer[i] as u64) << i*8;
         }
+        self.value = temp_value;
     }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
-    }   
 }
 
-impl UavcanIndexable for Float16 {
-    fn uavcan_bit_size(&self) -> usize {
+impl UavcanPrimitiveType for Float16 {
+    fn bitlength(&self) -> usize {
         16
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
-        }
-    }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
+
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        let bm: u16 = (buffer[0] as u16) | ((buffer[1] as u16) << 8);
+        self.value = f16::from_bitmap(bm);
     }
 }
 
-impl UavcanIndexable for Float32 {
-    fn uavcan_bit_size(&self) -> usize {
+impl UavcanPrimitiveType for Float32 {
+    fn bitlength(&self) -> usize {
         32
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
-        }
-    }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
+
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        let bm: u32 = (buffer[0] as u32)
+            | ((buffer[0] as u32) << 8)
+            | ((buffer[1] as u32) << 16)
+            | ((buffer[2] as u32) << 24);
+        self.value = unsafe { transmute::<u32, f32>(bm) };
     }
 }
 
-impl UavcanIndexable for Float64 {
-    fn uavcan_bit_size(&self) -> usize {
+impl UavcanPrimitiveType for Float64 {
+    fn bitlength(&self) -> usize {
         64
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
-        }
+
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        let bm: u64 = (buffer[0] as u64)
+            | ((buffer[0] as u64) << 8)
+            | ((buffer[1] as u64) << 16)
+            | ((buffer[2] as u64) << 24)
+            | ((buffer[3] as u64) << 32)
+            | ((buffer[4] as u64) << 40)
+            | ((buffer[5] as u64) << 48)
+            | ((buffer[6] as u64) << 56);
+        self.value = unsafe { transmute::<u64, f64>(bm) };
     }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
-    }
+
 }
 
-impl UavcanIndexable for VoidX {
-    fn uavcan_bit_size(&self) -> usize {
+impl UavcanPrimitiveType for VoidX {
+    fn bitlength(&self) -> usize {
         self.x
     }
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(0)
-        } else {
-            None
-        }
-    }
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize> {
-        if field_num == 0 {
-            Some(self.uavcan_bit_size())
-        } else {
-            None
-        }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        // consider doing a check that only 0 is set?
     }
 }
-
-
 
