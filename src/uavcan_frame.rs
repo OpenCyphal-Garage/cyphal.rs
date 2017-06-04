@@ -1,12 +1,15 @@
 use core::iter::Iterator;
 use core::convert::{From, Into};
 
+use bit::BitIndex;
+
 use can_frame::{CanFrame,
                 CanID,
                 ToCanID,
 };
 
 use types::{
+    UavcanPrimitiveType,
     UavcanPrimitiveField,
     UavcanIndexable,
     Bool,
@@ -167,21 +170,94 @@ pub enum BuilderError {
     CRCError,
 }
 
-struct MessageBuilder<T: UavcanIndexable> {
-    message: T,
-    bytes_written: usize,
+#[derive(Debug)]
+pub enum ParseError {
+    StructureExhausted,
 }
 
-impl<T: UavcanIndexable> MessageBuilder<T> {
-    fn from_message(message: T) -> MessageBuilder<T> {
-        MessageBuilder{message: message, bytes_written: 0}
+struct Parser<T: UavcanIndexable> {
+    message: T,
+    current_field_index: usize,
+    current_type_index: usize,
+    buffer_end_bit: usize,
+    buffer: [u8; 15],
+}
+
+impl<T: UavcanIndexable> Parser<T> {
+    pub fn from_message(message: T) -> Parser<T> {
+        Parser{message: message, current_field_index: 0, current_type_index: 0, buffer: [0; 15], buffer_end_bit: 0}
+    }
+
+    fn buffer_consume_bits(&mut self, number_of_bits: usize) {
+        if number_of_bits > self.buffer_end_bit { panic!("Offset can't be larger than buffer_end_bit");}
+        let new_buffer_len = self.buffer_end_bit - number_of_bits;
+        let offset_byte = number_of_bits/8;
+        let offset_bit = number_of_bits%8;
+        for i in 0..((new_buffer_len+7)/8) {
+            let bits_remaining = new_buffer_len - i*8;
+            if offset_bit == 0 {
+                self.buffer[i] = self.buffer[offset_byte+i];
+            } else if bits_remaining + offset_bit < 8 {
+                self.buffer[i] = self.buffer[offset_byte+i].bit_range(offset_bit..8) >> offset_bit;
+            } else {
+                self.buffer[i] = self.buffer[offset_byte+i].bit_range(offset_bit..8) >> offset_bit | self.buffer[offset_byte+1+i].bit_range(0..offset_bit) << 8-offset_bit;
+            }
+        }
+        self.buffer_end_bit -= number_of_bits;
+    }
+
+    fn buffer_append(&mut self, tail: &[u8]) {
+        let joint_byte = self.buffer_end_bit/8;
+        let joint_bit = self.buffer_end_bit%8;
+
+        for i in 0..tail.len() {
+            if joint_bit == 0 {
+                self.buffer[joint_byte + i] = tail[i];
+            } else {
+                self.buffer[joint_byte+i] = self.buffer[joint_byte + i].bit_range(0..joint_bit) | (tail[i].bit_range(0..8-joint_bit) << joint_bit);
+                self.buffer[joint_byte+i+1] = tail[i].bit_range(8-joint_bit..8) >> 8-joint_bit;
+            }
+        }
+
+        self.buffer_end_bit += tail.len()*8;
     }
     
-    fn add_can_frame(self, can_frame: &CanFrame) -> Result<MessageBuilder<T>, BuilderError> {
-        unimplemented!()
-    }
-}
+    pub fn parse(mut self, input: &[u8]) -> Result<Parser<T>, ParseError> {
+                
+        for chunk in input.chunks(8) {
+            self.buffer_append(chunk);
 
+            loop {
+
+                if self.message.primitive_field(self.current_field_index).is_some() {
+                    if self.message.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).is_some() {
+                        
+                        let field_length = self.message.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).unwrap().bitlength();
+                        if field_length <= self.buffer_end_bit {
+                            self.message.primitive_field_as_mut(self.current_field_index).unwrap().primitive_type_as_mut(self.current_type_index).unwrap().set_from_bytes(&self.buffer[0..( (field_length+7)/8 )]);
+                            self.buffer_consume_bits(field_length);
+                            self.current_type_index += 1;
+                        } else {
+                            break;
+                        }
+                    } else {
+                        self.current_type_index = 0;
+                        self.current_field_index += 1;
+                    }
+                } else {
+                    return Ok(self);
+                }
+
+            }
+
+        }
+        return Ok(self);
+    }
+
+    
+}
+                                                    
+ 
 
 
 #[cfg(test)]
