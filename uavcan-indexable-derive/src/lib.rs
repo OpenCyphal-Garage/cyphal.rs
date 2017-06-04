@@ -34,7 +34,28 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
         tokens
     };
 
-//    let field_start = match 
+    
+
+    let mut primitive_fields_as_mut_body = Tokens::new();
+    
+    let mut primitive_fields_start_index = Tokens::new();
+    let mut primitive_fields_end_index = Tokens::new();
+    primitive_fields_start_index.append("0");
+    primitive_fields_end_index.append("0");
+    for field in variant_data.fields() {
+        let field_name = field.ident.as_ref().unwrap();
+        primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+        primitive_fields_as_mut_body.append(
+            quote!{
+                if field_number >= #primitive_fields_start_index &&
+                    field_number < #primitive_fields_end_index {
+                        return self.#field_name.primitive_field_as_mut(field_number - (#primitive_fields_start_index));
+                    }
+            });
+        primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+    }
+     
+    
     
     quote! {
         impl UavcanIndexable for #name {
@@ -43,7 +64,8 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
             }
 
             fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField> {
-                unimplemented!()
+                #primitive_fields_as_mut_body
+                return None;
             }
                          
         }
