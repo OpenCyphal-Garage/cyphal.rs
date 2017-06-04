@@ -36,25 +36,51 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
 
     
 
-    let mut primitive_fields_as_mut_body = Tokens::new();
+    let primitive_fields_as_mut_body = {
+        let mut primitive_fields_builder = Tokens::new();
     
-    let mut primitive_fields_start_index = Tokens::new();
-    let mut primitive_fields_end_index = Tokens::new();
-    primitive_fields_start_index.append("0");
-    primitive_fields_end_index.append("0");
-    for field in variant_data.fields() {
-        let field_name = field.ident.as_ref().unwrap();
-        primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-        primitive_fields_as_mut_body.append(
-            quote!{
-                if field_number >= #primitive_fields_start_index &&
-                    field_number < #primitive_fields_end_index {
-                        return self.#field_name.primitive_field_as_mut(field_number - (#primitive_fields_start_index));
-                    }
-            });
-        primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-    }
-     
+        let mut primitive_fields_start_index = Tokens::new();
+        let mut primitive_fields_end_index = Tokens::new();
+        primitive_fields_start_index.append("0");
+        primitive_fields_end_index.append("0");
+        for field in variant_data.fields() {
+            let field_name = field.ident.as_ref().unwrap();
+            primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+            primitive_fields_builder.append(
+                quote!{
+                    if field_number >= #primitive_fields_start_index &&
+                        field_number < #primitive_fields_end_index {
+                            return self.#field_name.primitive_field_as_mut(field_number - (#primitive_fields_start_index));
+                        }
+                });
+            primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+        }
+        primitive_fields_builder
+    };
+        
+    let primitive_fields_body = {
+        let mut primitive_fields_builder = Tokens::new();
+    
+        let mut primitive_fields_start_index = Tokens::new();
+        let mut primitive_fields_end_index = Tokens::new();
+        primitive_fields_start_index.append("0");
+        primitive_fields_end_index.append("0");
+        for field in variant_data.fields() {
+            let field_name = field.ident.as_ref().unwrap();
+            primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+            primitive_fields_builder.append(
+                quote!{
+                    if field_number >= #primitive_fields_start_index &&
+                        field_number < #primitive_fields_end_index {
+                            return self.#field_name.primitive_field(field_number - (#primitive_fields_start_index));
+                        }
+                });
+            primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
+        }
+        primitive_fields_builder
+    };
+        
+
     
     
     quote! {
@@ -67,7 +93,11 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 #primitive_fields_as_mut_body
                 return None;
             }
-                         
+
+            fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField> {
+                #primitive_fields_body
+                return None;
+            }
         }
 
     }

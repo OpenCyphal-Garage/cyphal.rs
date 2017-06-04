@@ -3,6 +3,7 @@ use core::mem::transmute;
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
     fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
+    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>;
 }
 
 
@@ -24,7 +25,8 @@ pub trait UavcanPrimitiveField{
     /// get_size_mut(&self) -> Option<&mut usize> returns a mutable reference to the size
     /// if the field is of variable size, or None if the field is constant size 
     fn get_size_mut(&self) -> Option<&mut usize>;
-    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType>;    
+    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType>;
+    fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType>;
 }
 
 pub trait UavcanPrimitiveType{
@@ -183,6 +185,13 @@ impl<T: UavcanPrimitiveField> UavcanIndexable for T {
             None
         }
     }
+    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>{
+        if field_number == 0 {
+            Some(self)
+        } else {
+            None
+        }
+    }
 }
 
 
@@ -197,6 +206,13 @@ impl<T: UavcanPrimitiveType> UavcanPrimitiveField for T{
         None
     }
     fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType> {
+        if index == 0 {
+            Some(self)
+        } else {
+            None
+        }
+    }
+    fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType> {
         if index == 0 {
             Some(self)
         } else {
