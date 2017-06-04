@@ -9,6 +9,14 @@ pub struct f16 {
     bitfield: u16,
 }
 
+impl f16 {
+    fn from_bitmap(bm: u16) -> f16 {
+        f16{bitfield: bm}
+    }
+}
+
+
+
 
 pub struct Bool {
     value: bool,
