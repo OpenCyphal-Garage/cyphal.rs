@@ -228,7 +228,7 @@ impl UavcanPrimitiveType for IntX {
     
     fn set_from_bytes(&mut self, buffer: &[u8]) {
         let mut temp_bm: u64 = 0;
-        for i in 0..((self.x/8) + 1) {
+        for i in 0..( (self.x + 7) / 8) {
             temp_bm |= (buffer[i] as u64) << i*8;
         }
         self.value = unsafe { transmute::<u64, i64>(temp_bm) };
@@ -242,7 +242,7 @@ impl UavcanPrimitiveType for UintX {
     }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
         let mut temp_value: u64 = 0;
-        for i in 0..(self.x/8) {
+        for i in 0..( (self.x + 7) / 8 ) {
             temp_value |= (buffer[i] as u64) << i*8;
         }
         self.value = temp_value;
