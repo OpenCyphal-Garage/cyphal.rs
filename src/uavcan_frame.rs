@@ -198,9 +198,16 @@ impl<T: UavcanIndexable> Parser<T> {
             if offset_bit == 0 {
                 self.buffer[i] = self.buffer[offset_byte+i];
             } else if bits_remaining + offset_bit < 8 {
-                self.buffer[i] = self.buffer[offset_byte+i].bit_range(offset_bit..8) >> offset_bit;
+                let bitmask = self.buffer[offset_byte+i].bit_range(offset_bit..8);
+                self.buffer[i]
+                    .set_bit_range(0..8-offset_bit, bitmask);
             } else {
-                self.buffer[i] = self.buffer[offset_byte+i].bit_range(offset_bit..8) >> offset_bit | self.buffer[offset_byte+1+i].bit_range(0..offset_bit) << 8-offset_bit;
+                let lsb = self.buffer[offset_byte+i].bit_range(offset_bit..8);
+                let msb = self.buffer[offset_byte+i+1].bit_range(0..offset_bit);
+                
+                self.buffer[i]
+                    .set_bit_range(0..8-offset_bit, lsb)
+                    .set_bit_range(8-offset_bit..8, msb);
             }
         }
         self.buffer_end_bit -= number_of_bits;
