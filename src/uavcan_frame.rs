@@ -110,7 +110,7 @@ impl<'a> UavcanFrame<'a> {
 impl<'a> Iterator for CanFrameIterator<'a>{
     type Item = CanFrame;
     fn next(&mut self) -> Option<CanFrame>{
-        if (self.data_pos >= self.uavcan_frame.data.len()) {
+        if self.data_pos >= self.uavcan_frame.data.len() {
             return None;
         }
         
