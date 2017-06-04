@@ -33,7 +33,7 @@ pub trait UavcanPrimitiveType{
 }
 
 
-
+#[derive(Debug, PartialEq)]
 pub struct f16 {
     bitfield: u16,
 }
@@ -46,33 +46,39 @@ impl f16 {
 
 
 
-
+#[derive(Debug, PartialEq)]
 pub struct Bool {
     value: bool,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct IntX {
     x: usize,
     value: i64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct UintX {
     x: usize,
     value: u64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Float16 {
     value: f16,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Float32 {
     value: f32,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Float64 {
     value: f64,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct VoidX{
     x: usize,
 }
@@ -236,7 +242,7 @@ impl UavcanPrimitiveType for UintX {
     }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
         let mut temp_value: u64 = 0;
-        for i in 0..((self.x/8) + 1) {
+        for i in 0..(self.x/8) {
             temp_value |= (buffer[i] as u64) << i*8;
         }
         self.value = temp_value;
