@@ -307,15 +307,36 @@ mod tests {
             vendor_specific_status_code: UintX,
         }
 
-        let mut node_status_message = NodeStatus {
-            uptime_sec: UintX::new(32, 0),
-            health: UintX::new(2, 0),
-            mode: UintX::new(3, 0),
-            sub_mode: UintX::new(3, 0),
-            vendor_specific_status_code: UintX::new(16, 0),
-        };
+        impl NodeStatus {
+            fn new() -> NodeStatus{
+                NodeStatus {
+                    uptime_sec: UintX::new(32, 0),
+                    health: UintX::new(2, 0),
+                    mode: UintX::new(3, 0),
+                    sub_mode: UintX::new(3, 0),
+                    vendor_specific_status_code: UintX::new(16, 0),
+                }
+            }
+        }
 
-        assert_eq!(node_status_message.number_of_primitive_fields(), 5)
+        
+        #[derive(UavcanIndexable)]
+        struct TestComposite {
+            ns1: NodeStatus,
+            ns2: NodeStatus,
+        }
+
+        impl TestComposite {
+            fn new() -> TestComposite {
+                TestComposite{
+                    ns1: NodeStatus::new(),
+                    ns2: NodeStatus::new(),
+                }
+            }
+        }
+        
+        assert_eq!(NodeStatus::new().number_of_primitive_fields(), 5);
+        assert_eq!(TestComposite::new().number_of_primitive_fields(), 10);
         
         
     }
