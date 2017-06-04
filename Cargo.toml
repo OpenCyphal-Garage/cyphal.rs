@@ -4,4 +4,6 @@ version = "0.1.0"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 [dependencies]
+bit = "0.1.1"
+
 uavcan-indexable-derive = {path = "uavcan-indexable-derive"}
