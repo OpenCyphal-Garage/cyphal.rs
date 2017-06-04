@@ -1,4 +1,5 @@
 use core::mem::transmute;
+use bit::BitIndex;
 
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
@@ -248,6 +249,11 @@ impl UavcanPrimitiveType for IntX {
         for i in 0..( (self.x + 7) / 8) {
             temp_bm |= (buffer[i] as u64) << i*8;
         }
+        if temp_bm.bit(self.x-1) {
+            temp_bm |= (0xffffffffffffffff.bit_range(self.x..64));
+        } else {
+            temp_bm = temp_bm.bit_range(0..self.x);
+        }
         self.value = unsafe { transmute::<u64, i64>(temp_bm) };
     }
 
@@ -262,6 +268,7 @@ impl UavcanPrimitiveType for UintX {
         for i in 0..( (self.x + 7) / 8 ) {
             temp_value |= (buffer[i] as u64) << i*8;
         }
+        temp_value = temp_value.bit_range(0..self.x);
         self.value = temp_value;
     }
 }
