@@ -19,19 +19,31 @@ use types::{
 };
 
 
-impl CanFrame {
-    fn tail_byte(&self) -> TailByte {
-        TailByte::from(self.data[self.dlc-1])
+/// The TransportFrame is uavcan cores main interface to the outside world
+///
+/// This will in >99% of situations be a CAN2.0B frame
+/// But in theory both CAN-FD and other protocols which gives
+/// similar guarantees as CAN can also be used
+pub trait TransportFrame {
+    fn get_tail_byte(&self) -> TailByte {
+        TailByte::from(*self.get_data().last().unwrap())
     }
     fn is_start_frame(&self) -> bool {
-        self.tail_byte().start_of_transfer
+        self.get_tail_byte().start_of_transfer
     }
     fn is_end_frame(&self) -> bool {
-        self.tail_byte().end_of_transfer
+        self.get_tail_byte().end_of_transfer
     }
     fn is_single_frame(&self) -> bool {
         self.is_end_frame() && self.is_start_frame()
     }
+
+    /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
+    /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
+    fn with_data(id: u32,  data: &[u8]) -> Self;
+    fn get_max_data_length() -> usize;
+    fn get_data(&self) -> &[u8];
+    fn get_id(&self) -> u32;
 }
 
 
