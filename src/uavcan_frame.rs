@@ -46,6 +46,26 @@ pub trait TransportFrame {
     fn get_id(&self) -> u32;
 }
 
+pub struct TailByte {
+    start_of_transfer: bool,
+    end_of_transfer: bool,
+    toggle: bool,
+    transfer_id: u8,
+}
+
+impl From<TailByte> for u8 {
+    fn from(tb: TailByte) -> u8 {
+        ((tb.start_of_transfer as u8) << 7) | ((tb.end_of_transfer as u8) << 6) | ((tb.toggle as u8) << 5) | (tb.transfer_id&0x1f)
+    }
+}
+
+impl From<u8> for TailByte {
+    fn from(u: u8) -> TailByte {
+        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<6)) != 0, transfer_id: u&0x1f}
+    }
+}
+
+    
 
 struct MessageFrameHeader {
     priority: u8,
@@ -156,24 +176,6 @@ impl<'a> Iterator for CanFrameIterator<'a>{
 
 }
 
-struct TailByte {
-    start_of_transfer: bool,
-    end_of_transfer: bool,
-    toggle: bool,
-    transfer_id: u8,
-}
-
-impl From<TailByte> for u8 {
-    fn from(tb: TailByte) -> u8 {
-        ((tb.start_of_transfer as u8) << 7) | ((tb.end_of_transfer as u8) << 6) | ((tb.toggle as u8) << 5) | (tb.transfer_id&0x1f)
-    }
-}
-
-impl From<u8> for TailByte {
-    fn from(u: u8) -> TailByte {
-        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<6)) != 0, transfer_id: u&0x1f}
-    }
-}
 
 #[derive(Debug)]
 pub enum BuilderError {
