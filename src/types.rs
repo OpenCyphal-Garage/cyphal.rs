@@ -1,9 +1,8 @@
 use core::mem::transmute;
 
 pub trait UavcanIndexable {
-    fn uavcan_bit_size(&self) -> usize;
-    fn field_start_from_field_num(&self, field_num: usize) -> Option<usize>;
-    fn field_length_from_field_num(&self, field_num: usize) -> Option<usize>;
+    fn number_of_primitive_fields(&self) -> usize;
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
 }
 
 pub struct f16 {

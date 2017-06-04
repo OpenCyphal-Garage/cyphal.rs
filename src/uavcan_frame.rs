@@ -7,6 +7,7 @@ use can_frame::{CanFrame,
 };
 
 use types::{
+    UavcanPrimitiveField,
     UavcanIndexable,
     Bool,
     IntX,
@@ -182,6 +183,7 @@ impl<T: UavcanIndexable> MessageBuilder<T> {
 }
 
 
+
 #[cfg(test)]
 mod tests {
     use uavcan_frame::*;
@@ -313,7 +315,7 @@ mod tests {
             vendor_specific_status_code: UintX::new(16, 0),
         };
 
-        assert_eq!(node_status_message.uavcan_bit_size(), 56)
+        assert_eq!(node_status_message.number_of_primitive_fields(), 5)
         
         
     }
