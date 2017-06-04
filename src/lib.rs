@@ -1,5 +1,6 @@
 #![no_std]
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate uavcan_indexable_derive;
 
