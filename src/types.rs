@@ -250,7 +250,7 @@ impl UavcanPrimitiveType for IntX {
             temp_bm |= (buffer[i] as u64) << i*8;
         }
         if temp_bm.bit(self.x-1) {
-            temp_bm |= (0xffffffffffffffff.bit_range(self.x..64));
+            temp_bm |= 0xffffffffffffffff.bit_range(self.x..64);
         } else {
             temp_bm = temp_bm.bit_range(0..self.x);
         }
