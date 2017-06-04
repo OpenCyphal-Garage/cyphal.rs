@@ -359,6 +359,49 @@ mod tests {
         
         
     }
+
+    #[test]
+    fn uavcan_index_primitive_field() {
+
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: UintX,
+            health: UintX,
+            mode: UintX,
+            sub_mode: UintX,
+            vendor_specific_status_code: UintX,
+        }
+
+        impl NodeStatus {
+            fn new() -> NodeStatus{
+                NodeStatus {
+                    uptime_sec: UintX::new(32, 0),
+                    health: UintX::new(2, 0),
+                    mode: UintX::new(3, 0),
+                    sub_mode: UintX::new(3, 0),
+                    vendor_specific_status_code: UintX::new(16, 0),
+                }
+            }
+        }
+
+        let mut node_status = NodeStatus::new();
+
+        node_status.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[1, 0, 0, 0]);
+        node_status.primitive_field_as_mut(1).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[2]);
+        node_status.primitive_field_as_mut(2).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[3]);
+        node_status.primitive_field_as_mut(3).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[4]);
+        node_status.primitive_field_as_mut(4).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[5, 0]);
+
+        node_status.health.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[2, 0, 0, 0]);
+        
+        assert_eq!(node_status.uptime_sec, UintX::new(32, 1));
+        assert_eq!(node_status.health, UintX::new(2, 2));
+        assert_eq!(node_status.mode, UintX::new(3, 3));
+        assert_eq!(node_status.sub_mode, UintX::new(3, 4));
+        assert_eq!(node_status.vendor_specific_status_code, UintX::new(16, 5));
+        
+    }
+
     
 }
 
