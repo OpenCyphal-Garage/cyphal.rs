@@ -228,7 +228,9 @@ impl<T: UavcanIndexable> Parser<T> {
         return Ok(self);
     }
 
-    
+    pub fn to_structure(self) -> T {
+        self.structure
+    }
 }
 
 
