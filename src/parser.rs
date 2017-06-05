@@ -110,3 +110,93 @@ impl<T: UavcanIndexable> Parser<T> {
     }
 }
 
+
+#[cfg(test)]
+mod tests {
+
+    use types::{
+        UintX,
+    };
+    
+    #[test]
+    fn uavcan_parse_test_byte_aligned() {
+
+        #[derive(UavcanIndexable)]
+        struct Message {
+            v1: UintX,
+            v2: UintX,
+            v3: UintX,
+            v4: UintX,
+        }
+
+        impl Message {
+            fn new() -> Message{
+                Message {
+                    v1: UintX::new(8, 0),
+                    v2: UintX::new(32, 0),
+                    v3: UintX::new(16, 0),
+                    v4: UintX::new(8, 0),
+                }
+            }
+        }
+
+        let mut message = Message::new();
+        
+        let mut parser = Parser::from_structure(message);
+
+        parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
+
+        let parsed_message = parser.to_structure();
+
+        
+        assert_eq!(parsed_message.v1, UintX::new(8,17));
+        assert_eq!(parsed_message.v2, UintX::new(32,19));
+        assert_eq!(parsed_message.v3, UintX::new(16,21));
+        assert_eq!(parsed_message.v4, UintX::new(8,23));
+    }
+
+
+
+
+    #[test]
+    fn uavcan_parse_test_misaligned() {
+
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: UintX,
+            health: UintX,
+            mode: UintX,
+            sub_mode: UintX,
+            vendor_specific_status_code: UintX,
+        }
+
+        impl NodeStatus {
+            fn new() -> NodeStatus{
+                NodeStatus {
+                    uptime_sec: UintX::new(32, 0),
+                    health: UintX::new(2, 0),
+                    mode: UintX::new(3, 0),
+                    sub_mode: UintX::new(3, 0),
+                    vendor_specific_status_code: UintX::new(16, 0),
+                }
+            }
+        }
+
+        let mut node_status_message = NodeStatus::new();
+        
+        let mut parser = Parser::from_structure(node_status_message);
+
+        parser = parser.parse(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
+
+        let parsed_message = parser.to_structure();
+        
+
+        assert_eq!(parsed_message.uptime_sec, UintX::new(32, 1));
+        assert_eq!(parsed_message.health, UintX::new(2, 2));
+        assert_eq!(parsed_message.mode, UintX::new(3, 3));
+        assert_eq!(parsed_message.sub_mode, UintX::new(3, 4));
+        assert_eq!(parsed_message.vendor_specific_status_code, UintX::new(16, 5));
+        
+    }
+}
+
