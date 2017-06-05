@@ -1,3 +1,15 @@
+use {
+    UavcanIndexable,
+};
+
+use types::{
+    Bool,
+    IntX,
+    UintX,
+    Float16,
+};
+
+
 #[derive(Debug)]
 pub enum ParseError {
     StructureExhausted,
@@ -97,3 +109,4 @@ impl<T: UavcanIndexable> Parser<T> {
         self.structure
     }
 }
+
