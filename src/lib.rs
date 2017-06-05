@@ -8,6 +8,7 @@ extern crate bit;
 mod types;
 mod crc;
 mod parser;
+mod message_builder;
 
 use core::iter::Iterator;
 use core::convert::{From, Into};
