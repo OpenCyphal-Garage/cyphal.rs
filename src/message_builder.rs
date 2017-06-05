@@ -10,6 +10,8 @@ use parser::{
     Parser,
 };
 
+use crc::calc;
+
 #[derive(Debug)]
 pub enum BuilderError {
     FirstFrameNotStartFrame,
@@ -24,6 +26,7 @@ pub struct MessageBuilder<T: UavcanTransmitable> {
     parser: Parser<T>,
     started: bool,
     crc: u16,
+    crc_calculated: u16,
     toggle: bool,
     transfer_id: u8,    
 }
@@ -34,6 +37,7 @@ impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
             parser: Parser::new(),
             started: false,
             crc: 0x00,
+            crc_calculated: 0xffff,
             toggle: false,
             transfer_id: 0x00,
         }
