@@ -1,3 +1,5 @@
+use bit::BitIndex;
+
 use {
     UavcanIndexable,
 };
