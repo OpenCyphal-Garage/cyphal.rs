@@ -143,7 +143,7 @@ pub enum ParseError {
 }
 
 struct Parser<T: UavcanIndexable> {
-    message: T,
+    structure: T,
     current_field_index: usize,
     current_type_index: usize,
     buffer_end_bit: usize,
@@ -151,8 +151,8 @@ struct Parser<T: UavcanIndexable> {
 }
 
 impl<T: UavcanIndexable> Parser<T> {
-    pub fn from_message(message: T) -> Parser<T> {
-        Parser{message: message, current_field_index: 0, current_type_index: 0, buffer: [0; 15], buffer_end_bit: 0}
+    pub fn from_structure(structure: T) -> Parser<T> {
+        Parser{structure: structure, current_field_index: 0, current_type_index: 0, buffer: [0; 15], buffer_end_bit: 0}
     }
 
     fn buffer_consume_bits(&mut self, number_of_bits: usize) {
@@ -203,12 +203,12 @@ impl<T: UavcanIndexable> Parser<T> {
 
             loop {
 
-                if self.message.primitive_field(self.current_field_index).is_some() {
-                    if self.message.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).is_some() {
+                if self.structure.primitive_field(self.current_field_index).is_some() {
+                    if self.structure.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).is_some() {
                         
-                        let field_length = self.message.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).unwrap().bitlength();
+                        let field_length = self.structure.primitive_field(self.current_field_index).unwrap().primitive_type(self.current_type_index).unwrap().bitlength();
                         if field_length <= self.buffer_end_bit {
-                            self.message.primitive_field_as_mut(self.current_field_index).unwrap().primitive_type_as_mut(self.current_type_index).unwrap().set_from_bytes(&self.buffer[0..( (field_length+7)/8 )]);
+                            self.structure.primitive_field_as_mut(self.current_field_index).unwrap().primitive_type_as_mut(self.current_type_index).unwrap().set_from_bytes(&self.buffer[0..( (field_length+7)/8 )]);
                             self.buffer_consume_bits(field_length);
                             self.current_type_index += 1;
                         } else {
@@ -371,11 +371,11 @@ mod tests {
 
         let mut message = Message::new();
         
-        let mut parser = Parser::from_message(message);
+        let mut parser = Parser::from_structure(message);
 
         parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
 
-        let parsed_message = parser.message;
+        let parsed_message = parser.to_structure();
 
         
         assert_eq!(parsed_message.v1, UintX::new(8,17));
@@ -413,11 +413,11 @@ mod tests {
 
         let mut node_status_message = NodeStatus::new();
         
-        let mut parser = Parser::from_message(node_status_message);
+        let mut parser = Parser::from_structure(node_status_message);
 
         parser = parser.parse(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
 
-        let parsed_message = parser.message;
+        let parsed_message = parser.to_structure();
         
 
         assert_eq!(parsed_message.uptime_sec, UintX::new(32, 1));
