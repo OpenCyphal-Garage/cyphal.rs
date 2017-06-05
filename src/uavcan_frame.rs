@@ -242,7 +242,11 @@ impl<T: UavcanIndexable> Parser<T> {
                         self.current_field_index += 1;
                     }
                 } else {
-                    return Ok(self);
+                    if self.buffer_end_bit >= 8 {
+                        return Err(ParseError::StructureExhausted);
+                    } else {
+                        return Ok(self);
+                    }
                 }
 
             }
