@@ -1,3 +1,10 @@
+use bit::BitIndex;
+
+use {
+    UavcanTransmitable,
+    TransportFrame,
+};
+
 use parser::{
     ParseError,
     Parser,
