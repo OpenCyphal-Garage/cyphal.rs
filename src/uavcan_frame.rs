@@ -3,11 +3,6 @@ use core::convert::{From, Into};
 
 use bit::BitIndex;
 
-use can_frame::{CanFrame,
-                CanID,
-                ToCanID,
-};
-
 use types::{
     UavcanPrimitiveType,
     UavcanPrimitiveField,
