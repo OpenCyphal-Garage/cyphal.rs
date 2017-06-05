@@ -72,7 +72,10 @@ impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
 
         return Ok(self);
     }
-            
+
+    fn build(self) -> Result<T, BuilderError> {
+        Ok(self.parser.to_structure())
+    }
                 
 }
 
