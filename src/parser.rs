@@ -17,7 +17,7 @@ pub enum ParseError {
     StructureExhausted,
 }
 
-struct Parser<T: UavcanIndexable> {
+pub struct Parser<T: UavcanIndexable> {
     structure: T,
     current_field_index: usize,
     current_type_index: usize,
