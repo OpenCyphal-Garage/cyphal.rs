@@ -15,14 +15,6 @@ use core::convert::{From, Into};
 
 use bit::BitIndex;
 
-use types::{
-    Bool,
-    IntX,
-    UintX,
-    Float16
-};
-
-
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///
 /// This will in >99% of situations be a CAN2.0B frame
