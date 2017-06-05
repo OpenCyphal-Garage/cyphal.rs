@@ -69,17 +69,8 @@ pub trait TransportFrameHeader {
 pub trait UavcanTransmitable : UavcanIndexable {
     fn get_signature() -> u64;
     fn get_header(&self) -> &TransportFrameHeader;
-
 }
 
-pub enum DataTypeSignature {
-    Message,
-    Service,
-    AnonymousMessage,
-}
-
-
-    
 
 struct MessageFrameHeader {
     priority: u8,
