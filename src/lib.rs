@@ -106,19 +106,21 @@ pub trait UavcanPrimitiveType{
     fn set_from_bytes(&mut self, buffer: &[u8]);
 }
 
-
+#[derive(Default)]
 struct MessageFrameHeader {
     priority: u8,
     type_id: u16,
     source_node: u8,
 }
 
+#[derive(Default)]
 struct AnonymousFrameHeader {
     priority: u8,
     discriminator: u16,
     type_id: u8,
 }
 
+#[derive(Default)]
 struct ServiceFrameHeader {
     priority: u8,
     type_id: u8,
@@ -163,7 +165,7 @@ impl TransportFrameHeader for ServiceFrameHeader {
     }
 }
 
-
+#[derive(Default)]
 struct UavcanFrame<H: TransportFrameHeader, B: UavcanIndexable> {
     header: H,
     body: B,
