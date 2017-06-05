@@ -5,6 +5,7 @@ extern crate uavcan_indexable_derive;
 
 extern crate bit;
 
+mod can_frame;
 mod types;
 mod crc;
 mod parser;
