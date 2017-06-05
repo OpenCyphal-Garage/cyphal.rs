@@ -13,10 +13,6 @@ pub struct CanFrame {
     pub data: [u8; 8],
 }
 
-pub trait ToCanID {
-    fn to_can_id(&self) -> CanID;
-}
-
 impl TransportFrame for CanFrame {
     fn with_data(id: u32, data: &[u8]) -> CanFrame {
         let mut can_data = [0; 8];
