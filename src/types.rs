@@ -1,39 +1,11 @@
 use core::mem::transmute;
 use bit::BitIndex;
 
-pub trait UavcanIndexable {
-    fn number_of_primitive_fields(&self) -> usize;
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
-    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>;
-}
-
-
-/// An UavcanPrimitiveField is a field of a flatted out uavcan struct
-///
-/// It's a superset of Primitive Data Types from the uavcan protocol
-/// also containing both constant and variable size arrays.
-///
-/// All primitive data types have 1 primitive fields,
-/// All composite data structures have the same number of primtiive fields
-/// as the sum of their members. Except the variable length array.
-/// This array has number of primitive fields as their members (elements)+1
-pub trait UavcanPrimitiveField{
-    fn is_constant_size(&self) -> bool;
-    /// get_size(&self) -> usize returns the number of primitive data types in this field
-    ///
-    /// for primtiive data types (non-array) it will return 1
-    fn get_size(&self) -> usize;
-    /// get_size_mut(&self) -> Option<&mut usize> returns a mutable reference to the size
-    /// if the field is of variable size, or None if the field is constant size 
-    fn get_size_mut(&self) -> Option<&mut usize>;
-    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType>;
-    fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType>;
-}
-
-pub trait UavcanPrimitiveType{
-    fn bitlength(&self) -> usize;
-    fn set_from_bytes(&mut self, buffer: &[u8]);
-}
+use {
+    UavcanIndexable,
+    UavcanPrimitiveField,
+    UavcanPrimitiveType,
+};
 
 
 #[derive(Debug, PartialEq)]
