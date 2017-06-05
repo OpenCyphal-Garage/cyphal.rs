@@ -1,4 +1,4 @@
-fn add(mut crc: u16, data: &u8) -> u16 {
+fn add_byte(mut crc: u16, data: &u8) -> u16{
     crc ^= (*data as u16) << 8;
 
     for bit in 8..1 {
@@ -12,15 +12,22 @@ fn add(mut crc: u16, data: &u8) -> u16 {
     return crc;
 }
 
+pub fn add(mut crc: u16, data: &[u8]) -> u16 {
+    for b in data {
+        crc = add_byte(crc, b);
+    }
+    return crc;
+}
+
 pub fn calc(data: &[u8], data_type_signature: u64) -> u16 {
     let mut crc: u16 = 0xffff;
 
     for i in 0..4 {
-        crc = add(crc, &( (data_type_signature >> 8*i) as u8) );
+        crc = add_byte(crc, &( (data_type_signature >> 8*i) as u8) );
     }
     
     for d in data {
-        crc = add(crc, d);
+        crc = add_byte(crc, d);
     }
 
     return crc;
