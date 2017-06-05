@@ -128,6 +128,30 @@ impl TransportFrameHeader for ServiceFrameHeader {
 }
 
 
+struct UavcanFrame<H: TransportFrameHeader, B: UavcanIndexable> {
+    header: H,
+    body: B,
+}
+
+impl<H:TransportFrameHeader, B: UavcanIndexable> UavcanIndexable for UavcanFrame<H, B> {
+    fn number_of_primitive_fields(&self) -> usize {
+        self.body.number_of_primitive_fields()
+    }
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>{
+        self.body.primitive_field_as_mut(field_number)
+    }       
+    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>{
+        self.body.primitive_field(field_number)
+    }
+}
+
+impl<H: TransportFrameHeader, B: UavcanIndexable> UavcanTransmitable for UavcanFrame<H, B> {
+    fn get_header(&self) -> &TransportFrameHeader {
+        &self.header
+    }
+}
+
+
 
 #[derive(Debug)]
 pub enum BuilderError {
