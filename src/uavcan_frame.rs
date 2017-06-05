@@ -67,7 +67,6 @@ pub trait TransportFrameHeader {
 }
 
 pub trait UavcanTransmitable : UavcanIndexable {
-    fn get_signature() -> u64;
     fn get_header(&self) -> &TransportFrameHeader;
 }
 
