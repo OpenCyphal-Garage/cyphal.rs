@@ -28,10 +28,10 @@ pub struct MessageBuilder<T: UavcanTransmitable> {
     transfer_id: u8,    
 }
 
-impl<T:UavcanTransmitable> MessageBuilder<T> {
+impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
     fn from_structure(structure: T) -> Self {
         MessageBuilder{
-            parser: Parser::from_structure(structure),
+            parser: Parser::new(),
             started: false,
             crc: 0x00,
             toggle: false,

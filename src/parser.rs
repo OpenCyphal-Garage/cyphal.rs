@@ -17,9 +17,9 @@ pub struct Parser<T: UavcanIndexable> {
     buffer: [u8; 15],
 }
 
-impl<T: UavcanIndexable> Parser<T> {
-    pub fn from_structure(structure: T) -> Parser<T> {
-        Parser{structure: structure, current_field_index: 0, current_type_index: 0, buffer: [0; 15], buffer_end_bit: 0}
+impl<T: UavcanIndexable + Default> Parser<T> {
+    pub fn new() -> Parser<T> {
+        Parser{structure: T::default(), current_field_index: 0, current_type_index: 0, buffer: [0; 15], buffer_end_bit: 0}
     }
 
     fn buffer_consume_bits(&mut self, number_of_bits: usize) {
@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn uavcan_parse_test_byte_aligned() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanIndexable, Default)]
         struct Message {
             v1: Uint8,
             v2: Uint32,
@@ -138,20 +138,7 @@ mod tests {
             v4: Uint8,
         }
 
-        impl Message {
-            fn new() -> Message{
-                Message {
-                    v1: 0.into(),
-                    v2: 0.into(),
-                    v3: 0.into(),
-                    v4: 0.into(),
-                }
-            }
-        }
-
-        let mut message = Message::new();
-        
-        let mut parser = Parser::from_structure(message);
+        let mut parser: Parser<Message> = Parser::new();
 
         parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
 
@@ -169,9 +156,9 @@ mod tests {
 
     #[test]
     fn uavcan_parse_test_misaligned() {
-
         
-        #[derive(UavcanIndexable)]
+        
+        #[derive(UavcanIndexable, Default)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -180,22 +167,8 @@ mod tests {
             vendor_specific_status_code: Uint16,
         }
 
-        impl NodeStatus {
-            fn new() -> NodeStatus{
-                NodeStatus {
-                    uptime_sec: 0.into(),
-                    health: 0.into(),
-                    mode: 0.into(),
-                    sub_mode: 0.into(),
-                    vendor_specific_status_code: 0.into(),
-                }
-            }
-        }
         
-
-        let mut node_status_message = NodeStatus::new();
-        
-        let mut parser = Parser::from_structure(node_status_message);
+        let mut parser: Parser<NodeStatus> = Parser::new();
 
         parser = parser.parse(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
 
