@@ -29,7 +29,7 @@ pub struct MessageBuilder<T: UavcanTransmitable> {
 }
 
 impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
-    fn from_structure(structure: T) -> Self {
+    fn new() -> Self {
         MessageBuilder{
             parser: Parser::new(),
             started: false,
