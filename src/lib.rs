@@ -1,5 +1,8 @@
 #![no_std]
 
+#[macro_use]
+extern crate uavcan_indexable_derive;
+
 extern crate bit;
 
 mod types;
@@ -195,10 +198,19 @@ impl<H: TransportFrameHeader, B: UavcanIndexable> UavcanTransmitable for UavcanF
 
 #[cfg(test)]
 mod tests {
-    use uavcan_frame::*;
     use core::fmt::*;
     use crc;
 
+    use {
+        UavcanIndexable,
+        UavcanPrimitiveField,
+        UavcanPrimitiveType,
+    };
+    
+    use types::{
+        UintX,
+    };
+    
     #[test]
     fn uavcan_sized_length_derivation() {
         
