@@ -22,7 +22,7 @@ impl TransportFrame for CanFrame {
         CanFrame{id: CanID::Extended(id), dlc: data.len(), data: can_data}
     }
 
-    fn get_max_data_length() -> usize {
+    fn get_max_data_length(&self) -> usize {
         8
     }
 

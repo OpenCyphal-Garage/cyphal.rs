@@ -36,7 +36,7 @@ pub trait TransportFrame {
     /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
     /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
     fn with_data(id: u32,  data: &[u8]) -> Self;
-    fn get_max_data_length() -> usize;
+    fn get_max_data_length(&self) -> usize;
     fn get_data(&self) -> &[u8];
     fn get_id(&self) -> u32;
 }
