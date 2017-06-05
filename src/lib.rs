@@ -58,7 +58,7 @@ impl From<TailByte> for u8 {
 
 impl From<u8> for TailByte {
     fn from(u: u8) -> TailByte {
-        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<6)) != 0, transfer_id: u&0x1f}
+        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<5)) != 0, transfer_id: u&0x1f}
     }
 }
 
