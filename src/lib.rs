@@ -202,34 +202,36 @@ mod tests {
     };
     
     use types::{
-        UintX,
+        Uint2,
+        Uint3,
+        Uint16,
+        Uint32,
     };
     
     #[test]
     fn uavcan_sized_length_derivation() {
-        
+
         #[derive(UavcanIndexable)]
         struct NodeStatus {
-            uptime_sec: UintX,
-            health: UintX,
-            mode: UintX,
-            sub_mode: UintX,
-            vendor_specific_status_code: UintX,
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
         }
-
+        
         impl NodeStatus {
             fn new() -> NodeStatus{
                 NodeStatus {
-                    uptime_sec: UintX::new(32, 0),
-                    health: UintX::new(2, 0),
-                    mode: UintX::new(3, 0),
-                    sub_mode: UintX::new(3, 0),
-                    vendor_specific_status_code: UintX::new(16, 0),
+                    uptime_sec: 0.into(),
+                    health: 0.into(),
+                    mode: 0.into(),
+                    sub_mode: 0.into(),
+                    vendor_specific_status_code: 0.into(),
                 }
             }
         }
 
-        
         #[derive(UavcanIndexable)]
         struct TestComposite {
             ns1: NodeStatus,
@@ -275,25 +277,27 @@ mod tests {
 
         #[derive(UavcanIndexable)]
         struct NodeStatus {
-            uptime_sec: UintX,
-            health: UintX,
-            mode: UintX,
-            sub_mode: UintX,
-            vendor_specific_status_code: UintX,
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
         }
+
 
         impl NodeStatus {
             fn new() -> NodeStatus{
                 NodeStatus {
-                    uptime_sec: UintX::new(32, 0),
-                    health: UintX::new(2, 0),
-                    mode: UintX::new(3, 0),
-                    sub_mode: UintX::new(3, 0),
-                    vendor_specific_status_code: UintX::new(16, 0),
+                    uptime_sec: 0.into(),
+                    health: 0.into(),
+                    mode: 0.into(),
+                    sub_mode: 0.into(),
+                    vendor_specific_status_code: 0.into(),
                 }
             }
         }
-
+        
+        
         let mut node_status = NodeStatus::new();
 
         node_status.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[1, 0, 0, 0]);
@@ -303,13 +307,13 @@ mod tests {
         node_status.primitive_field_as_mut(4).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[5, 0]);
 
         node_status.health.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[2, 0, 0, 0]);
-        
-        assert_eq!(node_status.uptime_sec, UintX::new(32, 1));
-        assert_eq!(node_status.health, UintX::new(2, 2));
-        assert_eq!(node_status.mode, UintX::new(3, 3));
-        assert_eq!(node_status.sub_mode, UintX::new(3, 4));
-        assert_eq!(node_status.vendor_specific_status_code, UintX::new(16, 5));
-        
+
+        assert_eq!(node_status.uptime_sec, 1.into());
+        assert_eq!(node_status.health, 2.into());
+        assert_eq!(node_status.mode, 3.into());
+        assert_eq!(node_status.sub_mode, 4.into());
+        assert_eq!(node_status.vendor_specific_status_code, 5.into());
+
     }
 
 

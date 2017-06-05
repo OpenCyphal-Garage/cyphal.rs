@@ -71,3 +71,44 @@ impl<T:UavcanTransmitable> MessageBuilder<T> {
             
                 
 }
+
+
+#[cfg(test)]
+mod tests {
+
+    use{
+        UavcanIndexable,
+        UavcanPrimitiveField,
+        UavcanPrimitiveType,
+    };
+
+    use types::{
+        Uint2,
+        Uint3,
+        Uint4,
+        Uint5,
+        Uint16,
+        Uint32,
+    };
+    
+    use can_frame::{
+        CanFrame,
+    };
+    
+    
+    #[test]
+    fn parse_from_can_frames_simple() {
+
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
+        }
+
+    }
+
+}
+

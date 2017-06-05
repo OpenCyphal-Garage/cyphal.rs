@@ -27,16 +27,159 @@ pub struct Bool {
     value: bool,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct IntX {
-    x: usize,
-    value: i64,
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Uint2 {
+    value: u8,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct UintX {
-    x: usize,
-    value: u64,
+pub struct Uint3 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint4 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint5 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint6 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint7 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint8 {
+    value: u8,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint9 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint10 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint11 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint12 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint13 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint14 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint15 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint16 {
+    value: u16,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint17 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint18 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint19 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint20 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint21 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint22 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint23 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint24 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint25 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint26 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint27 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint28 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint29 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint30 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint31 {
+    value: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Uint32 {
+    value: u32,
 }
 
 #[derive(Debug, PartialEq)]
@@ -54,75 +197,44 @@ pub struct Float64 {
     value: f64,
 }
 
-#[derive(Debug, PartialEq)]
-pub struct VoidX{
-    x: usize,
-}
 
 
 
 
 
-impl Bool {
-    pub fn new(value: bool) -> Bool {
-        Bool{value: value}
+
+impl From<u8> for Uint2 {
+    fn from(t: u8) -> Uint2 {
+        Uint2{value: t.bit_range(0..2)}
     }
 }
 
-impl IntX {
-    pub fn new(x: usize, value: i64) -> IntX {
-        IntX{x: x, value: value}
+impl From<u8> for Uint3 {
+    fn from(t: u8) -> Uint3 {
+        Uint3{value: t.bit_range(0..3)}
     }
 }
 
-impl UintX {
-    pub fn new(x: usize, value: u64) -> UintX {
-        UintX{x: x, value: value}
+impl From<u8> for Uint8 {
+    fn from(t: u8) -> Uint8 {
+        Uint8{value: t.bit_range(0..8)}
     }
 }
 
-impl Float16 {
-    pub fn new(value: f16) -> Float16 {
-        Float16{value: value}
+impl From<u16> for Uint16 {
+    fn from(t: u16) -> Uint16 {
+        Uint16{value: t.bit_range(0..16)}
     }
 }
 
-impl Float32 {
-    pub fn new(value: f32) -> Float32 {
-        Float32{value: value}
+impl From<u32> for Uint32 {
+    fn from(t: u32) -> Uint32 {
+        Uint32{value: t.bit_range(0..32)}
     }
 }
-
-impl Float64 {
-    pub fn new(value: f64) -> Float64 {
-        Float64{value: value}
-    }
-}
-
-impl VoidX {
-    pub fn new(x: usize) -> VoidX {
-        VoidX{x: x}
-    }
-}
-
-
-
-
 
 impl From<Bool> for bool {
     fn from(t: Bool) -> bool {
-        t.value
-    }
-}
-
-impl From<IntX> for i64 {
-    fn from(t: IntX) -> i64 {
-        t.value
-    }
-}
-
-impl From<UintX> for u64 {
-    fn from(t: UintX) -> u64 {
         t.value
     }
 }
@@ -211,39 +323,79 @@ impl UavcanPrimitiveType for Bool {
     }
 }
 
-impl UavcanPrimitiveType for IntX {
-    fn bitlength(&self) -> usize {
-        self.x
-    }
-    
+impl UavcanPrimitiveType for Uint2 {
+    fn bitlength(&self) -> usize { 2 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        let mut temp_bm: u64 = 0;
-        for i in 0..( (self.x + 7) / 8) {
-            temp_bm |= (buffer[i] as u64) << i*8;
-        }
-        if temp_bm.bit(self.x-1) {
-            temp_bm |= 0xffffffffffffffff.bit_range(self.x..64);
-        } else {
-            temp_bm = temp_bm.bit_range(0..self.x);
-        }
-        self.value = unsafe { transmute::<u64, i64>(temp_bm) };
+        self.value.set_bit_range(0..2, buffer[0].bit_range(0..2));
     }
-
 }
 
-impl UavcanPrimitiveType for UintX {
-    fn bitlength(&self) -> usize {
-        self.x
-    }
+impl UavcanPrimitiveType for Uint3 {
+    fn bitlength(&self) -> usize { 3 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        let mut temp_value: u64 = 0;
-        for i in 0..( (self.x + 7) / 8 ) {
-            temp_value |= (buffer[i] as u64) << i*8;
-        }
-        temp_value = temp_value.bit_range(0..self.x);
-        self.value = temp_value;
+        self.value.set_bit_range(0..3, buffer[0].bit_range(0..3));
     }
 }
+
+impl UavcanPrimitiveType for Uint4 {
+    fn bitlength(&self) -> usize { 4 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..4, buffer[0].bit_range(0..4));
+    }
+}
+
+impl UavcanPrimitiveType for Uint5 {
+    fn bitlength(&self) -> usize { 5 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..5, buffer[0].bit_range(0..5));
+    }
+}
+
+impl UavcanPrimitiveType for Uint6 {
+    fn bitlength(&self) -> usize { 6 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..6, buffer[0].bit_range(0..6));
+    }
+}
+
+impl UavcanPrimitiveType for Uint7 {
+    fn bitlength(&self) -> usize { 7 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..7, buffer[0].bit_range(0..7));
+    }
+}
+
+impl UavcanPrimitiveType for Uint8 {
+    fn bitlength(&self) -> usize { 8 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value = buffer[0];
+    }
+}
+
+impl UavcanPrimitiveType for Uint16 {
+    fn bitlength(&self) -> usize { 16 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..8, buffer[0].bit_range(0..8) as u16)
+            .set_bit_range(8..16, buffer[1].bit_range(0..8) as u16);
+    }
+}
+
+impl UavcanPrimitiveType for Uint32 {
+    fn bitlength(&self) -> usize { 32 }
+    fn set_from_bytes(&mut self, buffer: &[u8]) {
+        self.value.set_bit_range(0..8, buffer[0].bit_range(0..8) as u32)
+            .set_bit_range(8..16, buffer[1].bit_range(0..8) as u32)
+            .set_bit_range(16..24, buffer[2].bit_range(0..8) as u32)
+            .set_bit_range(24..32, buffer[3].bit_range(0..8) as u32);
+    }
+}
+
+
+
+
+
+
+
 
 impl UavcanPrimitiveType for Float16 {
     fn bitlength(&self) -> usize {
@@ -288,13 +440,3 @@ impl UavcanPrimitiveType for Float64 {
     }
 
 }
-
-impl UavcanPrimitiveType for VoidX {
-    fn bitlength(&self) -> usize {
-        self.x
-    }
-    fn set_from_bytes(&mut self, buffer: &[u8]) {
-        // consider doing a check that only 0 is set?
-    }
-}
-
