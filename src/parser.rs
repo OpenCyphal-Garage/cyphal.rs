@@ -114,6 +114,17 @@ impl<T: UavcanIndexable> Parser<T> {
 #[cfg(test)]
 mod tests {
 
+    use {
+        UavcanIndexable,
+        UavcanPrimitiveField,
+        UavcanPrimitiveType,
+    };
+
+    use parser::{
+        ParseError,
+        Parser,
+    };
+    
     use types::{
         UintX,
     };
