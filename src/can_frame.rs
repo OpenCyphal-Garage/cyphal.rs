@@ -1,4 +1,6 @@
-use uavcan_frame::TransportFrame;
+use {
+    TransportFrame,
+};
 
 pub enum CanID {
     Extended(u32),
