@@ -132,11 +132,18 @@ mod tests {
             vendor_specific_status_code: Uint16,
         }
 
+        #[derive(UavcanFrame, Default)]
+        struct NodeStatusMessage {
+            header: MessageFrameHeader,
+            body: NodeStatus,
+        }
+            
+        
         let can_frame = CanFrame{id: CanID::Extended(MessageFrameHeader::from_id(0xaa).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
         let mut message_builder = MessageBuilder::new();
         message_builder = message_builder.add_frame(can_frame).unwrap();
-        let parsed_message: UavcanFrame<MessageFrameHeader, NodeStatus> = message_builder.build().unwrap();
+        let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
         
         assert_eq!(parsed_message.body.uptime_sec, 1.into());
         assert_eq!(parsed_message.body.health, 2.into());
