@@ -11,6 +11,7 @@ mod headers;
 mod crc;
 mod parser;
 mod message_builder;
+mod serializer;
 
 use core::iter::Iterator;
 use core::convert::{From, Into};
