@@ -92,6 +92,13 @@ mod tests {
         UavcanIndexable,
         UavcanPrimitiveField,
         UavcanPrimitiveType,
+        UavcanHeader,
+        UavcanFrame,
+        TailByte,
+    };
+    
+    use headers::{
+        MessageFrameHeader,
     };
 
     use types::{
@@ -105,13 +112,18 @@ mod tests {
     
     use can_frame::{
         CanFrame,
+        CanID,
     };
-    
+
+    use message_builder::{
+        BuilderError,
+        MessageBuilder,
+    };
     
     #[test]
     fn parse_from_can_frames_simple() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanIndexable, Default)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -120,6 +132,19 @@ mod tests {
             vendor_specific_status_code: Uint16,
         }
 
+        let can_frame = CanFrame{id: CanID::Extended(MessageFrameHeader::from_id(0xaa).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        
+        let mut message_builder = MessageBuilder::new();
+        message_builder = message_builder.add_frame(can_frame).unwrap();
+        let parsed_message: UavcanFrame<MessageFrameHeader, NodeStatus> = message_builder.build().unwrap();
+        
+        assert_eq!(parsed_message.body.uptime_sec, 1.into());
+        assert_eq!(parsed_message.body.health, 2.into());
+        assert_eq!(parsed_message.body.mode, 3.into());
+        assert_eq!(parsed_message.body.sub_mode, 4.into());
+        assert_eq!(parsed_message.body.vendor_specific_status_code, 5.into());
+        assert_eq!(parsed_message.header, MessageFrameHeader::from_id(0xaa));
+                                              
     }
 
 }
