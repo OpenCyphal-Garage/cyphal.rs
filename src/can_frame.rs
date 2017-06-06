@@ -28,6 +28,10 @@ impl TransportFrame for CanFrame {
         &self.data[0..self.dlc]
     }
 
+    fn data_as_mut(&mut self) -> &mut[u8] {
+        &mut self.data[0..self.dlc]
+    }
+    
     fn get_id(&self) -> u32 {
         match self.id {
             CanID::Extended(x) => x,

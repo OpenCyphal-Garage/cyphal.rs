@@ -41,6 +41,7 @@ pub trait TransportFrame {
     fn with_data(id: u32,  data: &[u8]) -> Self;
     fn get_max_data_length(&self) -> usize;
     fn get_data(&self) -> &[u8];
+    fn data_as_mut(&mut self) -> &mut[u8];
     fn get_id(&self) -> u32;
 }
 
