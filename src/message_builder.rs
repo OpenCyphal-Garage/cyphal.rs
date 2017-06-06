@@ -4,7 +4,7 @@ use {
     UavcanFrame,
     UavcanIndexable,
     TransportFrame,
-    TransportFrameHeader,
+    UavcanHeader,
 };
 
 use parser::{
@@ -78,7 +78,7 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
         return Ok(self);
     }
 
-    fn build<H: TransportFrameHeader>(self) -> Result<UavcanFrame<H, B>, BuilderError> {
+    fn build<H: UavcanHeader>(self) -> Result<UavcanFrame<H, B>, BuilderError> {
         Ok(UavcanFrame::from_parts(H::from_id(self.id), self.parser.to_structure()))
     }
                 
