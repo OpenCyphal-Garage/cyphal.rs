@@ -4,21 +4,21 @@ use {
     UavcanHeader
 };
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug)]
 pub struct MessageFrameHeader {
     priority: u8,
     type_id: u16,
     source_node: u8,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug)]
 pub struct AnonymousFrameHeader {
     priority: u8,
     discriminator: u16,
     type_id: u8,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug)]
 pub struct ServiceFrameHeader {
     priority: u8,
     type_id: u8,
