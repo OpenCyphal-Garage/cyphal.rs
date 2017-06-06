@@ -105,26 +105,10 @@ pub trait UavcanPrimitiveType{
 }
 
 
-#[derive(Default)]
-pub struct UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
-    header: H,
-    body: B,
-}
-
-impl<H: UavcanHeader, B: UavcanIndexable> UavcanFrame<H, B> {
-    fn from_parts(header: H, body: B) -> Self{
-        UavcanFrame{header: header, body: body}
-    }    
-    fn get_header(&self) -> &H {
-        &self.header
-    }
-    fn get_structure(&self) -> &B {
-        &self.body
-    }
-    fn get_structure_as_mut(&mut self) -> &mut B {
-        &mut self.body
-    }
-
+pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
+    fn from_parts(header: H, body: B) -> Self;
+    fn header(&self) -> &H;
+    fn body(&self) -> &B;
 }
 
 
