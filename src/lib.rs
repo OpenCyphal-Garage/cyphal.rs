@@ -23,14 +23,14 @@ use bit::BitIndex;
 /// But in theory both CAN-FD and other protocols which gives
 /// similar guarantees as CAN can also be used
 pub trait TransportFrame {
-    fn get_tail_byte(&self) -> TailByte {
-        TailByte::from(*self.get_data().last().unwrap())
+    fn tail_byte(&self) -> TailByte {
+        TailByte::from(*self.data().last().unwrap())
     }
     fn is_start_frame(&self) -> bool {
-        self.get_tail_byte().start_of_transfer
+        self.tail_byte().start_of_transfer
     }
     fn is_end_frame(&self) -> bool {
-        self.get_tail_byte().end_of_transfer
+        self.tail_byte().end_of_transfer
     }
     fn is_single_frame(&self) -> bool {
         self.is_end_frame() && self.is_start_frame()
@@ -39,10 +39,10 @@ pub trait TransportFrame {
     /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
     /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
     fn with_data(id: u32,  data: &[u8]) -> Self;
-    fn get_max_data_length(&self) -> usize;
-    fn get_data(&self) -> &[u8];
+    fn max_data_length(&self) -> usize;
+    fn data(&self) -> &[u8];
     fn data_as_mut(&mut self) -> &mut[u8];
-    fn get_id(&self) -> u32;
+    fn id(&self) -> u32;
 }
 
 pub struct TailByte {

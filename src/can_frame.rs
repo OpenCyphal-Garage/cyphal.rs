@@ -20,11 +20,11 @@ impl TransportFrame for CanFrame {
         CanFrame{id: CanID::Extended(id), dlc: data.len(), data: can_data}
     }
 
-    fn get_max_data_length(&self) -> usize {
+    fn max_data_length(&self) -> usize {
         8
     }
 
-    fn get_data(&self) -> &[u8] {
+    fn data(&self) -> &[u8] {
         &self.data[0..self.dlc]
     }
 
@@ -32,7 +32,7 @@ impl TransportFrame for CanFrame {
         &mut self.data[0..self.dlc]
     }
     
-    fn get_id(&self) -> u32 {
+    fn id(&self) -> u32 {
         match self.id {
             CanID::Extended(x) => x,
             CanID::Normal(x) => x as u32,

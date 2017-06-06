@@ -52,21 +52,21 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);
             }
-            if frame.get_tail_byte().toggle {
+            if frame.tail_byte().toggle {
                 return Err(BuilderError::ToggleError);
             }
             self.toggle = false;
-            self.crc.set_bit_range(0..8, frame.get_data()[0] as u16)
-                .set_bit_range(8..16, frame.get_data()[1] as u16); 
-            self.transfer_id = frame.get_tail_byte().transfer_id;
-            self.id = frame.get_id();
+            self.crc.set_bit_range(0..8, frame.data()[0] as u16)
+                .set_bit_range(8..16, frame.data()[1] as u16); 
+            self.transfer_id = frame.tail_byte().transfer_id;
+            self.id = frame.id();
             self.started = true;
         }
 
         let payload = if frame.is_start_frame() && !frame.is_end_frame() {
-            &frame.get_data()[2..frame.get_data().len()-1]
+            &frame.data()[2..frame.data().len()-1]
         } else {
-            &frame.get_data()[0..frame.get_data().len()-1]
+            &frame.data()[0..frame.data().len()-1]
         };
 
         self.parser = match self.parser.parse(payload) {
