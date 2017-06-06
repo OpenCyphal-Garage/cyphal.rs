@@ -69,10 +69,6 @@ pub trait TransportFrameHeader {
     fn get_priority(&self) -> u8;
 }
 
-pub trait UavcanTransmitable : UavcanIndexable {
-    fn get_header(&self) -> &TransportFrameHeader;
-}
-
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
     fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
@@ -190,27 +186,25 @@ impl TransportFrameHeader for ServiceFrameHeader {
 }
 
 #[derive(Default)]
-struct UavcanFrame<H: TransportFrameHeader, B: UavcanIndexable> {
+pub struct UavcanFrame<H: TransportFrameHeader, B: UavcanIndexable> {
     header: H,
     body: B,
 }
 
-impl<H:TransportFrameHeader, B: UavcanIndexable> UavcanIndexable for UavcanFrame<H, B> {
-    fn number_of_primitive_fields(&self) -> usize {
-        self.body.number_of_primitive_fields()
-    }
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>{
-        self.body.primitive_field_as_mut(field_number)
-    }       
-    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>{
-        self.body.primitive_field(field_number)
-    }
-}
-
-impl<H: TransportFrameHeader, B: UavcanIndexable> UavcanTransmitable for UavcanFrame<H, B> {
-    fn get_header(&self) -> &TransportFrameHeader {
+impl<H: TransportFrameHeader, B: UavcanIndexable> UavcanFrame<H, B> {
+    fn from_parts(header: H, body: B) -> Self{
+        UavcanFrame{header: header, body: body}
+    }    
+    fn get_header(&self) -> &H {
         &self.header
     }
+    fn get_structure(&self) -> &B {
+        &self.body
+    }
+    fn get_structure_as_mut(&mut self) -> &mut B {
+        &mut self.body
+    }
+
 }
 
 

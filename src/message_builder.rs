@@ -1,8 +1,10 @@
 use bit::BitIndex;
 
 use {
-    UavcanTransmitable,
+    UavcanFrame,
+    UavcanIndexable,
     TransportFrame,
+    TransportFrameHeader,
 };
 
 use parser::{
@@ -22,20 +24,22 @@ pub enum BuilderError {
 }
 
 
-pub struct MessageBuilder<T: UavcanTransmitable> {
-    parser: Parser<T>,
+pub struct MessageBuilder<B: UavcanIndexable + Default> {
+    parser: Parser<B>,
     started: bool,
+    id: u32,
     crc: u16,
     crc_calculated: u16,
     toggle: bool,
     transfer_id: u8,    
 }
 
-impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
+impl<B: UavcanIndexable + Default> MessageBuilder<B> {
     fn new() -> Self {
         MessageBuilder{
             parser: Parser::new(),
             started: false,
+            id: 0x00,
             crc: 0x00,
             crc_calculated: 0xffff,
             toggle: false,
@@ -55,6 +59,7 @@ impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
             self.crc.set_bit_range(0..8, frame.get_data()[0] as u16)
                 .set_bit_range(8..16, frame.get_data()[1] as u16); 
             self.transfer_id = frame.get_tail_byte().transfer_id;
+            self.id = frame.get_id();
             self.started = true;
         }
 
@@ -73,8 +78,8 @@ impl<T:UavcanTransmitable + Default> MessageBuilder<T> {
         return Ok(self);
     }
 
-    fn build(self) -> Result<T, BuilderError> {
-        Ok(self.parser.to_structure())
+    fn build<H: TransportFrameHeader>(self) -> Result<UavcanFrame<H, B>, BuilderError> {
+        Ok(UavcanFrame::from_parts(H::from_id(self.id), self.parser.to_structure()))
     }
                 
 }
