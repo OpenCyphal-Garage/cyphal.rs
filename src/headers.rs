@@ -29,7 +29,12 @@ pub struct ServiceFrameHeader {
 
 impl UavcanHeader for MessageFrameHeader {
     fn to_id(&self) -> u32 {
-        return ((self.priority as u32) << 24)&(0x1f000000) | ((self.type_id as u32) << 8)&(0x00ffff00) | (0u32 << 7) | ((self.source_node as u32))&(0x0000007f);
+        let mut id = 0;
+        id.set_bit_range(0..7, self.source_node as u32);
+        id.set_bit(7, false);
+        id.set_bit_range(8..24, self.type_id as u32);
+        id.set_bit_range(24..29, self.priority as u32);
+        return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
@@ -48,7 +53,13 @@ impl UavcanHeader for MessageFrameHeader {
 
 impl UavcanHeader for AnonymousFrameHeader {
     fn to_id(&self) -> u32 {
-        return ((self.priority as u32) << 24)&(0x1f000000) | ((self.discriminator as u32) << 10)&(0x00fffc00) | ((self.type_id as u32) << 10)&(0x00000300) | (0u32 << 7);
+        let mut id = 0;
+        id.set_bit_range(0..7, 0);
+        id.set_bit(7, false);
+        id.set_bit_range(8..10, self.type_id as u32);
+        id.set_bit_range(10..24, self.discriminator as u32);
+        id.set_bit_range(24..29, self.priority as u32);
+        return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
@@ -67,7 +78,14 @@ impl UavcanHeader for AnonymousFrameHeader {
 
 impl UavcanHeader for ServiceFrameHeader {
     fn to_id(&self) -> u32 {
-        return ((self.priority as u32) << 24)&(0x1f000000) | ((self.type_id as u32) << 16)&(0x00ff0000) | ((self.request_not_response as u32) << 15) | ((self.destination_node as u32) << 8)&(0x00007f00) | (1u32 << 7) | ((self.source_node as u32) << 0)&(0x0000007f);
+        let mut id = 0;
+        id.set_bit_range(0..7, self.source_node as u32);
+        id.set_bit(7, true);
+        id.set_bit_range(8..15, self.destination_node as u32);
+        id.set_bit(15, self.request_not_response);
+        id.set_bit_range(16..24, self.type_id as u32);
+        id.set_bit_range(24..29, self.priority as u32);
+        return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
