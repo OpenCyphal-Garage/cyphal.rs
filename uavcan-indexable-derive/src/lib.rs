@@ -101,11 +101,13 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 #primitive_fields_sum
             }
 
+            #[allow(unused_comparisons)]
             fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField {
                 assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_as_mut_body
             }
 
+            #[allow(unused_comparisons)]
             fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField {
                 assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_body
