@@ -3,7 +3,7 @@
 #[macro_use]
 extern crate uavcan_indexable_derive;
 
-extern crate bit;
+extern crate bit_field;
 
 mod can_frame;
 mod types;
@@ -15,8 +15,6 @@ mod serializer;
 
 use core::iter::Iterator;
 use core::convert::{From, Into};
-
-use bit::BitIndex;
 
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///

@@ -1,4 +1,4 @@
-use bit::BitIndex;
+use bit_field::BitField;
 
 use {
     UavcanIndexable,
@@ -32,16 +32,16 @@ impl<T: UavcanIndexable + Default> Parser<T> {
             if offset_bit == 0 {
                 self.buffer[i] = self.buffer[offset_byte+i];
             } else if bits_remaining + offset_bit < 8 {
-                let bitmask = self.buffer[offset_byte+i].bit_range(offset_bit..8);
+                let bitmask = self.buffer[offset_byte+i].get_bits(offset_bit as u8..8);
                 self.buffer[i]
-                    .set_bit_range(0..8-offset_bit, bitmask);
+                    .set_bits(0..8-offset_bit as u8, bitmask);
             } else {
-                let lsb = self.buffer[offset_byte+i].bit_range(offset_bit..8);
-                let msb = self.buffer[offset_byte+i+1].bit_range(0..offset_bit);
+                let lsb = self.buffer[offset_byte+i].get_bits(offset_bit as u8..8);
+                let msb = self.buffer[offset_byte+i+1].get_bits(0..offset_bit as u8);
                 
                 self.buffer[i]
-                    .set_bit_range(0..8-offset_bit, lsb)
-                    .set_bit_range(8-offset_bit..8, msb);
+                    .set_bits(0..8-(offset_bit as u8), lsb)
+                    .set_bits(8-(offset_bit as u8)..8, msb);
             }
         }
         self.buffer_end_bit -= number_of_bits;
@@ -55,8 +55,8 @@ impl<T: UavcanIndexable + Default> Parser<T> {
             if joint_bit == 0 {
                 self.buffer[joint_byte + i] = tail[i];
             } else {
-                self.buffer[joint_byte+i] = self.buffer[joint_byte + i].bit_range(0..joint_bit) | (tail[i].bit_range(0..8-joint_bit) << joint_bit);
-                self.buffer[joint_byte+i+1] = tail[i].bit_range(8-joint_bit..8) >> 8-joint_bit;
+                self.buffer[joint_byte+i] = self.buffer[joint_byte + i].get_bits(0..joint_bit as u8) | (tail[i].get_bits(0..8-joint_bit as u8) << joint_bit);
+                self.buffer[joint_byte+i+1] = tail[i].get_bits(8-(joint_bit as u8)..8) >> 8-joint_bit;
             }
         }
 

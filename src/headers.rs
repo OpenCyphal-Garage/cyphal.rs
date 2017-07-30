@@ -1,4 +1,4 @@
-use bit::BitIndex;
+use bit_field::BitField;
 
 use {
     UavcanHeader
@@ -30,76 +30,76 @@ pub struct ServiceFrameHeader {
 impl UavcanHeader for MessageFrameHeader {
     fn to_id(&self) -> u32 {
         let mut id = 0;
-        id.set_bit_range(0..7, self.source_node as u32);
+        id.set_bits(0..7, self.source_node as u32);
         id.set_bit(7, false);
-        id.set_bit_range(8..24, self.type_id as u32);
-        id.set_bit_range(24..29, self.priority as u32);
+        id.set_bits(8..24, self.type_id as u32);
+        id.set_bits(24..29, self.priority as u32);
         return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
-            priority: id.bit_range(24..29) as u8,
-            type_id: id.bit_range(8..24) as u16,
-            source_node: id.bit_range(0..7) as u8,
+            priority: id.get_bits(24..29) as u8,
+            type_id: id.get_bits(8..24) as u16,
+            source_node: id.get_bits(0..7) as u8,
         }
     }
     fn set_priority(&mut self, priority: u8) {
-        self.priority.set_bit_range(0..5, priority);
+        self.priority.set_bits(0..5, priority);
     }
     fn get_priority(&self) -> u8 {
-        self.priority.bit_range(0..5)
+        self.priority.get_bits(0..5)
     }    
 }
 
 impl UavcanHeader for AnonymousFrameHeader {
     fn to_id(&self) -> u32 {
         let mut id = 0;
-        id.set_bit_range(0..7, 0);
+        id.set_bits(0..7, 0);
         id.set_bit(7, false);
-        id.set_bit_range(8..10, self.type_id as u32);
-        id.set_bit_range(10..24, self.discriminator as u32);
-        id.set_bit_range(24..29, self.priority as u32);
+        id.set_bits(8..10, self.type_id as u32);
+        id.set_bits(10..24, self.discriminator as u32);
+        id.set_bits(24..29, self.priority as u32);
         return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
-            priority: id.bit_range(24..29) as u8,
-            type_id: id.bit_range(8..10) as u8,
-            discriminator: id.bit_range(10..24) as u16,
+            priority: id.get_bits(24..29) as u8,
+            type_id: id.get_bits(8..10) as u8,
+            discriminator: id.get_bits(10..24) as u16,
         }
     }
     fn set_priority(&mut self, priority: u8) {
-        self.priority.set_bit_range(0..5, priority);
+        self.priority.set_bits(0..5, priority);
     }
     fn get_priority(&self) -> u8{
-        self.priority.bit_range(0..5)
+        self.priority.get_bits(0..5)
     }
 }
 
 impl UavcanHeader for ServiceFrameHeader {
     fn to_id(&self) -> u32 {
         let mut id = 0;
-        id.set_bit_range(0..7, self.source_node as u32);
+        id.set_bits(0..7, self.source_node as u32);
         id.set_bit(7, true);
-        id.set_bit_range(8..15, self.destination_node as u32);
+        id.set_bits(8..15, self.destination_node as u32);
         id.set_bit(15, self.request_not_response);
-        id.set_bit_range(16..24, self.type_id as u32);
-        id.set_bit_range(24..29, self.priority as u32);
+        id.set_bits(16..24, self.type_id as u32);
+        id.set_bits(24..29, self.priority as u32);
         return id;
     }
     fn from_id(id: u32) -> Self {
         Self{
-            priority: id.bit_range(24..29) as u8,
-            type_id: id.bit_range(16..24) as u8,
-            request_not_response: id.bit(15),
-            destination_node: id.bit_range(8..14) as u8,
-            source_node: id.bit_range(0..7) as u8,
+            priority: id.get_bits(24..29) as u8,
+            type_id: id.get_bits(16..24) as u8,
+            request_not_response: id.get_bit(15),
+            destination_node: id.get_bits(8..14) as u8,
+            source_node: id.get_bits(0..7) as u8,
         }
     }
     fn set_priority(&mut self, priority: u8) {
-        self.priority.set_bit_range(0..5, priority);
+        self.priority.set_bits(0..5, priority);
     }
     fn get_priority(&self) -> u8{
-        self.priority.bit_range(0..5)
+        self.priority.get_bits(0..5)
     }
 }

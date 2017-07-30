@@ -1,4 +1,4 @@
-use bit::BitIndex;
+use bit_field::BitField;
 
 use {
     UavcanFrame,
@@ -56,8 +56,8 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
                 return Err(BuilderError::ToggleError);
             }
             self.toggle = false;
-            self.crc.set_bit_range(0..8, frame.data()[0] as u16)
-                .set_bit_range(8..16, frame.data()[1] as u16); 
+            self.crc.set_bits(0..8, frame.data()[0] as u16)
+                .set_bits(8..16, frame.data()[1] as u16); 
             self.transfer_id = frame.tail_byte().transfer_id;
             self.id = frame.id();
             self.started = true;

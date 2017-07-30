@@ -1,5 +1,5 @@
 use core::mem::transmute;
-use bit::BitIndex;
+use bit_field::BitField;
 
 use {
     UavcanIndexable,
@@ -205,31 +205,31 @@ pub struct Float64 {
 
 impl From<u8> for Uint2 {
     fn from(t: u8) -> Uint2 {
-        Uint2{value: t.bit_range(0..2)}
+        Uint2{value: t.get_bits(0..2)}
     }
 }
 
 impl From<u8> for Uint3 {
     fn from(t: u8) -> Uint3 {
-        Uint3{value: t.bit_range(0..3)}
+        Uint3{value: t.get_bits(0..3)}
     }
 }
 
 impl From<u8> for Uint8 {
     fn from(t: u8) -> Uint8 {
-        Uint8{value: t.bit_range(0..8)}
+        Uint8{value: t.get_bits(0..8)}
     }
 }
 
 impl From<u16> for Uint16 {
     fn from(t: u16) -> Uint16 {
-        Uint16{value: t.bit_range(0..16)}
+        Uint16{value: t.get_bits(0..16)}
     }
 }
 
 impl From<u32> for Uint32 {
     fn from(t: u32) -> Uint32 {
-        Uint32{value: t.bit_range(0..32)}
+        Uint32{value: t.get_bits(0..32)}
     }
 }
 
@@ -326,42 +326,42 @@ impl UavcanPrimitiveType for Bool {
 impl UavcanPrimitiveType for Uint2 {
     fn bitlength(&self) -> usize { 2 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..2, buffer[0].bit_range(0..2));
+        self.value.set_bits(0..2, buffer[0].get_bits(0..2));
     }
 }
 
 impl UavcanPrimitiveType for Uint3 {
     fn bitlength(&self) -> usize { 3 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..3, buffer[0].bit_range(0..3));
+        self.value.set_bits(0..3, buffer[0].get_bits(0..3));
     }
 }
 
 impl UavcanPrimitiveType for Uint4 {
     fn bitlength(&self) -> usize { 4 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..4, buffer[0].bit_range(0..4));
+        self.value.set_bits(0..4, buffer[0].get_bits(0..4));
     }
 }
 
 impl UavcanPrimitiveType for Uint5 {
     fn bitlength(&self) -> usize { 5 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..5, buffer[0].bit_range(0..5));
+        self.value.set_bits(0..5, buffer[0].get_bits(0..5));
     }
 }
 
 impl UavcanPrimitiveType for Uint6 {
     fn bitlength(&self) -> usize { 6 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..6, buffer[0].bit_range(0..6));
+        self.value.set_bits(0..6, buffer[0].get_bits(0..6));
     }
 }
 
 impl UavcanPrimitiveType for Uint7 {
     fn bitlength(&self) -> usize { 7 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..7, buffer[0].bit_range(0..7));
+        self.value.set_bits(0..7, buffer[0].get_bits(0..7));
     }
 }
 
@@ -375,18 +375,18 @@ impl UavcanPrimitiveType for Uint8 {
 impl UavcanPrimitiveType for Uint16 {
     fn bitlength(&self) -> usize { 16 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..8, buffer[0].bit_range(0..8) as u16)
-            .set_bit_range(8..16, buffer[1].bit_range(0..8) as u16);
+        self.value.set_bits(0..8, buffer[0].get_bits(0..8) as u16)
+            .set_bits(8..16, buffer[1].get_bits(0..8) as u16);
     }
 }
 
 impl UavcanPrimitiveType for Uint32 {
     fn bitlength(&self) -> usize { 32 }
     fn set_from_bytes(&mut self, buffer: &[u8]) {
-        self.value.set_bit_range(0..8, buffer[0].bit_range(0..8) as u32)
-            .set_bit_range(8..16, buffer[1].bit_range(0..8) as u32)
-            .set_bit_range(16..24, buffer[2].bit_range(0..8) as u32)
-            .set_bit_range(24..32, buffer[3].bit_range(0..8) as u32);
+        self.value.set_bits(0..8, buffer[0].get_bits(0..8) as u32)
+            .set_bits(8..16, buffer[1].get_bits(0..8) as u32)
+            .set_bits(16..24, buffer[2].get_bits(0..8) as u32)
+            .set_bits(24..32, buffer[3].get_bits(0..8) as u32);
     }
 }
 
