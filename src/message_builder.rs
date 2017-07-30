@@ -35,7 +35,7 @@ pub struct MessageBuilder<B: UavcanIndexable + Default> {
 }
 
 impl<B: UavcanIndexable + Default> MessageBuilder<B> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         MessageBuilder{
             parser: Parser::new(),
             started: false,
@@ -47,7 +47,7 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
         }
     }
     
-    fn add_frame<F: TransportFrame>(mut self, frame: F) -> Result<Self, BuilderError> {
+    pub fn add_frame<F: TransportFrame>(mut self, frame: F) -> Result<Self, BuilderError> {
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);
@@ -78,7 +78,7 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
         return Ok(self);
     }
 
-    fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
+    pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
         Ok(F::from_parts(H::from_id(self.id), self.parser.to_structure()))
     }
                 
