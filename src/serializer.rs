@@ -71,3 +71,87 @@ impl<T: UavcanIndexable> Serializer<T> {
     }
 }       
     
+
+
+#[cfg(test)]
+mod tests {
+
+    use {
+        UavcanIndexable,
+        UavcanPrimitiveField,
+        UavcanPrimitiveType,
+    };
+
+    use serializer::{
+        Serializer,
+    };
+    
+    use types::{
+        Uint2,
+        Uint3,
+        Uint8,
+        Uint16,
+        Uint32,
+    };
+    
+    #[test]
+    fn uavcan_serialize_test_byte_aligned() {
+
+        #[derive(UavcanIndexable)]
+        struct Message {
+            v1: Uint8,
+            v2: Uint32,
+            v3: Uint16,
+            v4: Uint8,
+        }
+
+
+        let message = Message{
+            v1: 17.into(),
+            v2: 19.into(),
+            v3: 21.into(),
+            v4: 23.into(),
+        };
+
+        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut array: [u8; 8] = [0; 8];
+
+        serializer.serialize(&mut array);
+
+        assert_eq!(array, [17, 19, 0, 0, 0, 21, 0, 23]);
+        
+    }
+
+
+    #[test]
+    fn uavcan_parse_test_misaligned() {
+        
+        
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
+        }
+
+        let message = NodeStatus{
+            uptime_sec: 1.into(),
+            health: 2.into(),
+            mode: 3.into(),
+            sub_mode: 4.into(),
+            vendor_specific_status_code: 5.into(),
+        };
+
+        let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
+        let mut array: [u8; 7] = [0; 7];
+
+        serializer.serialize(&mut array);
+
+        assert_eq!(array, [1, 0, 0, 0, 0b10001110, 5, 0]);      
+
+        
+    }
+}
+
