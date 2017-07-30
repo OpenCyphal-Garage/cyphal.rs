@@ -5,7 +5,6 @@ use bit_field::{
 
 use {
     UavcanIndexable,
-    UavcanPrimitiveType,
 };
 
 #[derive(Debug)]
@@ -125,11 +124,9 @@ mod tests {
     use {
         UavcanIndexable,
         UavcanPrimitiveField,
-        UavcanPrimitiveType,
     };
 
     use parser::{
-        ParseError,
         Parser,
     };
     

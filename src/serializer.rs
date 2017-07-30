@@ -79,7 +79,6 @@ mod tests {
     use {
         UavcanIndexable,
         UavcanPrimitiveField,
-        UavcanPrimitiveType,
     };
 
     use serializer::{

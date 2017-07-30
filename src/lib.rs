@@ -13,8 +13,7 @@ mod parser;
 mod message_builder;
 mod serializer;
 
-use core::iter::Iterator;
-use core::convert::{From, Into};
+use core::convert::{From};
 
 use bit_field::BitArray;
 
@@ -117,13 +116,9 @@ pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
 
 #[cfg(test)]
 mod tests {
-    use core::fmt::*;
-    use crc;
-
     use {
         UavcanIndexable,
         UavcanPrimitiveField,
-        UavcanPrimitiveType,
     };
     
     use types::{

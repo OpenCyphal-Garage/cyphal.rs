@@ -91,7 +91,6 @@ mod tests {
     use{
         UavcanIndexable,
         UavcanPrimitiveField,
-        UavcanPrimitiveType,
         UavcanHeader,
         UavcanFrame,
         TailByte,
@@ -104,8 +103,6 @@ mod tests {
     use types::{
         Uint2,
         Uint3,
-        Uint4,
-        Uint5,
         Uint16,
         Uint32,
     };
@@ -116,7 +113,6 @@ mod tests {
     };
 
     use message_builder::{
-        BuilderError,
         MessageBuilder,
     };
     
