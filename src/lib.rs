@@ -5,12 +5,12 @@ extern crate uavcan_indexable_derive;
 
 extern crate bit_field;
 
-mod can_frame;
-mod types;
-mod headers;
+pub mod can_frame;
+pub mod types;
+pub mod headers;
 mod crc;
 mod parser;
-mod message_builder;
+pub mod message_builder;
 mod serializer;
 
 use core::convert::{From};
