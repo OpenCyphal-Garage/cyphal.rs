@@ -354,7 +354,16 @@ impl BitArray<u64> for Uint32 {
     #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.set_bit(bit as u8, value); }
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u32); }
 }
-    
+
+impl BitArray<u64> for Float16 {
+    #[inline] fn bit_length(&self) -> usize { 16 }
+    #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.bitfield.get_bit(bit as u8) }
+    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.bitfield.get_bits(range.start as u8..range.end as u8) as u64}
+    #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.bitfield.set_bit(bit as u8, value); }
+    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.bitfield.set_bits((range.start as u8..range.end as u8), value as u16); }
+}
+
+
 impl UavcanPrimitiveType for Uint2 {}
 impl UavcanPrimitiveType for Uint3 {}
 impl UavcanPrimitiveType for Uint4 {}
@@ -362,3 +371,4 @@ impl UavcanPrimitiveType for Uint5 {}
 impl UavcanPrimitiveType for Uint8 {}
 impl UavcanPrimitiveType for Uint16 {}
 impl UavcanPrimitiveType for Uint32 {}
+impl UavcanPrimitiveType for Float16 {}
