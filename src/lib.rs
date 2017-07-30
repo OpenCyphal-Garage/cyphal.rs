@@ -16,6 +16,8 @@ mod serializer;
 use core::iter::Iterator;
 use core::convert::{From, Into};
 
+use bit_field::BitArray;
+
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///
 /// This will in >99% of situations be a CAN2.0B frame
@@ -100,9 +102,7 @@ pub trait UavcanPrimitiveField{
     fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType>;
 }
 
-pub trait UavcanPrimitiveType{
-    fn bitlength(&self) -> usize;
-    fn set_from_bytes(&mut self, buffer: &[u8]);
+pub trait UavcanPrimitiveType : BitArray<u64> {
 }
 
 
@@ -225,13 +225,11 @@ mod tests {
         
         let mut node_status = NodeStatus::new();
 
-        node_status.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[1, 0, 0, 0]);
-        node_status.primitive_field_as_mut(1).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[2]);
-        node_status.primitive_field_as_mut(2).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[3]);
-        node_status.primitive_field_as_mut(3).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[4]);
-        node_status.primitive_field_as_mut(4).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[5, 0]);
-
-        node_status.health.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_from_bytes(&[2, 0, 0, 0]);
+        node_status.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..32, 1);
+        node_status.primitive_field_as_mut(1).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..2, 2);
+        node_status.primitive_field_as_mut(2).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..3, 3);
+        node_status.primitive_field_as_mut(3).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..3, 4);
+        node_status.primitive_field_as_mut(4).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..16, 5);
 
         assert_eq!(node_status.uptime_sec, 1.into());
         assert_eq!(node_status.health, 2.into());
