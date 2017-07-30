@@ -10,12 +10,12 @@ use {
 };
 
 
+#[allow(non_camel_case_types)]
 #[derive(Debug, PartialEq)]
 pub struct f16 {
     bitfield: u16,
 }
 
-#[allow(non_camel_case_types)]
 impl f16 {
     fn from_bitmap(bm: u16) -> f16 {
         f16{bitfield: bm}
