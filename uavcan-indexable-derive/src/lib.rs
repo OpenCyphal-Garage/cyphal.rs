@@ -55,6 +55,12 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 });
             primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
         }
+        primitive_fields_builder.append(
+            quote!{
+                else {
+                    unreachable!()
+                }
+            });
         primitive_fields_builder
     };
         
@@ -77,6 +83,12 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 });
             primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
         }
+        primitive_fields_builder.append(
+            quote!{
+                else {
+                    unreachable!()
+                }
+            });
         primitive_fields_builder
     };
         
@@ -89,14 +101,14 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 #primitive_fields_sum
             }
 
-            fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField> {
+            fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField {
+                assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_as_mut_body
-                return None;
             }
 
-            fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField> {
+            fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField {
+                assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_body
-                return None;
             }
         }
 

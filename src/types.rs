@@ -265,19 +265,13 @@ impl<T: UavcanPrimitiveField> UavcanIndexable for T {
     fn number_of_primitive_fields(&self) -> usize{
         self.get_size()
     }
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>{
-        if field_number == 0 {
-            Some(self)
-        } else {
-            None
-        }
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField{
+        assert!(field_number == 0);
+        self
     }
-    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>{
-        if field_number == 0 {
-            Some(self)
-        } else {
-            None
-        }
+    fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField{
+        assert!(field_number == 0);
+        self
     }
 }
 
@@ -292,19 +286,13 @@ impl<T: UavcanPrimitiveType> UavcanPrimitiveField for T{
     fn get_size_mut(&self) -> Option<&mut usize>{
         None
     }
-    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType> {
-        if index == 0 {
-            Some(self)
-        } else {
-            None
-        }
+    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
+        assert!(index == 0);
+        self
     }
-    fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType> {
-        if index == 0 {
-            Some(self)
-        } else {
-            None
-        }
+    fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType {
+        assert!(index == 0);
+        self
     }
 }
 

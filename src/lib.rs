@@ -75,8 +75,8 @@ pub trait UavcanHeader {
 
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> Option<&mut UavcanPrimitiveField>;
-    fn primitive_field(&self, field_number: usize) -> Option<&UavcanPrimitiveField>;
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField;
+    fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField;
 }
 
 
@@ -98,8 +98,8 @@ pub trait UavcanPrimitiveField{
     /// get_size_mut(&self) -> Option<&mut usize> returns a mutable reference to the size
     /// if the field is of variable size, or None if the field is constant size 
     fn get_size_mut(&self) -> Option<&mut usize>;
-    fn primitive_type_as_mut(&mut self, index: usize) -> Option<&mut UavcanPrimitiveType>;
-    fn primitive_type(&self, index: usize) -> Option<&UavcanPrimitiveType>;
+    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;
+    fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType;
 }
 
 pub trait UavcanPrimitiveType : BitArray<u64> {
@@ -225,11 +225,11 @@ mod tests {
         
         let mut node_status = NodeStatus::new();
 
-        node_status.primitive_field_as_mut(0).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..32, 1);
-        node_status.primitive_field_as_mut(1).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..2, 2);
-        node_status.primitive_field_as_mut(2).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..3, 3);
-        node_status.primitive_field_as_mut(3).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..3, 4);
-        node_status.primitive_field_as_mut(4).unwrap().primitive_type_as_mut(0).unwrap().set_bits(0..16, 5);
+        node_status.primitive_field_as_mut(0).primitive_type_as_mut(0).set_bits(0..32, 1);
+        node_status.primitive_field_as_mut(1).primitive_type_as_mut(0).set_bits(0..2, 2);
+        node_status.primitive_field_as_mut(2).primitive_type_as_mut(0).set_bits(0..3, 3);
+        node_status.primitive_field_as_mut(3).primitive_type_as_mut(0).set_bits(0..3, 4);
+        node_status.primitive_field_as_mut(4).primitive_type_as_mut(0).set_bits(0..16, 5);
 
         assert_eq!(node_status.uptime_sec, 1.into());
         assert_eq!(node_status.health, 2.into());
