@@ -1,4 +1,4 @@
-# uavcan-core.rs
+# uavcan-core.rs [![Build Status](https://travis-ci.org/kjetilkjeka/uavcan-core.rs.svg?branch=master)](https://travis-ci.org/kjetilkjeka/uavcan-core.rs)
 
 > The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std
 
