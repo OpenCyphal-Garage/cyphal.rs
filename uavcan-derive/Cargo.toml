@@ -3,6 +3,8 @@ name = "uavcan-derive"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 version = "0.0.1"
 
+description = "Makes it possible to derive UavcanIndexable and UavcanFrame used in uavcan-core"
+
 repository = "https://github.com/kjetilkjeka/uavcan-core.rs/tree/master/uavcan-derive"
 
 keywords = ["uavcan", "can", "uav", "embedded"]
