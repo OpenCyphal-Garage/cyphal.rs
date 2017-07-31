@@ -107,6 +107,7 @@ pub trait UavcanPrimitiveType : BitArray<u64> {
 
 pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
     fn from_parts(header: H, body: B) -> Self;
+    fn to_parts(self) -> (H, B);
     fn header(&self) -> &H;
     fn body(&self) -> &B;
 }

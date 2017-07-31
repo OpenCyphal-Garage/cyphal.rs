@@ -155,6 +155,10 @@ fn impl_uavcan_frame(ast: &syn::MacroInput) -> quote::Tokens {
                 Self{header: header, body: body}
             }
 
+            fn to_parts(self) -> (#header_type, #body_type) {
+                (self.header, self.body)
+            }
+
             fn header(&self) -> & #header_type {
                 &self.header
             }
