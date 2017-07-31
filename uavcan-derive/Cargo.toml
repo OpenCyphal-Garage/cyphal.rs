@@ -3,6 +3,10 @@ name = "uavcan-derive"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 version = "0.0.1"
 
+repository = "https://github.com/kjetilkjeka/uavcan-core.rs/tree/master/uavcan-derive"
+
+keywords = ["uavcan", "can", "uav", "embedded"]
+
 [lib]
 proc-macro = true
 
