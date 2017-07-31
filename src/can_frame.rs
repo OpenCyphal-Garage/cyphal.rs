@@ -2,11 +2,13 @@ use {
     TransportFrame,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum CanID {
     Extended(u32),
     Normal(u16),
 }
 
+#[derive(Debug, PartialEq)]
 pub struct CanFrame {
     pub id: CanID,
     pub dlc: usize,
