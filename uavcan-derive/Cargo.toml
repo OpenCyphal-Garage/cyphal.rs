@@ -7,6 +7,8 @@ repository = "https://github.com/kjetilkjeka/uavcan-core.rs/tree/master/uavcan-d
 
 keywords = ["uavcan", "can", "uav", "embedded"]
 
+license = "Apache-2.0/MIT"
+
 [lib]
 proc-macro = true
 
