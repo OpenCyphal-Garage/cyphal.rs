@@ -67,7 +67,38 @@ impl<T: UavcanIndexable> Serializer<T> {
                 self.bit_index += type_bits_remaining;
             }
         }
-        return SerializationResult::BufferFull;
+        if self.any_remaining_bits() {
+            return SerializationResult::BufferFull;
+        } else {
+            return SerializationResult::Finished(buffer_next_bit);
+        }
+    }
+
+    fn any_remaining_bits(&self) -> bool {
+        let mut bits_counted = 0;
+        
+        let mut field_index = self.field_index;
+        let mut type_index = self.type_index;
+        let mut bit_index = self.bit_index;
+
+        loop {
+            let primitive_type = self.structure.primitive_field(field_index).primitive_type(type_index);
+            bits_counted += primitive_type.bit_length() - bit_index;
+            
+            if bits_counted > 0 { return true;}
+            
+            bit_index = 0;
+            type_index += 1;
+
+            if type_index >= self.structure.primitive_field(field_index).get_size() {
+                type_index = 0;
+                field_index += 1;
+            }
+            if field_index >= self.structure.number_of_primitive_fields() {
+                return bits_counted > 0;
+            }
+            
+        }
     }
 
     /// remaining_bits(&self, bits: usize) -> bool
