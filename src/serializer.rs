@@ -181,5 +181,36 @@ mod tests {
 
         
     }
+
+    
+    #[test]
+    fn remaining_bits() {
+
+        #[derive(UavcanIndexable)]
+        struct NodeStatus {
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
+        }
+
+        let message = NodeStatus{
+            uptime_sec: 1.into(),
+            health: 2.into(),
+            mode: 3.into(),
+            sub_mode: 4.into(),
+            vendor_specific_status_code: 5.into(),
+        };
+
+        let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
+
+        assert_eq!(serializer.remaining_bits(), 56);
+
+        let mut array: [u8; 7] = [0; 7];
+        serializer.serialize(&mut array);
+
+        assert_eq!(serializer.remaining_bits(), 0);
+    }
 }
 
