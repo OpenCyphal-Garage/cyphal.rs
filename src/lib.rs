@@ -41,6 +41,7 @@ pub trait TransportFrame {
     /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
     fn with_data(id: u32,  data: &[u8]) -> Self;
     fn with_length(id: u32, length: usize) -> Self;
+    fn set_data_length(&mut self, length: usize);
     fn max_data_length() -> usize;
     fn data(&self) -> &[u8];
     fn data_as_mut(&mut self) -> &mut[u8];

@@ -28,6 +28,11 @@ impl TransportFrame for CanFrame {
         8
     }
 
+    fn set_data_length(&mut self, length: usize) {
+        assert!(length <= 8);
+        self.dlc = length;
+    }
+
     fn data(&self) -> &[u8] {
         &self.data[0..self.dlc]
     }
