@@ -12,6 +12,7 @@ mod crc;
 mod parser;
 pub mod message_builder;
 mod serializer;
+pub mod frame_generator;
 
 use core::convert::{From};
 
