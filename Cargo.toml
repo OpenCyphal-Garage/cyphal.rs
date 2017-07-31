@@ -5,5 +5,4 @@ authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 [dependencies]
 bit_field = "0.8.0"
-
-uavcan-indexable-derive = {path = "uavcan-indexable-derive"}
+uavcan-derive = {path = "uavcan-derive"}

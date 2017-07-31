@@ -1,7 +1,7 @@
 #![no_std]
 
 #[macro_use]
-extern crate uavcan_indexable_derive;
+extern crate uavcan_derive;
 
 extern crate bit_field;
 

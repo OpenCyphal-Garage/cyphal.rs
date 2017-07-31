@@ -1,7 +1,7 @@
 [package]
-name = "uavcan-indexable-derive"
-version = "0.1.0"
+name = "uavcan-derive"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
+version = "0.0.1"
 
 [lib]
 proc-macro = true
