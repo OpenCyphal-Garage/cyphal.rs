@@ -1,4 +1,4 @@
-# uavcan_core.rs
+# uavcan-core.rs
 
 > The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std
 
