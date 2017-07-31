@@ -28,7 +28,7 @@ pub struct ServiceFrameHeader {
 }
 
 impl UavcanHeader for MessageFrameHeader {
-    fn to_id(&self) -> u32 {
+    fn to_id(self) -> u32 {
         let mut id = 0;
         id.set_bits(0..7, self.source_node as u32);
         id.set_bit(7, false);
@@ -52,7 +52,7 @@ impl UavcanHeader for MessageFrameHeader {
 }
 
 impl UavcanHeader for AnonymousFrameHeader {
-    fn to_id(&self) -> u32 {
+    fn to_id(self) -> u32 {
         let mut id = 0;
         id.set_bits(0..7, 0);
         id.set_bit(7, false);
@@ -77,7 +77,7 @@ impl UavcanHeader for AnonymousFrameHeader {
 }
 
 impl UavcanHeader for ServiceFrameHeader {
-    fn to_id(&self) -> u32 {
+    fn to_id(self) -> u32 {
         let mut id = 0;
         id.set_bits(0..7, self.source_node as u32);
         id.set_bit(7, true);
