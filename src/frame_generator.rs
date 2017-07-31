@@ -64,3 +64,76 @@ impl<B: UavcanIndexable> FrameGenerator<B> {
 }
 
 
+
+
+#[cfg(test)]
+mod tests {
+
+    use{
+        UavcanIndexable,
+        UavcanPrimitiveField,
+        UavcanHeader,
+        UavcanFrame,
+        TailByte,
+    };
+    
+    use headers::{
+        MessageFrameHeader,
+    };
+
+    use types::{
+        Uint2,
+        Uint3,
+        Uint16,
+        Uint32,
+    };
+    
+    use can_frame::{
+        CanFrame,
+        CanID,
+    };
+
+    use frame_generator::{
+        FrameGenerator,
+    };
+    
+    #[test]
+    fn serialize_node_status_frame() {
+
+        #[derive(UavcanIndexable, Default)]
+        struct NodeStatus {
+            uptime_sec: Uint32,
+            health: Uint2,
+            mode: Uint3,
+            sub_mode: Uint3,
+            vendor_specific_status_code: Uint16,
+        }
+
+        #[derive(UavcanFrame, Default)]
+        struct NodeStatusMessage {
+            header: MessageFrameHeader,
+            body: NodeStatus,
+        }
+            
+        
+        let can_frame = CanFrame{id: CanID::Extended(MessageFrameHeader::from_id(0xaa).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        
+        let uavcan_frame = NodeStatusMessage{
+            header: MessageFrameHeader::from_id(0xaa),
+            body: NodeStatus{
+                uptime_sec: 1.into(),
+                health: 2.into(),
+                mode: 3.into(),
+                sub_mode: 4.into(),
+                vendor_specific_status_code: 5.into(),
+            },
+        };
+
+        let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
+
+        assert_eq!(frame_generator.next_transport_frame(), Some(can_frame));
+        assert_eq!(frame_generator.next_transport_frame::<CanFrame>(), None);
+        
+    }
+
+}
