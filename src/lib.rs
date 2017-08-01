@@ -5,9 +5,10 @@ extern crate uavcan_derive;
 
 extern crate bit_field;
 
+#[macro_use]
+mod header_macros;
 pub mod can_frame;
 pub mod types;
-pub mod headers;
 mod crc;
 mod parser;
 pub mod message_builder;
@@ -67,11 +68,24 @@ impl From<u8> for TailByte {
     }
 }
 
-pub trait UavcanHeader {
+pub trait UavcanHeader : Sized {
+    fn type_id() -> u16;
     fn to_id(self) -> u32;
-    fn from_id(u32) -> Self;
+    fn from_id(u32) -> Result<Self, ()>;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
+}
+
+pub trait MessageFrameHeader : UavcanHeader {
+    fn new(priority: u8, source_node: u8) -> Self;
+}
+
+pub trait AnonymousFrameHeader : UavcanHeader {
+    fn new(priority: u8, discriminator: u16) -> Self;
+}
+
+pub trait ServiceFrameHeader : UavcanHeader {
+    fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
 }
 
 pub trait UavcanIndexable {

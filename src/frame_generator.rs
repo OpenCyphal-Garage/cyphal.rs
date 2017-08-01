@@ -73,14 +73,11 @@ mod tests {
         UavcanIndexable,
         UavcanPrimitiveField,
         UavcanHeader,
+        MessageFrameHeader,
         UavcanFrame,
         TailByte,
     };
     
-    use headers::{
-        MessageFrameHeader,
-    };
-
     use types::{
         Uint2,
         Uint3,
@@ -109,17 +106,18 @@ mod tests {
             vendor_specific_status_code: Uint16,
         }
 
+        message_frame_header!(NodeStatusHeader, 341);
+        
         #[derive(UavcanFrame, Default)]
         struct NodeStatusMessage {
-            header: MessageFrameHeader,
+            header: NodeStatusHeader,
             body: NodeStatus,
         }
             
-        
-        let can_frame = CanFrame{id: CanID::Extended(MessageFrameHeader::from_id(0xaa).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
-        
+        let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+
         let uavcan_frame = NodeStatusMessage{
-            header: MessageFrameHeader::from_id(0xaa),
+            header: NodeStatusHeader::new(0, 32),
             body: NodeStatus{
                 uptime_sec: 1.into(),
                 health: 2.into(),

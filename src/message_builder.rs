@@ -21,6 +21,7 @@ pub enum BuilderError {
     ToggleError,
     CRCError,
     FormatError,
+    IdError,
 }
 
 
@@ -79,7 +80,11 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
     }
 
     pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
-        Ok(F::from_parts(H::from_id(self.id), self.parser.to_structure()))
+        if let Ok(id) = H::from_id(self.id) {
+            Ok(F::from_parts(id, self.parser.to_structure()))
+        } else {
+            Err(BuilderError::IdError)
+        }
     }
                 
 }
@@ -92,14 +97,11 @@ mod tests {
         UavcanIndexable,
         UavcanPrimitiveField,
         UavcanHeader,
+        MessageFrameHeader,
         UavcanFrame,
         TailByte,
     };
     
-    use headers::{
-        MessageFrameHeader,
-    };
-
     use types::{
         Uint2,
         Uint3,
@@ -128,14 +130,16 @@ mod tests {
             vendor_specific_status_code: Uint16,
         }
 
+        message_frame_header!(NodeStatusHeader, 341);
+
         #[derive(UavcanFrame, Default)]
         struct NodeStatusMessage {
-            header: MessageFrameHeader,
+            header: NodeStatusHeader,
             body: NodeStatus,
         }
             
         
-        let can_frame = CanFrame{id: CanID::Extended(MessageFrameHeader::from_id(0xaa).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
         let mut message_builder = MessageBuilder::new();
         message_builder = message_builder.add_frame(can_frame).unwrap();
@@ -146,7 +150,7 @@ mod tests {
         assert_eq!(parsed_message.body.mode, 3.into());
         assert_eq!(parsed_message.body.sub_mode, 4.into());
         assert_eq!(parsed_message.body.vendor_specific_status_code, 5.into());
-        assert_eq!(parsed_message.header, MessageFrameHeader::from_id(0xaa));
+        assert_eq!(parsed_message.header, NodeStatusHeader::new(0, 32));
                                               
     }
 
