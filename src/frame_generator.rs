@@ -84,12 +84,13 @@ mod tests {
         Uint16,
         Uint32,
     };
-    
-    use can_frame::{
+
+    use tests::{
         CanFrame,
         CanID,
     };
 
+    
     use frame_generator::{
         FrameGenerator,
     };

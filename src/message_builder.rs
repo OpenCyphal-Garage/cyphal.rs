@@ -109,7 +109,7 @@ mod tests {
         Uint32,
     };
     
-    use can_frame::{
+    use tests::{
         CanFrame,
         CanID,
     };
