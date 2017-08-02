@@ -77,6 +77,8 @@ mod tests {
         UavcanFrame,
         TailByte,
     };
+
+    use bit_field::BitField;
     
     use types::{
         Uint2,

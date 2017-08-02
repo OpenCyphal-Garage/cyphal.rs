@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! message_frame_header{
     ($t:ident, $n:expr) => (
-        use bit_field::BitField;
-
         #[derive(Debug, PartialEq, Default)]
         struct $t {
             priority: u8,

@@ -93,6 +93,8 @@ impl<B: UavcanIndexable + Default> MessageBuilder<B> {
 #[cfg(test)]
 mod tests {
 
+    use bit_field::BitField;
+    
     use{
         UavcanIndexable,
         UavcanPrimitiveField,
