@@ -101,10 +101,6 @@ impl<T: UavcanIndexable> Serializer<T> {
         }
     }
 
-    /// remaining_bits(&self, bits: usize) -> bool
-    ///
-    /// Checks if it remains a number of bits
-    /// Returns true if it 
     pub fn remaining_bits(&self) -> usize {
         let mut bits_counted = 0;
         
