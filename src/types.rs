@@ -206,6 +206,19 @@ macro_rules! dynamic_array_def {
             current_size: usize,
             data: [T; $n],
         }
+
+        impl $i<Uint8>{
+            pub fn with_str(string: &str) -> Self {
+                let mut data = [0.into(); $n];
+                for i in 0..string.len() {
+                    data[i] = string.as_bytes()[i].into();
+                }
+                Self{
+                    current_size: data.len(),
+                    data: data,
+                }
+            }
+        }
         
         impl<T: UavcanPrimitiveType + Copy> DynamicArray for $i<T> {
             type Field = T;
