@@ -263,7 +263,7 @@ impl From<Float64> for f64 {
 
 impl<T: UavcanPrimitiveField> UavcanIndexable for T {
     fn number_of_primitive_fields(&self) -> usize{
-        self.get_size()
+        self.length()
     }
     fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField{
         assert!(field_number == 0);
@@ -280,11 +280,11 @@ impl<T: UavcanPrimitiveType> UavcanPrimitiveField for T{
     fn is_constant_size(&self) -> bool{
         true
     }
-    fn get_size(&self) -> usize{
+    fn length(&self) -> usize{
         1
     }
-    fn get_size_mut(&self) -> Option<&mut usize>{
-        None
+    fn set_length(&mut self, length: usize) {
+        panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
     }
     fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
         assert!(index == 0);

@@ -105,15 +105,13 @@ pub trait UavcanIndexable {
 /// This array has number of primitive fields as their members (elements)+1
 pub trait UavcanPrimitiveField{
     fn is_constant_size(&self) -> bool;
-    /// get_size(&self) -> usize returns the number of primitive data types in this field
+    /// length(&self) -> usize returns the number of primitive data types in this field
     ///
     /// for primtiive data types (non-array) it will return 1
-    fn get_size(&self) -> usize;
-    /// get_size_mut(&self) -> Option<&mut usize> returns a mutable reference to the size
-    /// if the field is of variable size, or None if the field is constant size 
-    fn get_size_mut(&self) -> Option<&mut usize>;
-    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;
+    fn length(&self) -> usize;
+    fn set_length(&mut self, length: usize);
     fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType;
+    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;
 }
 
 pub trait UavcanPrimitiveType : BitArray<u64> {

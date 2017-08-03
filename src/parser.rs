@@ -85,7 +85,7 @@ impl<T: UavcanIndexable + Default> Parser<T> {
             loop {
                 
                 if self.current_field_index < self.structure.number_of_primitive_fields() {
-                    if self.current_type_index < self.structure.primitive_field(self.current_field_index).get_size() {
+                    if self.current_type_index < self.structure.primitive_field(self.current_field_index).length() {
                         
                         let field_length = self.structure.primitive_field(self.current_field_index).primitive_type(self.current_type_index).bit_length();
                         if field_length <= self.buffer.bit_length() {

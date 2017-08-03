@@ -46,7 +46,7 @@ impl<T: UavcanIndexable> Serializer<T> {
             if type_bits_remaining == 0 {
                 self.type_index += 1;
                 self.bit_index = 0;
-                if self.type_index >= self.structure.primitive_field(self.field_index).get_size() {
+                if self.type_index >= self.structure.primitive_field(self.field_index).length() {
                     self.type_index = 0;
                     self.field_index += 1;
                 }
@@ -90,7 +90,7 @@ impl<T: UavcanIndexable> Serializer<T> {
             bit_index = 0;
             type_index += 1;
 
-            if type_index >= self.structure.primitive_field(field_index).get_size() {
+            if type_index >= self.structure.primitive_field(field_index).length() {
                 type_index = 0;
                 field_index += 1;
             }
@@ -115,7 +115,7 @@ impl<T: UavcanIndexable> Serializer<T> {
             bit_index = 0;
             type_index += 1;
 
-            if type_index >= self.structure.primitive_field(field_index).get_size() {
+            if type_index >= self.structure.primitive_field(field_index).length() {
                 type_index = 0;
                 field_index += 1;
             }
