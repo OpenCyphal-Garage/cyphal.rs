@@ -284,7 +284,7 @@ macro_rules! impl_primitive_field {
             fn length(&self) -> usize{
                 1
             }
-            fn set_length(&mut self, length: usize) {
+            fn set_length(&mut self, _length: usize) {
                 panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
             }
             fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
