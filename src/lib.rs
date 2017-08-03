@@ -93,6 +93,17 @@ pub trait UavcanIndexable {
     fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField;
 }
 
+pub trait DynamicArray{
+    type Field;
+    
+    fn max_size() -> usize;
+    
+    fn with_data(data: &[Self::Field]) -> Self;
+    
+    fn set_length(&mut self, length: usize);
+    fn data(&self) -> &[Self::Field];
+    fn data_as_mut(&mut self) -> &mut [Self::Field];
+}
 
 /// An UavcanPrimitiveField is a field of a flatted out uavcan struct
 ///
