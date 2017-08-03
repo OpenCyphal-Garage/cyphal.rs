@@ -275,25 +275,28 @@ impl<T: UavcanPrimitiveField> UavcanIndexable for T {
     }
 }
 
-
-impl<T: UavcanPrimitiveType> UavcanPrimitiveField for T{
-    fn is_constant_size(&self) -> bool{
-        true
-    }
-    fn length(&self) -> usize{
-        1
-    }
-    fn set_length(&mut self, length: usize) {
-        panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
-    }
-    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
-        assert!(index == 0);
-        self
-    }
-    fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType {
-        assert!(index == 0);
-        self
-    }
+macro_rules! impl_primitive_field {
+    ($i:ident) => {
+        impl UavcanPrimitiveField for $i{
+            fn is_constant_size(&self) -> bool{
+                true
+            }
+            fn length(&self) -> usize{
+                1
+            }
+            fn set_length(&mut self, length: usize) {
+                panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
+            }
+            fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
+                assert!(index == 0);
+                self
+            }
+            fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType {
+                assert!(index == 0);
+                self
+            }
+        }
+    };
 }
 
 
@@ -372,3 +375,11 @@ impl UavcanPrimitiveType for Uint8 {}
 impl UavcanPrimitiveType for Uint16 {}
 impl UavcanPrimitiveType for Uint32 {}
 impl UavcanPrimitiveType for Float16 {}
+
+impl_primitive_field!(Uint2);
+impl_primitive_field!(Uint3);
+impl_primitive_field!(Uint4);
+impl_primitive_field!(Uint5);
+impl_primitive_field!(Uint8);
+impl_primitive_field!(Uint16);
+impl_primitive_field!(Uint32);
