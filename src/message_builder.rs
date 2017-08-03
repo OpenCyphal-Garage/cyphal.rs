@@ -25,7 +25,7 @@ pub enum BuilderError {
 }
 
 
-pub struct MessageBuilder<B: UavcanIndexable + Default> {
+pub struct MessageBuilder<B: UavcanIndexable> {
     parser: Parser<B>,
     started: bool,
     id: u32,
@@ -35,7 +35,7 @@ pub struct MessageBuilder<B: UavcanIndexable + Default> {
     transfer_id: u8,    
 }
 
-impl<B: UavcanIndexable + Default> MessageBuilder<B> {
+impl<B: UavcanIndexable> MessageBuilder<B> {
     pub fn new() -> Self {
         MessageBuilder{
             parser: Parser::new(),
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn parse_from_can_frames_simple() {
 
-        #[derive(UavcanIndexable, Default)]
+        #[derive(UavcanIndexable)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -134,7 +134,7 @@ mod tests {
 
         message_frame_header!(NodeStatusHeader, 341);
 
-        #[derive(UavcanFrame, Default)]
+        #[derive(UavcanFrame)]
         struct NodeStatusMessage {
             header: NodeStatusHeader,
             body: NodeStatus,

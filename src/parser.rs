@@ -1,3 +1,5 @@
+use core::mem;
+
 use bit_field::{
     BitField,
     BitArray,
@@ -72,9 +74,13 @@ impl ParserQueue {
 }
 
 
-impl<T: UavcanIndexable + Default> Parser<T> {
+impl<T: UavcanIndexable> Parser<T> {
     pub fn new() -> Parser<T> {
-        Parser{structure: T::default(), current_field_index: 0, current_type_index: 0, buffer: ParserQueue::new()}
+        let structure: T;
+        unsafe {
+            structure = mem::zeroed();
+        };            
+        Parser{structure: structure, current_field_index: 0, current_type_index: 0, buffer: ParserQueue::new()}
     }
 
     pub fn parse(mut self, input: &[u8]) -> Result<Parser<T>, ParseError> {
@@ -141,7 +147,7 @@ mod tests {
     #[test]
     fn uavcan_parse_test_byte_aligned() {
 
-        #[derive(UavcanIndexable, Default)]
+        #[derive(UavcanIndexable)]
         struct Message {
             v1: Uint8,
             v2: Uint32,
@@ -169,7 +175,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanIndexable, Default)]
+        #[derive(UavcanIndexable)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
