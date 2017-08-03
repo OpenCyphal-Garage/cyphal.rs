@@ -11,7 +11,7 @@ use {
 
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Copy, Default, Debug, PartialEq)]
 pub struct f16 {
     bitfield: u16,
 }
@@ -24,177 +24,177 @@ impl f16 {
 
 
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Bool {
     value: bool,
 }
 
-#[derive(Default, Copy, Clone, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint2 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint3 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint4 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint5 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint6 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint7 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint8 {
     value: u8,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint9 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint10 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint11 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint12 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint13 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint14 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint15 {
     value: u16,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint16 {
     value: u16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint17 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint18 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint19 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint20 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint21 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint22 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint23 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint24 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint25 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint26 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint27 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint28 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint29 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint30 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint31 {
     value: u32,
 }
 
-#[derive(Default, Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Uint32 {
     value: u32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Float16 {
     value: f16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Float32 {
     value: f32,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
 pub struct Float64 {
     value: f64,
 }
