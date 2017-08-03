@@ -119,8 +119,14 @@ impl<T: UavcanIndexable> Parser<T> {
         return Ok(self);
     }
 
-    pub fn to_structure(self) -> T {
-        self.structure
+    pub fn to_structure(self) -> Result<T, ParseError> {
+        let number_of_fields = self.structure.number_of_primitive_fields();
+        let finished_parsing = number_of_fields == self.current_field_index;
+        if finished_parsing {
+            Ok(self.structure)
+        } else {
+            Err(ParseError::NotFinished)
+        }
     }
 }
 
@@ -160,7 +166,7 @@ mod tests {
 
         parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
 
-        let parsed_message = parser.to_structure();
+        let parsed_message = parser.to_structure().unwrap();
 
         
         assert_eq!(parsed_message.v1, 17.into());
@@ -190,7 +196,7 @@ mod tests {
 
         parser = parser.parse(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
 
-        let parsed_message = parser.to_structure();
+        let parsed_message = parser.to_structure().unwrap();
         
 
         assert_eq!(parsed_message.uptime_sec, 1.into());
