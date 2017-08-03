@@ -76,6 +76,7 @@ mod tests {
         MessageFrameHeader,
         UavcanFrame,
         TailByte,
+        DynamicArray,
     };
 
     use bit_field::BitField;
@@ -83,8 +84,11 @@ mod tests {
     use types::{
         Uint2,
         Uint3,
+        Uint8,
         Uint16,
         Uint32,
+        DynamicArray31,
+        DynamicArray90,
     };
 
     use tests::{
@@ -134,6 +138,59 @@ mod tests {
 
         assert_eq!(frame_generator.next_transport_frame(), Some(can_frame));
         assert_eq!(frame_generator.next_transport_frame::<CanFrame>(), None);
+        
+    }
+    
+    #[test]
+    fn serialize_multi_frame() {
+
+        #[derive(UavcanIndexable)]
+        struct LogLevel {
+            value: Uint3,
+        }
+        
+        #[derive(UavcanIndexable)]
+        struct LogMessage {
+            level: LogLevel,
+            source: DynamicArray31<Uint8>,
+            text: DynamicArray90<Uint8>,
+        }
+
+        message_frame_header!(LogMessageHeader, 16383);
+
+        #[derive(UavcanFrame)]
+        struct LogMessageMessage {
+            header: LogMessageHeader,
+            body: LogMessage,
+        }
+        
+        let uavcan_frame = LogMessageMessage{
+            header: LogMessageHeader::new(0, 32),
+            body: LogMessage{
+                level: LogLevel{value: 0.into()},
+                source: DynamicArray31::with_str("test source"),
+                text: DynamicArray90::with_str("test text"),
+            },
+        };
+
+        assert_eq!(uavcan_frame.body.number_of_primitive_fields(), 21);
+        
+        let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
+
+        let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
+
+        
+        assert_eq!(
+            frame_generator.next_transport_frame(),
+            Some(CanFrame{
+                id: CanID::Extended(LogMessageHeader::new(0, 32).to_id()),
+                dlc: 8,
+                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(3..8, 11).get_bits(0..8), 't' as u8, 'e' as u8, 's' as u8, 't' as u8, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+            })
+        );
+        
+
+
         
     }
 
