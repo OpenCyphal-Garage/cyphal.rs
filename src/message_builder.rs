@@ -22,8 +22,17 @@ pub enum BuilderError {
     CRCError,
     FormatError,
     IdError,
+    NotFinishedParsing,
 }
 
+impl From<ParseError> for BuilderError {
+    fn from(parser_error: ParseError) -> Self {
+        match parser_error {
+            ParseError::StructureExhausted => BuilderError::FormatError,
+            ParseError::NotFinished => BuilderError::NotFinishedParsing,
+        }
+    }
+}
 
 pub struct MessageBuilder<B: UavcanIndexable> {
     parser: Parser<B>,
@@ -73,6 +82,7 @@ impl<B: UavcanIndexable> MessageBuilder<B> {
         self.parser = match self.parser.parse(payload) {
             Ok(x) => x,
             Err(ParseError::StructureExhausted) => return Err(BuilderError::FormatError),
+            Err(ParseError::NotFinished) => unreachable!(),
         };
             
 

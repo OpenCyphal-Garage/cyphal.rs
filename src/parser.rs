@@ -12,6 +12,7 @@ use {
 #[derive(Debug)]
 pub enum ParseError {
     StructureExhausted,
+    NotFinished,
 }
 
 pub struct Parser<T: UavcanIndexable> {
