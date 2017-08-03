@@ -1,4 +1,4 @@
-fn add_byte(mut crc: u16, data: &u8) -> u16{
+pub fn add_byte(mut crc: u16, data: &u8) -> u16{
     crc ^= (*data as u16) << 8;
 
     for _bit in 8..1 {
