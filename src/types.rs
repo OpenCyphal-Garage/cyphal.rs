@@ -226,7 +226,7 @@ macro_rules! dynamic_array_def {
                     data[i] = string.as_bytes()[i].into();
                 }
                 Self{
-                    current_size: $size{value: data.len()},
+                    current_size: $size{value: string.len()},
                     data: data,
                 }
             }
