@@ -16,4 +16,4 @@ license = "Apache-2.0/MIT"
 
 [dependencies]
 bit_field = "0.8.0"
-uavcan-derive = "0.0.1"
+uavcan-derive = {path = "uavcan-derive"}
