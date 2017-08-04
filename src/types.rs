@@ -240,7 +240,7 @@ macro_rules! dynamic_array_def {
         }
         
         impl<T: UavcanPrimitiveType> UavcanPrimitiveField for $i<T> {
-            fn is_constant_size(&self) -> bool {false}
+            fn constant_sized(&self) -> bool {false}
             fn length(&self) -> usize {self.data.len()}
             fn set_length(&mut self, length: usize) {self.current_size = length;}
             fn bit_array(&self, index: usize) -> &BitArray<u64> {&self.data[index]}
@@ -324,7 +324,7 @@ impl<T: UavcanPrimitiveField> UavcanIndexable for T {
 macro_rules! impl_primitive_field {
     ($i:ident) => {
         impl UavcanPrimitiveField for $i{
-            fn is_constant_size(&self) -> bool{
+            fn constant_sized(&self) -> bool{
                 true
             }
             fn length(&self) -> usize{

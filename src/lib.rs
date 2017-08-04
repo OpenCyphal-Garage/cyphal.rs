@@ -115,7 +115,7 @@ pub trait DynamicArray{
 /// as the sum of their members. Except the variable length array.
 /// This array has number of primitive fields as their members (elements)+1
 pub trait UavcanPrimitiveField{
-    fn is_constant_size(&self) -> bool;
+    fn constant_sized(&self) -> bool;
     /// length(&self) -> usize returns the number of primitive data types in this field
     ///
     /// for primtiive data types (non-array) it will return 1
