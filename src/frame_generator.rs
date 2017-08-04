@@ -177,7 +177,7 @@ mod tests {
             },
         };
 
-        assert_eq!(uavcan_frame.body.number_of_primitive_fields(), 21);
+        assert_eq!(uavcan_frame.body.number_of_primitive_fields(), 3);
         
         let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
 
@@ -189,7 +189,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID::Extended(LogMessageHeader::new(0, 32).to_id()),
                 dlc: 8,
-                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(3..8, 11).get_bits(0..8), 't' as u8, 'e' as u8, 's' as u8, 't' as u8, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..3, 0).set_bits(3..8, 11).get_bits(0..8), 't' as u8, 'e' as u8, 's' as u8, 't' as u8, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
             })
         );
         
