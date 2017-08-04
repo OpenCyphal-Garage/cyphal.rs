@@ -44,7 +44,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut buffer_next_bit = 0;
 
         while buffer_next_bit < buffer_bit_length {
-            let primitive_type = self.structure.primitive_field(self.field_index).primitive_type(self.type_index);
+            let primitive_type = self.structure.primitive_field(self.field_index).bit_array(self.type_index);
             let buffer_bits_remaining = buffer_bit_length - buffer_next_bit;
             let type_bits_remaining = primitive_type.bit_length() - self.bit_index;
 
@@ -87,7 +87,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut bit_index = self.bit_index;
 
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).primitive_type(type_index);
+            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
             bits_counted += primitive_type.bit_length() - bit_index;
             
             if bits_counted > 0 { return true;}
@@ -114,7 +114,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut bit_index = self.bit_index;
 
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).primitive_type(type_index);
+            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
             bits_counted += primitive_type.bit_length() - bit_index;
             
             bit_index = 0;
@@ -143,7 +143,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         }
         
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).primitive_type(type_index);
+            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
             let bit_length = primitive_type.bit_length();
             let mut bit_index = 0;
             let data = primitive_type.get_bits(0..bit_length);
@@ -165,7 +165,7 @@ impl<T: UavcanIndexable> Serializer<T> {
                 bit_index += 8;
             }
 
-                remaining_bits = bit_length-bit_index;
+            remaining_bits = bit_length-bit_index;
             if bit_length-bit_index != 0 {
                 remaining_data = data.get_bits(bit_index as u8..bit_length as u8) as u8;
             }

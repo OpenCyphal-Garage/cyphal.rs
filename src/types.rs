@@ -243,8 +243,8 @@ macro_rules! dynamic_array_def {
             fn is_constant_size(&self) -> bool {false}
             fn length(&self) -> usize {self.data.len()}
             fn set_length(&mut self, length: usize) {self.current_size = length;}
-            fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType {&self.data[index]}
-            fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {&mut self.data[index]}
+            fn bit_array(&self, index: usize) -> &BitArray<u64> {&self.data[index]}
+            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {&mut self.data[index]}
         }
     };
 }
@@ -333,11 +333,11 @@ macro_rules! impl_primitive_field {
             fn set_length(&mut self, _length: usize) {
                 panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
             }
-            fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {
+            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
                 assert!(index == 0);
                 self
             }
-            fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType {
+            fn bit_array(&self, index: usize) -> &BitArray<u64> {
                 assert!(index == 0);
                 self
             }

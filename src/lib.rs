@@ -121,8 +121,8 @@ pub trait UavcanPrimitiveField{
     /// for primtiive data types (non-array) it will return 1
     fn length(&self) -> usize;
     fn set_length(&mut self, length: usize);
-    fn primitive_type(&self, index: usize) -> &UavcanPrimitiveType;
-    fn primitive_type_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;
+    fn bit_array(&self, index: usize) -> &BitArray<u64>;
+    fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
 }
 
 pub trait UavcanPrimitiveType : BitArray<u64> {
@@ -301,11 +301,11 @@ mod tests {
         
         let mut node_status = NodeStatus::new();
 
-        node_status.primitive_field_as_mut(0).primitive_type_as_mut(0).set_bits(0..32, 1);
-        node_status.primitive_field_as_mut(1).primitive_type_as_mut(0).set_bits(0..2, 2);
-        node_status.primitive_field_as_mut(2).primitive_type_as_mut(0).set_bits(0..3, 3);
-        node_status.primitive_field_as_mut(3).primitive_type_as_mut(0).set_bits(0..3, 4);
-        node_status.primitive_field_as_mut(4).primitive_type_as_mut(0).set_bits(0..16, 5);
+        node_status.primitive_field_as_mut(0).bit_array_as_mut(0).set_bits(0..32, 1);
+        node_status.primitive_field_as_mut(1).bit_array_as_mut(0).set_bits(0..2, 2);
+        node_status.primitive_field_as_mut(2).bit_array_as_mut(0).set_bits(0..3, 3);
+        node_status.primitive_field_as_mut(3).bit_array_as_mut(0).set_bits(0..3, 4);
+        node_status.primitive_field_as_mut(4).bit_array_as_mut(0).set_bits(0..16, 5);
 
         assert_eq!(node_status.uptime_sec, 1.into());
         assert_eq!(node_status.health, 2.into());
