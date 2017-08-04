@@ -89,8 +89,8 @@ pub trait ServiceFrameHeader : UavcanHeader {
 
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField;
-    fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField;
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
+    fn primitive_field(&self, field_number: usize) -> &UavcanField;
 }
 
 pub trait DynamicArray{
@@ -105,7 +105,7 @@ pub trait DynamicArray{
     fn data_as_mut(&mut self) -> &mut [Self::Field];
 }
 
-/// An UavcanPrimitiveField is a field of a flatted out uavcan struct
+/// An UavcanField is a field of a flatted out uavcan struct
 ///
 /// It's a superset of Primitive Data Types from the uavcan protocol
 /// also containing both constant and variable size arrays.
@@ -114,7 +114,7 @@ pub trait DynamicArray{
 /// All composite data structures have the same number of primtiive fields
 /// as the sum of their members. Except the variable length array.
 /// This array has number of primitive fields as their members (elements)+1
-pub trait UavcanPrimitiveField{
+pub trait UavcanField{
     fn constant_sized(&self) -> bool;
     /// length(&self) -> usize returns the number of primitive data types in this field
     ///
@@ -145,7 +145,7 @@ mod tests {
     use {
         TransportFrame,
         UavcanIndexable,
-        UavcanPrimitiveField,
+        UavcanField,
     };
     
     use types::{

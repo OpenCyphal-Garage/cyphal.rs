@@ -107,7 +107,7 @@ mod tests {
     
     use{
         UavcanIndexable,
-        UavcanPrimitiveField,
+        UavcanField,
         UavcanHeader,
         MessageFrameHeader,
         UavcanFrame,

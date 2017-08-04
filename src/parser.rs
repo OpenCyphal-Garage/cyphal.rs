@@ -136,7 +136,7 @@ mod tests {
 
     use {
         UavcanIndexable,
-        UavcanPrimitiveField,
+        UavcanField,
     };
 
     use parser::{

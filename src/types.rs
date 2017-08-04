@@ -5,7 +5,7 @@ use core::ops::Range;
 
 use {
     UavcanIndexable,
-    UavcanPrimitiveField,
+    UavcanField,
     UavcanPrimitiveType,
     DynamicArray,
 };
@@ -239,7 +239,7 @@ macro_rules! dynamic_array_def {
             fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size]}
         }
         
-        impl<T: UavcanPrimitiveType> UavcanPrimitiveField for $i<T> {
+        impl<T: UavcanPrimitiveType> UavcanField for $i<T> {
             fn constant_sized(&self) -> bool {false}
             fn length(&self) -> usize {self.data.len()}
             fn set_length(&mut self, length: usize) {self.current_size = length;}
@@ -307,15 +307,15 @@ impl From<Float64> for f64 {
 
 
 
-impl<T: UavcanPrimitiveField> UavcanIndexable for T {
+impl<T: UavcanField> UavcanIndexable for T {
     fn number_of_primitive_fields(&self) -> usize{
         self.length()
     }
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanPrimitiveField{
+    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
         assert!(field_number == 0);
         self
     }
-    fn primitive_field(&self, field_number: usize) -> &UavcanPrimitiveField{
+    fn primitive_field(&self, field_number: usize) -> &UavcanField{
         assert!(field_number == 0);
         self
     }
@@ -323,7 +323,7 @@ impl<T: UavcanPrimitiveField> UavcanIndexable for T {
 
 macro_rules! impl_primitive_field {
     ($i:ident) => {
-        impl UavcanPrimitiveField for $i{
+        impl UavcanField for $i{
             fn constant_sized(&self) -> bool{
                 true
             }
