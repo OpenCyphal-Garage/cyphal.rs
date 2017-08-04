@@ -120,7 +120,6 @@ pub trait UavcanField{
     ///
     /// for primtiive data types (non-array) it will return 1
     fn length(&self) -> usize;
-    fn set_length(&mut self, length: usize);
     fn bit_array(&self, index: usize) -> &BitArray<u64>;
     fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
 }

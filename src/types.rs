@@ -242,7 +242,6 @@ macro_rules! dynamic_array_def {
         impl<T: UavcanPrimitiveType> UavcanField for $i<T> {
             fn constant_sized(&self) -> bool {false}
             fn length(&self) -> usize {self.data.len()}
-            fn set_length(&mut self, length: usize) {self.current_size = length;}
             fn bit_array(&self, index: usize) -> &BitArray<u64> {&self.data[index]}
             fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {&mut self.data[index]}
         }
@@ -329,9 +328,6 @@ macro_rules! impl_primitive_field {
             }
             fn length(&self) -> usize{
                 1
-            }
-            fn set_length(&mut self, _length: usize) {
-                panic!("Can't set size for a constant sized type (UavcanPrimitiveType)");
             }
             fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
                 assert!(index == 0);
