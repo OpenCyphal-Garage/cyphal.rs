@@ -1,3 +1,5 @@
+use bit_field::BitField;
+
 use {
     TailByte,
     TransportFrame,
@@ -45,7 +47,9 @@ impl<B: UavcanIndexable> FrameGenerator<B> {
         if remaining_bits == 0 {
             return None;
         } else if first_of_multi_frame {
-            // TODO: calc crc
+            let crc = self.serializer.crc(0xd654a48e0c049d75);
+            transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
+            transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             self.serializer.serialize(&mut transport_frame.data_as_mut()[2..max_data_length-1]);
             transport_frame.data_as_mut()[max_data_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: false, toggle: self.toggle, transfer_id: self.transfer_id}.into();
         } else {
