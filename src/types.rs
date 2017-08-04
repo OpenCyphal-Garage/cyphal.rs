@@ -201,13 +201,13 @@ pub struct Float64 {
 }
 
 macro_rules! dynamic_array_def {
-    ($i:ident, $size:ident, $n:expr) => {
+    ($i:ident, $size:ident, $n:expr, $log_bits:expr) => {
         struct $size {
             value: usize,
         }
 
         impl BitArray<u64> for $size {
-            #[inline] fn bit_length(&self) -> usize { $n }
+            #[inline] fn bit_length(&self) -> usize { $log_bits }
             #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.get_bit(bit as u8) }
             #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
             #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.set_bit(bit as u8, value); }
@@ -444,20 +444,20 @@ impl_primitive_field!(Uint8);
 impl_primitive_field!(Uint16);
 impl_primitive_field!(Uint32);
 
-dynamic_array_def!(DynamicArray3, DynamicArray3Size, 3);
-dynamic_array_def!(DynamicArray4, DynamicArray4Size, 4);
-dynamic_array_def!(DynamicArray5, DynamicArray5Size, 5);
-dynamic_array_def!(DynamicArray6, DynamicArray6Size, 6);
-dynamic_array_def!(DynamicArray7, DynamicArray7Size, 7);
-dynamic_array_def!(DynamicArray8, DynamicArray8Size, 8);
-dynamic_array_def!(DynamicArray9, DynamicArray9Size, 9);
-dynamic_array_def!(DynamicArray10, DynamicArray10Size, 10);
-dynamic_array_def!(DynamicArray11, DynamicArray11Size, 11);
-dynamic_array_def!(DynamicArray12, DynamicArray12Size, 12);
-dynamic_array_def!(DynamicArray13, DynamicArray13Size, 13);
-dynamic_array_def!(DynamicArray14, DynamicArray14Size, 14);
-dynamic_array_def!(DynamicArray15, DynamicArray15Size, 15);
-dynamic_array_def!(DynamicArray16, DynamicArray16Size, 16);
-dynamic_array_def!(DynamicArray31, DynamicArray31Size, 31);
-dynamic_array_def!(DynamicArray32, DynamicArray32Size, 32);
-dynamic_array_def!(DynamicArray90, DynamicArray90Size, 90);
+dynamic_array_def!(DynamicArray3, DynamicArray3Size, 3, 2);
+dynamic_array_def!(DynamicArray4, DynamicArray4Size, 4, 3);
+dynamic_array_def!(DynamicArray5, DynamicArray5Size, 5, 3);
+dynamic_array_def!(DynamicArray6, DynamicArray6Size, 6, 3);
+dynamic_array_def!(DynamicArray7, DynamicArray7Size, 7, 3);
+dynamic_array_def!(DynamicArray8, DynamicArray8Size, 8, 4);
+dynamic_array_def!(DynamicArray9, DynamicArray9Size, 9, 4);
+dynamic_array_def!(DynamicArray10, DynamicArray10Size, 10, 4);
+dynamic_array_def!(DynamicArray11, DynamicArray11Size, 11, 4);
+dynamic_array_def!(DynamicArray12, DynamicArray12Size, 12, 4);
+dynamic_array_def!(DynamicArray13, DynamicArray13Size, 13, 4);
+dynamic_array_def!(DynamicArray14, DynamicArray14Size, 14, 4);
+dynamic_array_def!(DynamicArray15, DynamicArray15Size, 15, 4);
+dynamic_array_def!(DynamicArray16, DynamicArray16Size, 16, 5);
+dynamic_array_def!(DynamicArray31, DynamicArray31Size, 31, 5);
+dynamic_array_def!(DynamicArray32, DynamicArray32Size, 32, 6);
+dynamic_array_def!(DynamicArray90, DynamicArray90Size, 90, 7);
