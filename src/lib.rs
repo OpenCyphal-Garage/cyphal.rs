@@ -89,8 +89,8 @@ pub trait ServiceFrameHeader : UavcanHeader {
 
 pub trait UavcanIndexable {
     fn number_of_primitive_fields(&self) -> usize;
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
-    fn primitive_field(&self, field_number: usize) -> &UavcanField;
+    fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
+    fn field(&self, field_number: usize) -> &UavcanField;
 }
 
 pub trait DynamicArray{
@@ -301,11 +301,11 @@ mod tests {
         
         let mut node_status = NodeStatus::new();
 
-        node_status.primitive_field_as_mut(0).bit_array_as_mut(0).set_bits(0..32, 1);
-        node_status.primitive_field_as_mut(1).bit_array_as_mut(0).set_bits(0..2, 2);
-        node_status.primitive_field_as_mut(2).bit_array_as_mut(0).set_bits(0..3, 3);
-        node_status.primitive_field_as_mut(3).bit_array_as_mut(0).set_bits(0..3, 4);
-        node_status.primitive_field_as_mut(4).bit_array_as_mut(0).set_bits(0..16, 5);
+        node_status.field_as_mut(0).bit_array_as_mut(0).set_bits(0..32, 1);
+        node_status.field_as_mut(1).bit_array_as_mut(0).set_bits(0..2, 2);
+        node_status.field_as_mut(2).bit_array_as_mut(0).set_bits(0..3, 3);
+        node_status.field_as_mut(3).bit_array_as_mut(0).set_bits(0..3, 4);
+        node_status.field_as_mut(4).bit_array_as_mut(0).set_bits(0..16, 5);
 
         assert_eq!(node_status.uptime_sec, 1.into());
         assert_eq!(node_status.health, 2.into());

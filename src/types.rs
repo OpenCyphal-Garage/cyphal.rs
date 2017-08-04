@@ -311,11 +311,11 @@ impl<T: UavcanField> UavcanIndexable for T {
     fn number_of_primitive_fields(&self) -> usize{
         self.length()
     }
-    fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
+    fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
         assert!(field_number == 0);
         self
     }
-    fn primitive_field(&self, field_number: usize) -> &UavcanField{
+    fn field(&self, field_number: usize) -> &UavcanField{
         assert!(field_number == 0);
         self
     }

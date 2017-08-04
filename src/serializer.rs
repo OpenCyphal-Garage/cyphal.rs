@@ -44,14 +44,14 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut buffer_next_bit = 0;
 
         while buffer_next_bit < buffer_bit_length {
-            let primitive_type = self.structure.primitive_field(self.field_index).bit_array(self.type_index);
+            let primitive_type = self.structure.field(self.field_index).bit_array(self.type_index);
             let buffer_bits_remaining = buffer_bit_length - buffer_next_bit;
             let type_bits_remaining = primitive_type.bit_length() - self.bit_index;
 
             if type_bits_remaining == 0 {
                 self.type_index += 1;
                 self.bit_index = 0;
-                if self.type_index >= self.structure.primitive_field(self.field_index).length() {
+                if self.type_index >= self.structure.field(self.field_index).length() {
                     self.type_index = 0;
                     self.field_index += 1;
                 }
@@ -87,7 +87,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut bit_index = self.bit_index;
 
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
+            let primitive_type = self.structure.field(field_index).bit_array(type_index);
             bits_counted += primitive_type.bit_length() - bit_index;
             
             if bits_counted > 0 { return true;}
@@ -95,7 +95,7 @@ impl<T: UavcanIndexable> Serializer<T> {
             bit_index = 0;
             type_index += 1;
 
-            if type_index >= self.structure.primitive_field(field_index).length() {
+            if type_index >= self.structure.field(field_index).length() {
                 type_index = 0;
                 field_index += 1;
             }
@@ -114,13 +114,13 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut bit_index = self.bit_index;
 
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
+            let primitive_type = self.structure.field(field_index).bit_array(type_index);
             bits_counted += primitive_type.bit_length() - bit_index;
             
             bit_index = 0;
             type_index += 1;
 
-            if type_index >= self.structure.primitive_field(field_index).length() {
+            if type_index >= self.structure.field(field_index).length() {
                 type_index = 0;
                 field_index += 1;
             }
@@ -143,7 +143,7 @@ impl<T: UavcanIndexable> Serializer<T> {
         }
         
         loop {
-            let primitive_type = self.structure.primitive_field(field_index).bit_array(type_index);
+            let primitive_type = self.structure.field(field_index).bit_array(type_index);
             let bit_length = primitive_type.bit_length();
             let mut bit_index = 0;
             let data = primitive_type.get_bits(0..bit_length);
@@ -172,7 +172,7 @@ impl<T: UavcanIndexable> Serializer<T> {
                     
             type_index += 1;
             
-            if type_index >= self.structure.primitive_field(field_index).length() {
+            if type_index >= self.structure.field(field_index).length() {
                 type_index = 0;
                 field_index += 1;
             }

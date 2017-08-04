@@ -50,7 +50,7 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 quote!{
                     if field_number >= #primitive_fields_start_index &&
                         field_number < #primitive_fields_end_index {
-                            return self.#field_name.primitive_field_as_mut(field_number - (#primitive_fields_start_index));
+                            return self.#field_name.field_as_mut(field_number - (#primitive_fields_start_index));
                         }
                 });
             primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
@@ -78,7 +78,7 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
                 quote!{
                     if field_number >= #primitive_fields_start_index &&
                         field_number < #primitive_fields_end_index {
-                            return self.#field_name.primitive_field(field_number - (#primitive_fields_start_index));
+                            return self.#field_name.field(field_number - (#primitive_fields_start_index));
                         }
                 });
             primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
@@ -102,13 +102,13 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
             }
 
             #[allow(unused_comparisons)]
-            fn primitive_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField {
+            fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField {
                 assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_as_mut_body
             }
 
             #[allow(unused_comparisons)]
-            fn primitive_field(&self, field_number: usize) -> &UavcanField {
+            fn field(&self, field_number: usize) -> &UavcanField {
                 assert!(field_number < self.number_of_primitive_fields());
                 #primitive_fields_body
             }

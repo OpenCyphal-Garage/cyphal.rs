@@ -92,11 +92,11 @@ impl<T: UavcanIndexable> Parser<T> {
             loop {
                 
                 if self.current_field_index < self.structure.number_of_primitive_fields() {
-                    if self.current_type_index < self.structure.primitive_field(self.current_field_index).length() {
+                    if self.current_type_index < self.structure.field(self.current_field_index).length() {
                         
-                        let field_length = self.structure.primitive_field(self.current_field_index).bit_array(self.current_type_index).bit_length();
+                        let field_length = self.structure.field(self.current_field_index).bit_array(self.current_type_index).bit_length();
                         if field_length <= self.buffer.bit_length() {
-                            self.structure.primitive_field_as_mut(self.current_field_index).bit_array_as_mut(self.current_type_index).set_bits(0..field_length, self.buffer.pop_bits(field_length));
+                            self.structure.field_as_mut(self.current_field_index).bit_array_as_mut(self.current_type_index).set_bits(0..field_length, self.buffer.pop_bits(field_length));
                             self.current_type_index += 1;
                         } else {
                             break;
