@@ -151,23 +151,27 @@ impl<T: UavcanIndexable> Serializer<T> {
             if remaining_bits + bit_length < 8 {
                 remaining_data.set_bits(remaining_bits as u8..(remaining_bits+bit_length) as u8, data.get_bits(0..bit_length as u8) as u8);
                 bit_index = bit_length;
-            } else if remaining_bits != 0 {
-                crc::add_byte(crc, &0u8
-                              .set_bits(0..remaining_bits as u8, remaining_data.get_bits(0..remaining_bits as u8) as u8)
-                              .set_bits(remaining_bits as u8..8-remaining_bits as u8, data.get_bits(0..8-remaining_bits as u8) as u8)
-                              .get_bits(0..8)
-                );
-                bit_index += 8-remaining_bits;
-            }
-
-            while bit_length - bit_index >= 8 {
-                crc::add_byte(crc, &(data.get_bits(bit_index as u8..bit_index as u8+8) as u8));
-                bit_index += 8;
-            }
-
-            remaining_bits = bit_length-bit_index;
-            if bit_length-bit_index != 0 {
-                remaining_data = data.get_bits(bit_index as u8..bit_length as u8) as u8;
+                remaining_bits += bit_length;
+            } else {
+                if remaining_bits != 0 {
+                    crc::add_byte(crc, &0u8
+                                  .set_bits(0..remaining_bits as u8, remaining_data.get_bits(0..remaining_bits as u8) as u8)
+                                  .set_bits(remaining_bits as u8..8, data.get_bits(0..8-remaining_bits as u8) as u8)
+                                  .get_bits(0..8)
+                    );
+                    bit_index += 8-remaining_bits;
+                    remaining_bits = 0;
+                }
+                
+                while bit_length - bit_index >= 8 {
+                    crc::add_byte(crc, &(data.get_bits(bit_index as u8..bit_index as u8+8) as u8));
+                    bit_index += 8;
+                }
+                
+                remaining_bits = bit_length-bit_index;
+                if bit_length-bit_index != 0 {
+                    remaining_data = data.get_bits(bit_index as u8..bit_length as u8) as u8;
+                }
             }
                     
             type_index += 1;
