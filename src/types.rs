@@ -253,7 +253,7 @@ macro_rules! dynamic_array_def {
         
         impl<T: UavcanPrimitiveType> UavcanField for $i<T> {
             fn constant_sized(&self) -> bool {false}
-            fn length(&self) -> usize {self.data.len()}
+            fn length(&self) -> usize {self.current_size.value}
             fn bit_array(&self, index: usize) -> &BitArray<u64> {
                 if index == 0 { &self.current_size }
                 else { &self.data[index+1] }
