@@ -326,7 +326,7 @@ impl From<Float64> for f64 {
 
 impl<T: UavcanField> UavcanIndexable for T {
     fn number_of_primitive_fields(&self) -> usize{
-        self.length()
+        1
     }
     fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
         assert!(field_number == 0);
