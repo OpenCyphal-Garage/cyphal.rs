@@ -201,12 +201,24 @@ pub struct Float64 {
 }
 
 macro_rules! dynamic_array_def {
-    ($i:ident, $n:expr) => {
-        pub struct $i<T: UavcanPrimitiveType> {
-            current_size: usize,
-            data: [T; $n],
+    ($i:ident, $size:ident, $n:expr) => {
+        struct $size {
+            value: usize,
         }
 
+        impl BitArray<u64> for $size {
+            #[inline] fn bit_length(&self) -> usize { $n }
+            #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.get_bit(bit as u8) }
+            #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
+            #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.set_bit(bit as u8, value); }
+            #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as usize); }
+        }
+        
+        pub struct $i<T: UavcanPrimitiveType> {
+            current_size: $size,
+            data: [T; $n],
+        }
+        
         impl $i<Uint8>{
             pub fn with_str(string: &str) -> Self {
                 let mut data = [0.into(); $n];
@@ -214,7 +226,7 @@ macro_rules! dynamic_array_def {
                     data[i] = string.as_bytes()[i].into();
                 }
                 Self{
-                    current_size: data.len(),
+                    current_size: $size{value: data.len()},
                     data: data,
                 }
             }
@@ -230,20 +242,26 @@ macro_rules! dynamic_array_def {
                     data_t[i] = data[i];
                 }
                 Self{
-                    current_size: data.len(),
+                    current_size: $size{value: data.len()},
                     data: data_t,
                 }
             }
-            fn set_length(&mut self, length: usize) {self.current_size = length;}
-            fn data(&self) -> &[T] {&self.data[0..self.current_size]}
-            fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size]}
+            fn set_length(&mut self, length: usize) {self.current_size.value = length;}
+            fn data(&self) -> &[T] {&self.data[0..self.current_size.value]}
+            fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size.value]}
         }
         
         impl<T: UavcanPrimitiveType> UavcanField for $i<T> {
             fn constant_sized(&self) -> bool {false}
             fn length(&self) -> usize {self.data.len()}
-            fn bit_array(&self, index: usize) -> &BitArray<u64> {&self.data[index]}
-            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {&mut self.data[index]}
+            fn bit_array(&self, index: usize) -> &BitArray<u64> {
+                if index == 0 { &self.current_size }
+                else { &self.data[index+1] }
+            }
+            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
+                if index == 0 { &mut self.current_size }
+                else { &mut self.data[index+1] }
+            }
         }
     };
 }
@@ -426,21 +444,20 @@ impl_primitive_field!(Uint8);
 impl_primitive_field!(Uint16);
 impl_primitive_field!(Uint32);
 
-dynamic_array_def!(DynamicArray2, 2);
-dynamic_array_def!(DynamicArray3, 3);
-dynamic_array_def!(DynamicArray4, 4);
-dynamic_array_def!(DynamicArray5, 5);
-dynamic_array_def!(DynamicArray6, 6);
-dynamic_array_def!(DynamicArray7, 7);
-dynamic_array_def!(DynamicArray8, 8);
-dynamic_array_def!(DynamicArray9, 9);
-dynamic_array_def!(DynamicArray10, 10);
-dynamic_array_def!(DynamicArray11, 11);
-dynamic_array_def!(DynamicArray12, 12);
-dynamic_array_def!(DynamicArray13, 13);
-dynamic_array_def!(DynamicArray14, 14);
-dynamic_array_def!(DynamicArray15, 15);
-dynamic_array_def!(DynamicArray16, 16);
-dynamic_array_def!(DynamicArray31, 31);
-dynamic_array_def!(DynamicArray32, 32);
-dynamic_array_def!(DynamicArray90, 90);
+dynamic_array_def!(DynamicArray3, DynamicArray3Size, 3);
+dynamic_array_def!(DynamicArray4, DynamicArray4Size, 4);
+dynamic_array_def!(DynamicArray5, DynamicArray5Size, 5);
+dynamic_array_def!(DynamicArray6, DynamicArray6Size, 6);
+dynamic_array_def!(DynamicArray7, DynamicArray7Size, 7);
+dynamic_array_def!(DynamicArray8, DynamicArray8Size, 8);
+dynamic_array_def!(DynamicArray9, DynamicArray9Size, 9);
+dynamic_array_def!(DynamicArray10, DynamicArray10Size, 10);
+dynamic_array_def!(DynamicArray11, DynamicArray11Size, 11);
+dynamic_array_def!(DynamicArray12, DynamicArray12Size, 12);
+dynamic_array_def!(DynamicArray13, DynamicArray13Size, 13);
+dynamic_array_def!(DynamicArray14, DynamicArray14Size, 14);
+dynamic_array_def!(DynamicArray15, DynamicArray15Size, 15);
+dynamic_array_def!(DynamicArray16, DynamicArray16Size, 16);
+dynamic_array_def!(DynamicArray31, DynamicArray31Size, 31);
+dynamic_array_def!(DynamicArray32, DynamicArray32Size, 32);
+dynamic_array_def!(DynamicArray90, DynamicArray90Size, 90);
