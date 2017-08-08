@@ -1,4 +1,3 @@
-use core::mem::transmute;
 use bit_field::BitField;
 use bit_field::BitArray;
 use core::ops::Range;
