@@ -1,4 +1,4 @@
-use core::mem;
+use lib::core::mem;
 
 use bit_field::{
     BitField,

@@ -1,9 +1,18 @@
-#![no_std]
+#![cfg_attr(not(feature="std"), no_std)]
 
 #[macro_use]
 extern crate uavcan_derive;
 
 extern crate bit_field;
+
+mod lib {
+    pub mod core {
+        #[cfg(feature="std")]
+        pub use std::*;
+        #[cfg(not(feature="std"))]
+        pub use core::*;
+    }
+}
 
 #[macro_use]
 mod header_macros;
@@ -14,9 +23,10 @@ pub mod message_builder;
 mod serializer;
 pub mod frame_generator;
 
-use core::convert::{From};
+use lib::core::convert::{From};
 
 use bit_field::BitArray;
+
 
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///

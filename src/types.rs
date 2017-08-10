@@ -1,6 +1,6 @@
 use bit_field::BitField;
 use bit_field::BitArray;
-use core::ops::Range;
+use lib::core::ops::Range;
 
 use {
     UavcanIndexable,

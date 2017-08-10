@@ -12,6 +12,10 @@ categories = ["no-std", "embedded"]
 
 license = "Apache-2.0/MIT"
 
+[features]
+default = ["std"]
+std = []
+
 [workspace]
 
 [dependencies]
