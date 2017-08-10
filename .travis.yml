@@ -4,4 +4,4 @@ rust:
   - beta
   - nightly
   
-script: travis.sh
+script: ./travis.sh
