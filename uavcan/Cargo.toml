@@ -20,4 +20,4 @@ std = []
 
 [dependencies]
 bit_field = "0.8.0"
-uavcan-derive = {path = "uavcan-derive"}
+uavcan-derive = {path = "../uavcan-derive"}
