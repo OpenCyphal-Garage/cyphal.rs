@@ -3,5 +3,9 @@ rust:
   - stable
   - beta
   - nightly
+
+env:
+  - NO_DEFAULT_FEATURES=true
+  - NO_DEFAULT_FEATURES=false
   
 script: ./travis.sh
