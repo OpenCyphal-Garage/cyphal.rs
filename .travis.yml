@@ -3,3 +3,5 @@ rust:
   - stable
   - beta
   - nightly
+  
+script: travis.sh
