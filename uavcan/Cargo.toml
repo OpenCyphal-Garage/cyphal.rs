@@ -1,11 +1,11 @@
 [package]
-name = "uavcan-core"
+name = "uavcan"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 version = "0.0.1"
 
 description = "The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std"
 
-repository = "https://github.com/kjetilkjeka/uavcan-core.rs"
+repository = "https://github.com/kjetilkjeka/uavcan.rs"
 
 keywords = ["uavcan", "can", "uav", "embedded"]
 categories = ["no-std", "embedded"]
