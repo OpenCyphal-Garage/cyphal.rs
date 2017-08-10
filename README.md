@@ -1,4 +1,4 @@
-# uavcan-core.rs [![Build Status](https://travis-ci.org/kjetilkjeka/uavcan-core.rs.svg?branch=master)](https://travis-ci.org/kjetilkjeka/uavcan-core.rs) [![Crates.io](https://img.shields.io/crates/v/uavcan-core.svg)](https://crates.io/crates/uavcan-core)
+# uavcan.rs [![Build Status](https://travis-ci.org/kjetilkjeka/uavcan.rs.svg?branch=master)](https://travis-ci.org/kjetilkjeka/uavcan.rs) [![Crates.io](https://img.shields.io/crates/v/uavcan-core.svg)](https://crates.io/crates/uavcan-core)
 
 > The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std
 
