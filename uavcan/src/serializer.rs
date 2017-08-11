@@ -44,27 +44,28 @@ impl<T: UavcanIndexable> Serializer<T> {
         let mut buffer_next_bit = 0;
 
         while buffer_next_bit < buffer_bit_length {
-            let primitive_type = self.structure.field(self.field_index).bit_array(self.type_index);
+            let primitive_field = self.structure.field(self.field_index);
+            let primitive_type = primitive_field.bit_array(self.type_index);
             let buffer_bits_remaining = buffer_bit_length - buffer_next_bit;
             let type_bits_remaining = primitive_type.bit_length() - self.bit_index;
-
+            
             if type_bits_remaining == 0 {
-                self.type_index += 1;
-                self.bit_index = 0;
-                if self.type_index >= self.structure.field(self.field_index).length() {
+                if self.type_index < primitive_field.length()-1 {
+                    self.type_index += 1;
+                    self.bit_index = 0;
+                } else if self.field_index < self.structure.number_of_primitive_fields() - 1 {
+                    self.bit_index = 0;
                     self.type_index = 0;
                     self.field_index += 1;
-
+                    
                     // Dynamic length array tail optimization
                     if (self.field_index == self.structure.number_of_primitive_fields() - 1) && !self.structure.field(self.field_index).constant_sized() {
                         self.type_index = 1;
                     }
-                    
-                }
-                if self.field_index >= self.structure.number_of_primitive_fields() {
+                } else {
                     return SerializationResult::Finished(buffer_next_bit);
                 }
-            }else if buffer_bits_remaining >= 8 && type_bits_remaining >= 8 {
+            } else if buffer_bits_remaining >= 8 && type_bits_remaining >= 8 {
                 buffer.set_bits(buffer_next_bit..buffer_next_bit+8, primitive_type.get_bits(self.bit_index..self.bit_index+8) as u8);
                 buffer_next_bit += 8;
                 self.bit_index += 8;
