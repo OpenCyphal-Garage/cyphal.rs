@@ -143,6 +143,7 @@ pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
     fn to_parts(self) -> (H, B);
     fn header(&self) -> &H;
     fn body(&self) -> &B;
+    fn data_type_signature(&self) -> u64;
 }
 
 

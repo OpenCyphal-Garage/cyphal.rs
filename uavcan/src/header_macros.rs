@@ -158,3 +158,35 @@ macro_rules! service_frame_header{
         }
     );
 }
+
+
+#[macro_export]
+macro_rules! uavcan_message{
+    ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
+        struct $name {
+            header: $header_type,
+            body: $body_type,
+        }
+        
+        impl UavcanFrame<$header_type, $body_type> for $name {
+            fn from_parts(header: $header_type, body: $body_type) -> Self {
+                Self{header: header, body: body}
+            }
+            
+            fn to_parts(self) -> ($header_type, $body_type) {
+                (self.header, self.body)
+            }
+            
+            fn header(&self) -> & $header_type {
+                &self.header
+            }
+            
+            fn body(&self) -> & $body_type {
+                &self.body
+            }
+
+            fn data_type_signature(&self) -> u64 { $dts }
+        }
+        
+    );
+}

@@ -122,11 +122,7 @@ mod tests {
 
         message_frame_header!(NodeStatusHeader, 341);
         
-        #[derive(UavcanFrame, Default)]
-        struct NodeStatusMessage {
-            header: NodeStatusHeader,
-            body: NodeStatus,
-        }
+        uavcan_message!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
             
         let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
 
@@ -165,11 +161,7 @@ mod tests {
 
         message_frame_header!(LogMessageHeader, 16383);
 
-        #[derive(UavcanFrame)]
-        struct LogMessageMessage {
-            header: LogMessageHeader,
-            body: LogMessage,
-        }
+        uavcan_message!(LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
         
         let uavcan_frame = LogMessageMessage{
             header: LogMessageHeader::new(0, 32),
