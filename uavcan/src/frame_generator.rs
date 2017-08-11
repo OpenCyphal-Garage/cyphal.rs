@@ -196,9 +196,35 @@ mod tests {
             })
         );
         
-
-
+        assert_eq!(
+            frame_generator.next_transport_frame(),
+            Some(CanFrame{
+                id: CanID::Extended(LogMessageHeader::new(0, 32).to_id()),
+                dlc: 8,
+                data: [' ' as u8, 's' as u8, 'o' as u8, 'u' as u8, 'r' as u8, 'c' as u8, 'e' as u8, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0}.into()],
+            })
+        );
         
+        assert_eq!(
+            frame_generator.next_transport_frame(),
+            Some(CanFrame{
+                id: CanID::Extended(LogMessageHeader::new(0, 32).to_id()),
+                dlc: 8,
+                data: ['t' as u8, 'e' as u8, 's' as u8, 't' as u8, ' ' as u8, 't' as u8, 'e' as u8, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+            })
+        );
+        
+        assert_eq!(
+            frame_generator.next_transport_frame(),
+            Some(CanFrame{
+                id: CanID::Extended(LogMessageHeader::new(0, 32).to_id()),
+                dlc: 3,
+                data: ['x' as u8, 't' as u8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0}.into(), 0, 0, 0, 0, 0],
+            })
+        );
+
+        assert_eq!(frame_generator.next_transport_frame::<CanFrame>(), None);
+       
     }
 
 }
