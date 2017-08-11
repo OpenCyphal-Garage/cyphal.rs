@@ -15,6 +15,9 @@ mod lib {
 }
 
 #[macro_use]
+pub use uavcan_derive::*;
+
+#[macro_use]
 mod header_macros;
 pub mod types;
 mod crc;
