@@ -57,6 +57,9 @@ impl<B: UavcanIndexable> FrameGenerator<B> {
                 let frame_length = (i+7)/8 + 1;
                 transport_frame.set_data_length(frame_length);
                 transport_frame.data_as_mut()[frame_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: true, toggle: self.toggle, transfer_id: self.transfer_id}.into();
+            } else {
+                transport_frame.data_as_mut()[max_data_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: false, toggle: self.toggle, transfer_id: self.transfer_id}.into();
+                
             }
         }
 
