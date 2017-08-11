@@ -17,6 +17,7 @@ use serializer::{
 
 pub struct FrameGenerator<B: UavcanIndexable> {
     serializer: Serializer<B>,
+    data_type_signature: u64,
     started: bool,
     id: u32,
     toggle: bool,
@@ -25,10 +26,12 @@ pub struct FrameGenerator<B: UavcanIndexable> {
 
 impl<B: UavcanIndexable> FrameGenerator<B> {
     pub fn from_uavcan_frame<H: UavcanHeader, F: UavcanFrame<H, B>>(frame: F, transfer_id: u8) -> Self {
+        let dts = frame.data_type_signature();
         let (header, body) = frame.to_parts();
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
+            data_type_signature: dts,
             id: header.id(),
             toggle: false,
             transfer_id: transfer_id,
@@ -47,7 +50,7 @@ impl<B: UavcanIndexable> FrameGenerator<B> {
         if remaining_bits == 0 {
             return None;
         } else if first_of_multi_frame {
-            let crc = self.serializer.crc(0xd654a48e0c049d75);
+            let crc = self.serializer.crc(self.data_type_signature);
             transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
             transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             self.serializer.serialize(&mut transport_frame.data_as_mut()[2..max_data_length-1]);
