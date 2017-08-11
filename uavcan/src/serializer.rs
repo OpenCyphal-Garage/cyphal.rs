@@ -54,6 +54,12 @@ impl<T: UavcanIndexable> Serializer<T> {
                 if self.type_index >= self.structure.field(self.field_index).length() {
                     self.type_index = 0;
                     self.field_index += 1;
+
+                    // Dynamic length array tail optimization
+                    if (self.field_index == self.structure.number_of_primitive_fields() - 1) && !self.structure.field(self.field_index).constant_sized() {
+                        self.type_index = 1;
+                    }
+                    
                 }
                 if self.field_index >= self.structure.number_of_primitive_fields() {
                     return SerializationResult::Finished(buffer_next_bit);
