@@ -151,7 +151,7 @@ mod tests {
         }
             
         
-        let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).to_id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
         let mut message_builder = MessageBuilder::new();
         message_builder = message_builder.add_frame(can_frame).unwrap();

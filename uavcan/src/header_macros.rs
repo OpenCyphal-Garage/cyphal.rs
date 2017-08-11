@@ -10,7 +10,7 @@ macro_rules! message_frame_header{
         impl UavcanHeader for $t {
             fn type_id() -> u16 { $n }
             
-            fn to_id(self) -> u32 {
+            fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
@@ -61,7 +61,7 @@ macro_rules! anonymous_frame_header{
         impl UavcanHeader for $t {
             fn type_id() -> u16 { $n }
 
-            fn to_id(self) -> u32 {
+            fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, 0);
                 id.set_bit(7, false);
@@ -117,7 +117,7 @@ macro_rules! service_frame_header{
         impl UavcanHeader for $t {
             fn type_id() -> u16 { $n }
             
-            fn to_id(self) -> u32 {
+            fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);

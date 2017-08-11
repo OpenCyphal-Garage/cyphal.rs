@@ -79,7 +79,7 @@ impl From<u8> for TailByte {
 
 pub trait UavcanHeader : Sized {
     fn type_id() -> u16;
-    fn to_id(self) -> u32;
+    fn id(&self) -> u32;
     fn from_id(u32) -> Result<Self, ()>;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
