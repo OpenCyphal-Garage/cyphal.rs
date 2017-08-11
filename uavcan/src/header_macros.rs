@@ -161,7 +161,7 @@ macro_rules! service_frame_header{
 
 
 #[macro_export]
-macro_rules! uavcan_message{
+macro_rules! uavcan_frame{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
         struct $name {
             header: $header_type,
