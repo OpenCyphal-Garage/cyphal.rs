@@ -11,6 +11,6 @@ env:
 matrix:
   include:
     - rust: nightly
-      env: ACTION="build" FLAGS="--features \"clippy\""
+      env: ACTION="build" FLAGS="--features clippy"
   
 script: ./travis.sh
