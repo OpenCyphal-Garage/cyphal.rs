@@ -106,7 +106,7 @@ macro_rules! anonymous_frame_header{
 #[macro_export]
 macro_rules! service_frame_header{
     ($t:ident, $n:expr) => (
-        #[derive(Debug, PartialEq, Default)]
+        #[derive(Debug, PartialEq)]
         struct $t {
             priority: u8,
             request_not_response: bool,
@@ -163,6 +163,7 @@ macro_rules! service_frame_header{
 #[macro_export]
 macro_rules! uavcan_frame{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
+        #[derive(Debug, PartialEq)]
         struct $name {
             header: $header_type,
             body: $body_type,
