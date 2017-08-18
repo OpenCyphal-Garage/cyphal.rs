@@ -163,11 +163,25 @@ macro_rules! service_frame_header{
 #[macro_export]
 macro_rules! uavcan_frame{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
-        #[derive(Debug, PartialEq)]
         struct $name {
             header: $header_type,
             body: $body_type,
         }
+        
+        uavcan_frame_impls!($name, $header_type, $body_type, $dts);
+    );
+    ($der:meta, $name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
+        #[$der]
+        struct $name {
+            header: $header_type,
+            body: $body_type,
+        }
+        uavcan_frame_impls!($name, $header_type, $body_type, $dts);
+    );
+}
+
+macro_rules! uavcan_frame_impls{
+    ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
         
         impl UavcanFrame<$header_type, $body_type> for $name {
             fn from_parts(header: $header_type, body: $body_type) -> Self {
