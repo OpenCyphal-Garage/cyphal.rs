@@ -23,7 +23,7 @@ pub use uavcan_derive::*;
 mod header_macros;
 pub mod types;
 mod crc;
-mod parser;
+mod deserializer;
 pub mod message_builder;
 mod serializer;
 pub mod frame_generator;

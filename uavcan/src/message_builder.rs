@@ -7,9 +7,9 @@ use {
     UavcanHeader,
 };
 
-use parser::{
-    ParseError,
-    Parser,
+use deserializer::{
+    DeserializerError,
+    Deserializer,
 };
 
 use crc::calc;
@@ -25,17 +25,17 @@ pub enum BuilderError {
     NotFinishedParsing,
 }
 
-impl From<ParseError> for BuilderError {
-    fn from(parser_error: ParseError) -> Self {
-        match parser_error {
-            ParseError::StructureExhausted => BuilderError::FormatError,
-            ParseError::NotFinished => BuilderError::NotFinishedParsing,
+impl From<DeserializerError> for BuilderError {
+    fn from(deserializer_error: DeserializerError) -> Self {
+        match deserializer_error {
+            DeserializerError::StructureExhausted => BuilderError::FormatError,
+            DeserializerError::NotFinished => BuilderError::NotFinishedParsing,
         }
     }
 }
 
 pub struct MessageBuilder<B: UavcanIndexable> {
-    parser: Parser<B>,
+    deserializer: Deserializer<B>,
     started: bool,
     id: u32,
     crc: u16,
@@ -47,7 +47,7 @@ pub struct MessageBuilder<B: UavcanIndexable> {
 impl<B: UavcanIndexable> MessageBuilder<B> {
     pub fn new() -> Self {
         MessageBuilder{
-            parser: Parser::new(),
+            deserializer: Deserializer::new(),
             started: false,
             id: 0x00,
             crc: 0x00,
@@ -79,10 +79,10 @@ impl<B: UavcanIndexable> MessageBuilder<B> {
             &frame.data()[0..frame.data().len()-1]
         };
 
-        self.parser = match self.parser.parse(payload) {
+        self.deserializer = match self.deserializer.deserialize(payload) {
             Ok(x) => x,
-            Err(ParseError::StructureExhausted) => return Err(BuilderError::FormatError),
-            Err(ParseError::NotFinished) => unreachable!(),
+            Err(DeserializerError::StructureExhausted) => return Err(BuilderError::FormatError),
+            Err(DeserializerError::NotFinished) => unreachable!(),
         };
             
 
@@ -91,7 +91,7 @@ impl<B: UavcanIndexable> MessageBuilder<B> {
 
     pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
         if let Ok(id) = H::from_id(self.id) {
-            Ok(F::from_parts(id, self.parser.to_structure()?))
+            Ok(F::from_parts(id, self.deserializer.to_structure()?))
         } else {
             Err(BuilderError::IdError)
         }

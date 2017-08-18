@@ -10,25 +10,25 @@ use {
 };
 
 #[derive(Debug)]
-pub enum ParseError {
+pub enum DeserializerError {
     StructureExhausted,
     NotFinished,
 }
 
-pub struct Parser<T: UavcanIndexable> {
+pub struct Deserializer<T: UavcanIndexable> {
     structure: T,
     current_field_index: usize,
     current_type_index: usize,
-    buffer: ParserQueue,
+    buffer: DeserializerQueue,
 }
 
-struct ParserQueue {
+struct DeserializerQueue {
     buffer: [u8; 15],
     buffer_end_bit: usize,
 }
 
-impl ParserQueue {
-    fn new() -> Self { ParserQueue{buffer: [0;15], buffer_end_bit: 0} }
+impl DeserializerQueue {
+    fn new() -> Self { DeserializerQueue{buffer: [0;15], buffer_end_bit: 0} }
         
     fn bit_length(&self) -> usize { self.buffer_end_bit }
     
@@ -75,16 +75,16 @@ impl ParserQueue {
 }
 
 
-impl<T: UavcanIndexable> Parser<T> {
-    pub fn new() -> Parser<T> {
+impl<T: UavcanIndexable> Deserializer<T> {
+    pub fn new() -> Deserializer<T> {
         let structure: T;
         unsafe {
             structure = mem::zeroed();
         };            
-        Parser{structure: structure, current_field_index: 0, current_type_index: 0, buffer: ParserQueue::new()}
+        Deserializer{structure: structure, current_field_index: 0, current_type_index: 0, buffer: DeserializerQueue::new()}
     }
 
-    pub fn parse(mut self, input: &[u8]) -> Result<Parser<T>, ParseError> {
+    pub fn deserialize(mut self, input: &[u8]) -> Result<Deserializer<T>, DeserializerError> {
                 
         for chunk in input.chunks(8) {
             self.buffer.push(chunk);
@@ -107,7 +107,7 @@ impl<T: UavcanIndexable> Parser<T> {
                     }
                 } else {
                     if self.buffer.bit_length() >= 8 {
-                        return Err(ParseError::StructureExhausted);
+                        return Err(DeserializerError::StructureExhausted);
                     } else {
                         return Ok(self);
                     }
@@ -119,13 +119,13 @@ impl<T: UavcanIndexable> Parser<T> {
         return Ok(self);
     }
 
-    pub fn to_structure(self) -> Result<T, ParseError> {
+    pub fn to_structure(self) -> Result<T, DeserializerError> {
         let number_of_fields = self.structure.number_of_primitive_fields();
         let finished_parsing = number_of_fields == self.current_field_index;
         if finished_parsing {
             Ok(self.structure)
         } else {
-            Err(ParseError::NotFinished)
+            Err(DeserializerError::NotFinished)
         }
     }
 }
@@ -139,8 +139,8 @@ mod tests {
         UavcanField,
     };
 
-    use parser::{
-        Parser,
+    use deserializer::{
+        Deserializer,
     };
     
     use types::{
@@ -162,11 +162,11 @@ mod tests {
             v4: Uint8,
         }
 
-        let mut parser: Parser<Message> = Parser::new();
+        let mut deserializer: Deserializer<Message> = Deserializer::new();
 
-        parser = parser.parse(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
+        deserializer = deserializer.deserialize(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
 
-        let parsed_message = parser.to_structure().unwrap();
+        let parsed_message = deserializer.to_structure().unwrap();
 
         
         assert_eq!(parsed_message.v1, 17.into());
@@ -192,11 +192,11 @@ mod tests {
         }
 
         
-        let mut parser: Parser<NodeStatus> = Parser::new();
+        let mut deserializer: Deserializer<NodeStatus> = Deserializer::new();
 
-        parser = parser.parse(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
+        deserializer = deserializer.deserialize(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
 
-        let parsed_message = parser.to_structure().unwrap();
+        let parsed_message = deserializer.to_structure().unwrap();
         
 
         assert_eq!(parsed_message.uptime_sec, 1.into());
