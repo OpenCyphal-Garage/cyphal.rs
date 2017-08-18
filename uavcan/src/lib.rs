@@ -16,6 +16,8 @@ mod lib {
     }
 }
 
+use lib::core::fmt::Debug;
+
 #[macro_use]
 pub use uavcan_derive::*;
 
@@ -139,7 +141,7 @@ pub trait UavcanField{
     fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
 }
 
-pub trait UavcanPrimitiveType : BitArray<u64> {
+pub trait UavcanPrimitiveType : BitArray<u64> + Debug + PartialEq{
 }
 
 
