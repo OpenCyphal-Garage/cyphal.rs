@@ -2,4 +2,4 @@
 
 cd "uavcan"
 cargo clean
-cargo test ${FLAGS}
+cargo ${ACTION} ${FLAGS}
