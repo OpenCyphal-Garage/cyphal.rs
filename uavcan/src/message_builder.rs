@@ -57,7 +57,7 @@ impl<B: UavcanIndexable> MessageBuilder<B> {
         }
     }
     
-    pub fn add_frame<F: TransportFrame>(mut self, frame: F) -> Result<Self, BuilderError> {
+    pub fn add_frame<F: TransportFrame>(mut self, frame: &F) -> Result<Self, BuilderError> {
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);
@@ -150,7 +150,7 @@ mod tests {
         let can_frame = CanFrame{id: CanID::Extended(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
         let mut message_builder = MessageBuilder::new();
-        message_builder = message_builder.add_frame(can_frame).unwrap();
+        message_builder = message_builder.add_frame(&can_frame).unwrap();
         let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
         
         assert_eq!(parsed_message.body.uptime_sec, 1.into());
