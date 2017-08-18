@@ -5,12 +5,12 @@ rust:
   - nightly
 
 env:
-  - FLAGS="--no-default_features"
+  - FLAGS="--no-default-features"
   - FLAGS=""
 
 matrix:
   include:
     - rust: nightly
-      env: "--features \"clippy\""
+      env: FLAGS="--features \"clippy\""
   
 script: ./travis.sh
