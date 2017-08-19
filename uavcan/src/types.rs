@@ -223,9 +223,9 @@ macro_rules! dynamic_array_def {
         
         impl $i<Uint8>{
             pub fn with_str(string: &str) -> Self {
-                let mut data = [0.into(); $n];
-                for i in 0..string.len() {
-                    data[i] = string.as_bytes()[i].into();
+                let mut data: [Uint8; $n] = [0.into(); $n];
+                for (i, element) in data.iter_mut().enumerate().take(string.len()) {
+                    *element = string.as_bytes()[i].into();
                 }
                 Self{
                     current_size: $size{value: string.len()},
