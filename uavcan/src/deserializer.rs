@@ -119,7 +119,7 @@ impl<T: UavcanIndexable> Deserializer<T> {
         return Ok(self);
     }
 
-    pub fn to_structure(self) -> Result<T, DeserializerError> {
+    pub fn into_structure(self) -> Result<T, DeserializerError> {
         let number_of_fields = self.structure.number_of_primitive_fields();
         let finished_parsing = number_of_fields == self.current_field_index;
         if finished_parsing {
@@ -166,7 +166,7 @@ mod tests {
 
         deserializer = deserializer.deserialize(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
 
-        let parsed_message = deserializer.to_structure().unwrap();
+        let parsed_message = deserializer.into_structure().unwrap();
 
         
         assert_eq!(parsed_message.v1, 17.into());
@@ -196,7 +196,7 @@ mod tests {
 
         deserializer = deserializer.deserialize(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
 
-        let parsed_message = deserializer.to_structure().unwrap();
+        let parsed_message = deserializer.into_structure().unwrap();
         
 
         assert_eq!(parsed_message.uptime_sec, 1.into());

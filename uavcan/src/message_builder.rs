@@ -91,7 +91,7 @@ impl<B: UavcanIndexable> MessageBuilder<B> {
 
     pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
         if let Ok(id) = H::from_id(self.id) {
-            Ok(F::from_parts(id, self.deserializer.to_structure()?))
+            Ok(F::from_parts(id, self.deserializer.into_structure()?))
         } else {
             Err(BuilderError::IdError)
         }
