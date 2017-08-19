@@ -117,8 +117,11 @@ mod tests {
     use types::{
         Uint2,
         Uint3,
+        Uint8,
         Uint16,
         Uint32,
+        DynamicArray31,
+        DynamicArray90,
     };
     
     use tests::{
@@ -128,6 +131,10 @@ mod tests {
 
     use message_builder::{
         MessageBuilder,
+    };
+
+    use frame_generator::{
+        FrameGenerator,
     };
     
     #[test]
@@ -161,6 +168,67 @@ mod tests {
         assert_eq!(parsed_message.header, NodeStatusHeader::new(0, 32));
                                               
     }
+
+    #[test]
+    fn deserialize_multi_frame() {
+        
+        #[derive(Debug, PartialEq, UavcanIndexable)]
+        struct LogLevel {
+            value: Uint3,
+        }
+        
+        #[derive(Debug, PartialEq, UavcanIndexable)]
+        struct LogMessage {
+            level: LogLevel,
+            source: DynamicArray31<Uint8>,
+            text: DynamicArray90<Uint8>,
+        }
+        
+        message_frame_header!(LogMessageHeader, 16383);
+
+        uavcan_frame!(derive(Debug, PartialEq), LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
+
+        let uavcan_frame = LogMessageMessage{
+            header: LogMessageHeader::new(0, 32),
+            body: LogMessage{
+                level: LogLevel{value: 0.into()},
+                source: DynamicArray31::with_str("test source"),
+                text: DynamicArray90::with_str("test text"),
+            },
+        };
+
+        let crc = 0;
+        let mut message_builder = MessageBuilder::new();
+        
+        message_builder = message_builder.add_frame(&CanFrame{
+            id: CanID::Extended(LogMessageHeader::new(0, 32).id()),
+            dlc: 8,
+            data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..3, 0).set_bits(3..8, 11).get_bits(0..8), 't' as u8, 'e' as u8, 's' as u8, 't' as u8, TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+        }).unwrap();
+        
+        message_builder = message_builder.add_frame(&CanFrame{
+            id: CanID::Extended(LogMessageHeader::new(0, 32).id()),
+            dlc: 8,
+            data: [' ' as u8, 's' as u8, 'o' as u8, 'u' as u8, 'r' as u8, 'c' as u8, 'e' as u8, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0}.into()],
+        }).unwrap();
+        
+        message_builder = message_builder.add_frame(&CanFrame{
+            id: CanID::Extended(LogMessageHeader::new(0, 32).id()),
+            dlc: 8,
+            data: ['t' as u8, 'e' as u8, 's' as u8, 't' as u8, ' ' as u8, 't' as u8, 'e' as u8, TailByte{start_of_transfer: false, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+        }).unwrap();
+        
+        message_builder = message_builder.add_frame(&CanFrame{
+            id: CanID::Extended(LogMessageHeader::new(0, 32).id()),
+            dlc: 3,
+            data: ['x' as u8, 't' as u8, TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0}.into(), 0, 0, 0, 0, 0],
+        }).unwrap();
+        
+        assert_eq!(uavcan_frame, message_builder.build().unwrap());
+        
+    }
+   
+
 
 }
 
