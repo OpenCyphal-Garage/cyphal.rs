@@ -67,7 +67,7 @@ impl DeserializerQueue {
     
     fn push(&mut self, tail: &[u8]) {
         for byte in tail {
-            self.buffer.set_bits(self.buffer_end_bit..self.buffer_end_bit+8, byte.clone());
+            self.buffer.set_bits(self.buffer_end_bit..self.buffer_end_bit+8, *byte);
             self.buffer_end_bit += 8;
         }
     }
