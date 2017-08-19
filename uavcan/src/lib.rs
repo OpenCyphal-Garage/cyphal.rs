@@ -2,6 +2,7 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate uavcan_derive;
 
@@ -18,7 +19,6 @@ mod lib {
 
 use lib::core::fmt::Debug;
 
-#[macro_use]
 pub use uavcan_derive::*;
 
 #[macro_use]
