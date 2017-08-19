@@ -7,6 +7,7 @@
 #![cfg_attr(feature="clippy", deny(bool_comparison))]
 #![cfg_attr(feature="clippy", deny(builtin_type_shadow))]
 #![cfg_attr(feature="clippy", deny(clone_on_copy))]
+#![cfg_attr(feature="clippy", deny(char_lit_as_u8))]
 
 #[allow(unused_imports)]
 #[macro_use]
