@@ -2,6 +2,12 @@
 #![cfg_attr(feature="clippy", feature(plugin))]
 #![cfg_attr(feature="clippy", plugin(clippy))]
 
+#![cfg_attr(feature="clippy", deny(almost_swapped))]
+#![cfg_attr(feature="clippy", deny(blacklisted_name))]
+#![cfg_attr(feature="clippy", deny(bool_comparison))]
+#![cfg_attr(feature="clippy", deny(builtin_type_shadow))]
+#![cfg_attr(feature="clippy", deny(clone_on_copy))]
+
 #[allow(unused_imports)]
 #[macro_use]
 extern crate uavcan_derive;
