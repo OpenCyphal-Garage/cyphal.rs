@@ -360,11 +360,11 @@ impl<T: UavcanField> UavcanIndexable for T {
         1
     }
     fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
-        assert!(field_number == 0);
+        assert_eq!(field_number, 0);
         self
     }
     fn field(&self, field_number: usize) -> &UavcanField{
-        assert!(field_number == 0);
+        assert_eq!(field_number, 0);
         self
     }
 }
@@ -379,11 +379,11 @@ macro_rules! impl_primitive_field {
                 1
             }
             fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
-                assert!(index == 0);
+                assert_eq!(index, 0);
                 self
             }
             fn bit_array(&self, index: usize) -> &BitArray<u64> {
-                assert!(index == 0);
+                assert_eq!(index, 0);
                 self
             }
         }
