@@ -1,5 +1,6 @@
 use bit_field::BitField;
 use bit_field::BitArray;
+use half::f16;
 use lib::core::ops::Range;
 use lib::core::fmt;
 use lib::core::cmp::PartialEq;
@@ -10,19 +11,6 @@ use {
     UavcanPrimitiveType,
     DynamicArray,
 };
-
-
-#[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Default, Debug, PartialEq)]
-pub struct f16 {
-    bitfield: u16,
-}
-
-impl f16 {
-    fn from_bitmap(bm: u16) -> f16 {
-        f16{bitfield: bm}
-    }
-}
 
 
 
@@ -451,10 +439,10 @@ impl BitArray<u64> for Uint32 {
 
 impl BitArray<u64> for Float16 {
     #[inline] fn bit_length(&self) -> usize { 16 }
-    #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.bitfield.get_bit(bit as u8) }
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.bitfield.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.bitfield.set_bit(bit as u8, value); }
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.bitfield.set_bits((range.start as u8..range.end as u8), value as u16); }
+    #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.as_bits().get_bit(bit as u8) }
+    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.as_bits().get_bits(range.start as u8..range.end as u8) as u64}
+    #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.as_bits().set_bit(bit as u8, value); }
+    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.as_bits().set_bits((range.start as u8..range.end as u8), value as u16); }
 }
 
 

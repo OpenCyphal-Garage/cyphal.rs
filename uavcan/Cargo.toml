@@ -20,6 +20,7 @@ std = []
 
 [dependencies]
 bit_field = "0.8.0"
+half = "1.0.0"
 uavcan-derive = {path = "../uavcan-derive"}
 
 clippy = {version = "*", optional = true}
