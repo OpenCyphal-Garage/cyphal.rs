@@ -183,10 +183,7 @@ mod tests {
     // Implementing some types common for several tests
     
     #[derive(Debug, PartialEq)]
-    pub enum CanID {
-        Extended(u32),
-        Normal(u16),
-    }
+    pub struct CanID(pub u32);
 
     #[derive(Debug, PartialEq)]
     pub struct CanFrame {
@@ -199,11 +196,11 @@ mod tests {
         fn with_data(id: u32, data: &[u8]) -> CanFrame {
             let mut can_data = [0; 8];
             can_data[0..data.len()].clone_from_slice(data);
-            CanFrame{id: CanID::Extended(id), dlc: data.len(), data: can_data}
+            CanFrame{id: CanID(id), dlc: data.len(), data: can_data}
         }
 
         fn with_length(id: u32, length: usize) -> CanFrame {
-            CanFrame{id: CanID::Extended(id), dlc: length, data: [0; 8]}
+            CanFrame{id: CanID(id), dlc: length, data: [0; 8]}
         }
         
         fn max_data_length() -> usize {
@@ -225,8 +222,7 @@ mod tests {
         
         fn id(&self) -> u32 {
             match self.id {
-                CanID::Extended(x) => x,
-                CanID::Normal(x) => x as u32,
+                CanID(x) => x,
             }
         }
     }
