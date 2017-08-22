@@ -150,9 +150,11 @@ pub trait UavcanField{
     fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
 }
 
-pub trait UavcanPrimitiveType : BitArray<u64> + Debug + PartialEq{
+pub trait UavcanPrimitiveType : Debug + PartialEq {
+    fn bit_length() -> usize;
+    fn get_bits(&self, range: Range<usize>) -> u64;
+    fn set_bits(&mut self, range: Range<usize>, value: u64);
 }
-
 
 pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
     fn from_parts(header: H, body: B) -> Self;
