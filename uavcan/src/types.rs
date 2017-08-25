@@ -230,15 +230,15 @@ macro_rules! dynamic_array_def {
             }
         }
         
-        impl<T: UavcanPrimitiveType + Copy> DynamicArray for $i<T> {
+        impl<T: UavcanPrimitiveType> DynamicArray for $i<T> {
             fn max_size() -> usize {$n}
             
             fn length_bit_length() -> usize {$log_bits}
             fn element_bit_length() -> usize {T::bit_length()}
             
-            fn set_length(&mut self, length: usize) {self.current_size.value = length;}
-            fn data(&self) -> &[&UavcanPrimitiveType] {&self.data[0..self.current_size.value]}
-            fn data_as_mut(&mut self) -> &[&mut UavcanPrimitiveType] {&mut self.data[0..self.current_size.value]}
+            fn set_length(&mut self, length: usize) {self.current_size = length;}
+            fn element(&self, index: usize) -> &UavcanPrimitiveType {& self.data[0..self.current_size][index]}
+            fn element_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {&mut self.data[0..self.current_size][index]}
         }
         
         impl<T: UavcanPrimitiveType> AsUavcanField for $i<T> {

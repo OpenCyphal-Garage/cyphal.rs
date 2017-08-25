@@ -127,8 +127,8 @@ pub trait DynamicArray{
     fn element_bit_length() -> usize where Self: Sized;
     
     fn set_length(&mut self, length: usize);
-    fn data(&self) -> &[&UavcanPrimitiveType];
-    fn data_as_mut(&mut self) -> &[&mut UavcanPrimitiveType];
+    fn element(&self, index: usize) -> &UavcanPrimitiveType;
+    fn element_as_mut(&mut self, index: usze) -> &mut UavcanPrimitiveType;
 }
 
 /// An UavcanField is a field of a flatted out uavcan struct
