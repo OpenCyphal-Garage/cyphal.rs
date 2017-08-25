@@ -121,14 +121,10 @@ pub trait UavcanIndexable {
 }
 
 pub trait DynamicArray{
-    type Field;
+    fn max_size() -> usize where Self: Sized;
     
-    fn max_size() -> usize;
-    
-    fn with_data(data: &[Self::Field]) -> Self;
-
-    fn length_bit_length() -> usize;
-    fn element_bit_length() -> usize;
+    fn length_bit_length() -> usize where Self: Sized;
+    fn element_bit_length() -> usize where Self: Sized;
     
     fn set_length(&mut self, length: usize);
     fn data(&self) -> &[Self::Field];
@@ -156,7 +152,7 @@ pub trait AsUavcanField {
 
 
 pub trait UavcanPrimitiveType {
-    fn bit_length() -> usize;
+    fn bit_length() -> usize where Self: Sized;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
 }
