@@ -198,6 +198,19 @@ macro_rules! dynamic_array_def {
             data: [T; $n],
         }
         
+        impl<T: UavcanPrimitiveType> $i<T> {
+            fn with_data(data: &[T]) -> Self {
+                let mut data_t = [data[0]; $n];
+                for i in 0..data.len() {
+                    data_t[i] = data[i];
+                }
+                Self{
+                    current_size: data.len(),
+                    data: data_t,
+                }
+            }
+        }
+        
         impl $i<Uint8>{
             pub fn with_str(string: &str) -> Self {
                 let mut data: [Uint8; $n] = [0.into(); $n];
@@ -212,26 +225,14 @@ macro_rules! dynamic_array_def {
         }
         
         impl<T: UavcanPrimitiveType + Copy> DynamicArray for $i<T> {
-            type Field = T;
-            
             fn max_size() -> usize {$n}
-            fn with_data(data: &[T]) -> Self {
-                let mut data_t = [data[0]; $n];
-                for i in 0..data.len() {
-                    data_t[i] = data[i];
-                }
-                Self{
-                    current_size: data.len(),
-                    data: data_t,
-                }
-            }
             
             fn length_bit_length() -> usize {$log_bits}
             fn element_bit_length() -> usize {T::bit_length()}
             
             fn set_length(&mut self, length: usize) {self.current_size.value = length;}
-            fn data(&self) -> &[T] {&self.data[0..self.current_size.value]}
-            fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size.value]}
+            fn data(&self) -> &[&UavcanPrimitiveType] {&self.data[0..self.current_size.value]}
+            fn data_as_mut(&mut self) -> &[&mut UavcanPrimitiveType] {&mut self.data[0..self.current_size.value]}
         }
         
         impl<T: UavcanPrimitiveType> AsUavcanField for $i<T> {
