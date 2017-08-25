@@ -8,6 +8,7 @@ use lib::core::cmp::PartialEq;
 use {
     UavcanIndexable,
     UavcanField,
+    AsUavcanField,
     UavcanPrimitiveType,
     DynamicArray,
 };
@@ -233,16 +234,9 @@ macro_rules! dynamic_array_def {
             fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size.value]}
         }
         
-        impl<T: UavcanPrimitiveType> UavcanField for $i<T> {
-            fn constant_sized(&self) -> bool {false}
-            fn length(&self) -> usize {self.current_size.value+1}
-            fn bit_array(&self, index: usize) -> &BitArray<u64> {
-                if index == 0 { &self.current_size }
-                else { &self.data[index-1] }
-            }
-            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
-                if index == 0 { &mut self.current_size }
-                else { &mut self.data[index-1] }
+        impl<T: UavcanPrimitiveType> AsUavcanField for $i<T> {
+            fn as_uavcan_field(&self) -> UavcanField {
+                UavcanField::DynamicArray(&self)
             }
         }
 
@@ -333,21 +327,6 @@ impl From<Float64> for f64 {
     }
 }
 
-
-
-impl<T: UavcanField> UavcanIndexable for T {
-    fn number_of_primitive_fields(&self) -> usize{
-        1
-    }
-    fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField{
-        assert_eq!(field_number, 0);
-        self
-    }
-    fn field(&self, field_number: usize) -> &UavcanField{
-        assert_eq!(field_number, 0);
-        self
-    }
-}
 
 
 impl UavcanPrimitiveType for Uint2 {

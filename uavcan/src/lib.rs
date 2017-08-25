@@ -144,14 +144,14 @@ pub trait DynamicArray{
 /// All composite data structures have the same number of primtiive fields
 /// as the sum of their members. Except the variable length array.
 /// This array has number of primitive fields as their members (elements)+1
-pub trait UavcanField{
-    fn constant_sized(&self) -> bool;
-    /// length(&self) -> usize returns the number of primitive data types in this field
-    ///
-    /// for primtiive data types (non-array) it will return 1
-    fn length(&self) -> usize;
-    fn bit_array(&self, index: usize) -> &BitArray<u64>;
-    fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
+pub enum UavcanField<'a>{
+    PrimitiveType(&'a UavcanPrimitiveType),
+    DynamicArray(&'a DynamicArray),
+    UavcanStruct(&'a UavcanIndexable),
+}
+
+pub trait AsUavcanField {
+    fn as_uavcan_field(&self) -> UavcanField; 
 }
 
 
