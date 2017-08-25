@@ -125,6 +125,9 @@ pub trait DynamicArray{
     fn max_size() -> usize;
     
     fn with_data(data: &[Self::Field]) -> Self;
+
+    fn length_bit_length() -> usize;
+    fn element_bit_length() -> usize;
     
     fn set_length(&mut self, length: usize);
     fn data(&self) -> &[Self::Field];
@@ -149,6 +152,7 @@ pub trait UavcanField{
     fn bit_array(&self, index: usize) -> &BitArray<u64>;
     fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64>;
 }
+
 
 pub trait UavcanPrimitiveType : Debug + PartialEq {
     fn bit_length() -> usize;

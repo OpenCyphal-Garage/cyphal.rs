@@ -190,22 +190,10 @@ pub struct Float64 {
 }
 
 macro_rules! dynamic_array_def {
-    ($i:ident, $size:ident, $n:expr, $log_bits:expr) => {
-        #[derive(Debug, PartialEq)]
-        struct $size {
-            value: usize,
-        }
+    ($i:ident, $n:expr, $log_bits:expr) => {
 
-        impl BitArray<u64> for $size {
-            #[inline] fn bit_length(&self) -> usize { $log_bits }
-            #[inline] fn get_bit(&self, bit: usize) -> bool { self.value.get_bit(bit as u8) }
-            #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-            #[inline] fn set_bit(&mut self, bit: usize, value: bool) { self.value.set_bit(bit as u8, value); }
-            #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as usize); }
-        }
-        
         pub struct $i<T: UavcanPrimitiveType> {
-            current_size: $size,
+            current_size: usize,
             data: [T; $n],
         }
         
@@ -216,7 +204,7 @@ macro_rules! dynamic_array_def {
                     *element = string.as_bytes()[i].into();
                 }
                 Self{
-                    current_size: $size{value: string.len()},
+                    current_size: string.len(),
                     data: data,
                 }
             }
@@ -232,10 +220,14 @@ macro_rules! dynamic_array_def {
                     data_t[i] = data[i];
                 }
                 Self{
-                    current_size: $size{value: data.len()},
+                    current_size: data.len(),
                     data: data_t,
                 }
             }
+            
+            fn length_bit_length() -> usize {$log_bits}
+            fn element_bit_length() -> usize {T::bit_length()}
+            
             fn set_length(&mut self, length: usize) {self.current_size.value = length;}
             fn data(&self) -> &[T] {&self.data[0..self.current_size.value]}
             fn data_as_mut(&mut self) -> &mut [T] {&mut self.data[0..self.current_size.value]}
@@ -261,7 +253,7 @@ macro_rules! dynamic_array_def {
                     return false;
                 }
 
-                for i in 0..self.current_size.value {
+                for i in 0..self.current_size {
                     if self.data[i] != other.data[i] {
                         return false;
                     }
@@ -275,7 +267,7 @@ macro_rules! dynamic_array_def {
         impl<T: UavcanPrimitiveType> fmt::Debug for $i<T> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "$i<T> {{ data: [")?;
-                for i in 0..self.current_size.value {
+                for i in 0..self.current_size {
                     write!(f, "{:?}, ", self.data[i])?;
                 }
                 write!(f, "]}}")
@@ -437,20 +429,20 @@ impl_primitive_field!(Uint8);
 impl_primitive_field!(Uint16);
 impl_primitive_field!(Uint32);
 
-dynamic_array_def!(DynamicArray3, DynamicArray3Size, 3, 2);
-dynamic_array_def!(DynamicArray4, DynamicArray4Size, 4, 3);
-dynamic_array_def!(DynamicArray5, DynamicArray5Size, 5, 3);
-dynamic_array_def!(DynamicArray6, DynamicArray6Size, 6, 3);
-dynamic_array_def!(DynamicArray7, DynamicArray7Size, 7, 3);
-dynamic_array_def!(DynamicArray8, DynamicArray8Size, 8, 4);
-dynamic_array_def!(DynamicArray9, DynamicArray9Size, 9, 4);
-dynamic_array_def!(DynamicArray10, DynamicArray10Size, 10, 4);
-dynamic_array_def!(DynamicArray11, DynamicArray11Size, 11, 4);
-dynamic_array_def!(DynamicArray12, DynamicArray12Size, 12, 4);
-dynamic_array_def!(DynamicArray13, DynamicArray13Size, 13, 4);
-dynamic_array_def!(DynamicArray14, DynamicArray14Size, 14, 4);
-dynamic_array_def!(DynamicArray15, DynamicArray15Size, 15, 4);
-dynamic_array_def!(DynamicArray16, DynamicArray16Size, 16, 5);
-dynamic_array_def!(DynamicArray31, DynamicArray31Size, 31, 5);
-dynamic_array_def!(DynamicArray32, DynamicArray32Size, 32, 6);
-dynamic_array_def!(DynamicArray90, DynamicArray90Size, 90, 7);
+dynamic_array_def!(DynamicArray3, 3, 2);
+dynamic_array_def!(DynamicArray4, 4, 3);
+dynamic_array_def!(DynamicArray5, 5, 3);
+dynamic_array_def!(DynamicArray6, 6, 3);
+dynamic_array_def!(DynamicArray7, 7, 3);
+dynamic_array_def!(DynamicArray8, 8, 4);
+dynamic_array_def!(DynamicArray9, 9, 4);
+dynamic_array_def!(DynamicArray10, 10, 4);
+dynamic_array_def!(DynamicArray11, 11, 4);
+dynamic_array_def!(DynamicArray12, 12, 4);
+dynamic_array_def!(DynamicArray13, 13, 4);
+dynamic_array_def!(DynamicArray14, 14, 4);
+dynamic_array_def!(DynamicArray15, 15, 4);
+dynamic_array_def!(DynamicArray16, 16, 5);
+dynamic_array_def!(DynamicArray31, 31, 5);
+dynamic_array_def!(DynamicArray32, 32, 6);
+dynamic_array_def!(DynamicArray90, 90, 7);
