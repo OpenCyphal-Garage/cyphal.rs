@@ -349,29 +349,6 @@ impl<T: UavcanField> UavcanIndexable for T {
     }
 }
 
-macro_rules! impl_primitive_field {
-    ($i:ident) => {
-        impl UavcanField for $i{
-            fn constant_sized(&self) -> bool{
-                true
-            }
-            fn length(&self) -> usize{
-                1
-            }
-            fn bit_array_as_mut(&mut self, index: usize) -> &mut BitArray<u64> {
-                assert_eq!(index, 0);
-                self
-            }
-            fn bit_array(&self, index: usize) -> &BitArray<u64> {
-                assert_eq!(index, 0);
-                self
-            }
-        }
-    };
-}
-
-
-
 
 impl UavcanPrimitiveType for Uint2 {
     #[inline] fn bit_length() -> usize { 2 }
@@ -420,14 +397,6 @@ impl UavcanPrimitiveType for Float16 {
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.as_bits().get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.as_bits().set_bits((range.start as u8..range.end as u8), value as u16); }
 }
-
-impl_primitive_field!(Uint2);
-impl_primitive_field!(Uint3);
-impl_primitive_field!(Uint4);
-impl_primitive_field!(Uint5);
-impl_primitive_field!(Uint8);
-impl_primitive_field!(Uint16);
-impl_primitive_field!(Uint32);
 
 dynamic_array_def!(DynamicArray3, 3, 2);
 dynamic_array_def!(DynamicArray4, 4, 3);
