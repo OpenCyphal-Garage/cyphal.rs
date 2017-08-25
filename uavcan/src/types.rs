@@ -190,6 +190,12 @@ pub struct Float64 {
     value: f64,
 }
 
+impl<T: UavcanPrimitiveType> AsUavcanField for T {
+    fn as_uavcan_field(&self) -> UavcanField {
+        UavcanField::PrimitiveType(&self)
+    }
+}
+
 macro_rules! dynamic_array_def {
     ($i:ident, $n:expr, $log_bits:expr) => {
 
