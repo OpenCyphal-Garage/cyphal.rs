@@ -96,6 +96,12 @@ fn impl_uavcan_struct(ast: &syn::MacroInput) -> quote::Tokens {
     
     
     quote! {
+        impl AsUavcanField {
+            fn as_uavcan_field(&self) -> UavcanField{
+                UavcanField::UavcanStruct(self)
+            }
+        }
+
         impl UavcanStruct for #name {
             fn number_of_primitive_fields(&self) -> usize {
                 #primitive_fields_sum
