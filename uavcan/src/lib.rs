@@ -40,6 +40,7 @@ mod serializer;
 pub mod frame_generator;
 
 use lib::core::convert::{From};
+use lib::core::ops::Range;
 
 use bit_field::BitArray;
 
