@@ -192,7 +192,7 @@ pub struct Float64 {
 
 impl<T: UavcanPrimitiveType> AsUavcanField for T {
     fn as_uavcan_field(&self) -> UavcanField {
-        UavcanField::PrimitiveType(&self)
+        UavcanField::PrimitiveType(self)
     }
 }
 
@@ -243,7 +243,7 @@ macro_rules! dynamic_array_def {
         
         impl<T: UavcanPrimitiveType> AsUavcanField for $i<T> {
             fn as_uavcan_field(&self) -> UavcanField {
-                UavcanField::DynamicArray(&self)
+                UavcanField::DynamicArray(self)
             }
         }
 
