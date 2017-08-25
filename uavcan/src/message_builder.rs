@@ -2,7 +2,7 @@ use bit_field::BitField;
 
 use {
     UavcanFrame,
-    UavcanIndexable,
+    UavcanStruct,
     TransportFrame,
     UavcanHeader,
 };
@@ -34,7 +34,7 @@ impl From<DeserializerError> for BuilderError {
     }
 }
 
-pub struct MessageBuilder<B: UavcanIndexable> {
+pub struct MessageBuilder<B: UavcanStruct> {
     deserializer: Deserializer<B>,
     started: bool,
     id: u32,
@@ -44,7 +44,7 @@ pub struct MessageBuilder<B: UavcanIndexable> {
     transfer_id: u8,    
 }
 
-impl<B: UavcanIndexable> MessageBuilder<B> {
+impl<B: UavcanStruct> MessageBuilder<B> {
     pub fn new() -> Self {
         MessageBuilder{
             deserializer: Deserializer::new(),
@@ -106,7 +106,7 @@ mod tests {
     use bit_field::BitField;
     
     use{
-        UavcanIndexable,
+        UavcanStruct,
         UavcanField,
         UavcanHeader,
         MessageFrameHeader,
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn parse_from_can_frames_simple() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -172,12 +172,12 @@ mod tests {
     #[test]
     fn deserialize_multi_frame() {
         
-        #[derive(Debug, PartialEq, UavcanIndexable)]
+        #[derive(Debug, PartialEq, UavcanStruct)]
         struct LogLevel {
             value: Uint3,
         }
         
-        #[derive(Debug, PartialEq, UavcanIndexable)]
+        #[derive(Debug, PartialEq, UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
             source: DynamicArray31<Uint8>,

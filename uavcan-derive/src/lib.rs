@@ -8,15 +8,15 @@ use syn::Body;
 use quote::Tokens;
 
 
-#[proc_macro_derive(UavcanIndexable)]
+#[proc_macro_derive(UavcanStruct)]
 pub fn uavcan_sized(input: TokenStream) -> TokenStream {
     let s = input.to_string();
     let ast = syn::parse_macro_input(&s).unwrap();
-    let gen = impl_uavcan_indexable(&ast);
+    let gen = impl_uavcan_struct(&ast);
     gen.parse().unwrap()
 }
 
-fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
+fn impl_uavcan_struct(ast: &syn::MacroInput) -> quote::Tokens {
     let name = &ast.ident;
     let variant_data = match ast.body {
         Body::Enum(_) => panic!("UavcanSized is not derivable for enum"),
@@ -96,7 +96,7 @@ fn impl_uavcan_indexable(ast: &syn::MacroInput) -> quote::Tokens {
     
     
     quote! {
-        impl UavcanIndexable for #name {
+        impl UavcanStruct for #name {
             fn number_of_primitive_fields(&self) -> usize {
                 #primitive_fields_sum
             }

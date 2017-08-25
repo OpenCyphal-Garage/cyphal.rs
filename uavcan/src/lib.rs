@@ -114,7 +114,7 @@ pub trait ServiceFrameHeader : UavcanHeader {
     fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
 }
 
-pub trait UavcanIndexable {
+pub trait UavcanStruct {
     fn number_of_primitive_fields(&self) -> usize;
     fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
     fn field(&self, field_number: usize) -> &UavcanField;
@@ -143,7 +143,7 @@ pub trait DynamicArray{
 pub enum UavcanField<'a>{
     PrimitiveType(&'a UavcanPrimitiveType),
     DynamicArray(&'a DynamicArray),
-    UavcanStruct(&'a UavcanIndexable),
+    UavcanStruct(&'a UavcanStruct),
 }
 
 pub trait AsUavcanField {
@@ -157,7 +157,7 @@ pub trait UavcanPrimitiveType {
     fn set_bits(&mut self, range: Range<usize>, value: u64);
 }
 
-pub trait UavcanFrame<H: UavcanHeader, B: UavcanIndexable> {
+pub trait UavcanFrame<H: UavcanHeader, B: UavcanStruct> {
     fn from_parts(header: H, body: B) -> Self;
     fn to_parts(self) -> (H, B);
     fn header(&self) -> &H;
@@ -173,7 +173,7 @@ mod tests {
 
     use {
         TransportFrame,
-        UavcanIndexable,
+        UavcanStruct,
         UavcanField,
     };
     
@@ -237,7 +237,7 @@ mod tests {
     #[test]
     fn uavcan_sized_length_derivation() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -258,7 +258,7 @@ mod tests {
             }
         }
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct TestComposite {
             ns1: NodeStatus,
             ns2: NodeStatus,
@@ -273,7 +273,7 @@ mod tests {
             }
         }
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct TestComposite2 {
             ns1: NodeStatus,
             tc: TestComposite,
@@ -301,7 +301,7 @@ mod tests {
     #[test]
     fn uavcan_index_primitive_field() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,

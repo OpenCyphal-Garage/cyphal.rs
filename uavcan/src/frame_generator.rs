@@ -5,7 +5,7 @@ use {
     TransportFrame,
     UavcanFrame,
     UavcanHeader,
-    UavcanIndexable,
+    UavcanStruct,
 };
 
 use serializer::{
@@ -15,7 +15,7 @@ use serializer::{
 
 
 
-pub struct FrameGenerator<B: UavcanIndexable> {
+pub struct FrameGenerator<B: UavcanStruct> {
     serializer: Serializer<B>,
     data_type_signature: u64,
     started: bool,
@@ -24,7 +24,7 @@ pub struct FrameGenerator<B: UavcanIndexable> {
     transfer_id: u8,
 }
 
-impl<B: UavcanIndexable> FrameGenerator<B> {
+impl<B: UavcanStruct> FrameGenerator<B> {
     pub fn from_uavcan_frame<H: UavcanHeader, F: UavcanFrame<H, B>>(frame: F, transfer_id: u8) -> Self {
         let dts = frame.data_type_signature();
         let (header, body) = frame.to_parts();
@@ -80,7 +80,7 @@ impl<B: UavcanIndexable> FrameGenerator<B> {
 mod tests {
 
     use{
-        UavcanIndexable,
+        UavcanStruct,
         UavcanField,
         UavcanHeader,
         MessageFrameHeader,
@@ -114,7 +114,7 @@ mod tests {
     #[test]
     fn serialize_node_status_frame() {
 
-        #[derive(UavcanIndexable, Default)]
+        #[derive(UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -150,12 +150,12 @@ mod tests {
     #[test]
     fn serialize_multi_frame() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct LogLevel {
             value: Uint3,
         }
         
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
             source: DynamicArray31<Uint8>,

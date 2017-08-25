@@ -1,5 +1,5 @@
 use {
-    UavcanIndexable,
+    UavcanStruct,
 };
 
 use crc;
@@ -9,7 +9,7 @@ use bit_field::{
     BitArray,
 };
 
-pub struct Serializer<T: UavcanIndexable> {
+pub struct Serializer<T: UavcanStruct> {
     structure: T,
     field_index: usize,
     type_index: usize,
@@ -21,7 +21,7 @@ pub enum SerializationResult {
     Finished(usize),
 }
 
-impl<T: UavcanIndexable> Serializer<T> {
+impl<T: UavcanStruct> Serializer<T> {
     pub fn from_structure(structure: T) -> Self {
         Self{
             structure: structure,
@@ -201,7 +201,7 @@ impl<T: UavcanIndexable> Serializer<T> {
 mod tests {
 
     use {
-        UavcanIndexable,
+        UavcanStruct,
         UavcanField,
     };
 
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn uavcan_serialize_test_byte_aligned() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct Message {
             v1: Uint8,
             v2: Uint32,
@@ -250,7 +250,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn remaining_bits() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,

@@ -6,7 +6,7 @@ use bit_field::{
 };
 
 use {
-    UavcanIndexable,
+    UavcanStruct,
 };
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub enum DeserializerError {
     NotFinished,
 }
 
-pub struct Deserializer<T: UavcanIndexable> {
+pub struct Deserializer<T: UavcanStruct> {
     structure: T,
     current_field_index: usize,
     current_type_index: usize,
@@ -75,7 +75,7 @@ impl DeserializerQueue {
 }
 
 
-impl<T: UavcanIndexable> Deserializer<T> {
+impl<T: UavcanStruct> Deserializer<T> {
     pub fn new() -> Deserializer<T> {
         let structure: T;
         unsafe {
@@ -135,7 +135,7 @@ impl<T: UavcanIndexable> Deserializer<T> {
 mod tests {
 
     use {
-        UavcanIndexable,
+        UavcanStruct,
         UavcanField,
     };
 
@@ -154,7 +154,7 @@ mod tests {
     #[test]
     fn uavcan_parse_test_byte_aligned() {
 
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct Message {
             v1: Uint8,
             v2: Uint32,
@@ -182,7 +182,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanIndexable)]
+        #[derive(UavcanStruct)]
         struct NodeStatus {
             uptime_sec: Uint32,
             health: Uint2,
