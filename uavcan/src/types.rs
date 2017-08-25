@@ -3,7 +3,7 @@ use bit_field::BitArray;
 use half::f16;
 use lib::core::ops::Range;
 use lib::core::fmt;
-use lib::core::cmp::PartialEq;
+use lib::core::cmp;
 
 use {
     UavcanIndexable,
@@ -248,7 +248,7 @@ macro_rules! dynamic_array_def {
         }
 
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: UavcanPrimitiveType> PartialEq for $i<T> {
+        impl<T: UavcanPrimitiveType + cmp::PartialEq> cmp::PartialEq for $i<T> {
             fn eq(&self, other: &Self) -> bool {
                 if self.current_size != other.current_size {
                     return false;
@@ -265,7 +265,7 @@ macro_rules! dynamic_array_def {
         }
             
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: UavcanPrimitiveType> fmt::Debug for $i<T> {
+        impl<T: UavcanPrimitiveType + fmt::Debug> fmt::Debug for $i<T> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "$i<T> {{ data: [")?;
                 for i in 0..self.current_size {
