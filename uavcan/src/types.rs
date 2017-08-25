@@ -6,7 +6,6 @@ use lib::core::fmt;
 use lib::core::cmp;
 
 use {
-    UavcanIndexable,
     UavcanField,
     AsUavcanField,
     UavcanPrimitiveType,
