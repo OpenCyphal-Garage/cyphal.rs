@@ -155,7 +155,7 @@ pub trait AsUavcanField {
 }
 
 
-pub trait UavcanPrimitiveType : Debug + PartialEq {
+pub trait UavcanPrimitiveType {
     fn bit_length() -> usize;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
