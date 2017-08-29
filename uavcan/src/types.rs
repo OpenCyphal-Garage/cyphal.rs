@@ -1,6 +1,7 @@
 use bit_field::BitField;
 use bit_field::BitArray;
 use half::f16;
+use lib;
 use lib::core::ops::Range;
 use lib::core::fmt;
 use lib::core::cmp;
@@ -220,6 +221,10 @@ macro_rules! dynamic_array_def {
                     current_size: data.len(),
                     data: data_t,
                 }
+            }
+            
+            fn iter(&self) -> lib::core::slice::Iter<T> {
+                self.data[0..self.current_size].iter()
             }
         }
         
