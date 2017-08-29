@@ -137,6 +137,7 @@ mod tests {
     use {
         UavcanStruct,
         UavcanField,
+        AsUavcanField,
     };
 
     use deserializer::{

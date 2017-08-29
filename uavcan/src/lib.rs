@@ -175,6 +175,7 @@ mod tests {
         TransportFrame,
         UavcanStruct,
         UavcanField,
+        AsUavcanField,
     };
     
     use types::{

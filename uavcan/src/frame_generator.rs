@@ -82,6 +82,7 @@ mod tests {
     use{
         UavcanStruct,
         UavcanField,
+        AsUavcanField,
         UavcanHeader,
         MessageFrameHeader,
         UavcanFrame,
