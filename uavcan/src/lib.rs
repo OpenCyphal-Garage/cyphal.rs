@@ -119,7 +119,17 @@ pub trait UavcanStruct {
     fn field(&self, field_number: usize) -> &UavcanField;
     fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
     
-    fn flattened_fields_len(&self) -> usize;    
+    fn flattened_fields_len(&self) -> usize {
+        let mut flattened_fields_len = 0;
+        for i in 0..self.fields_len() {
+            flattened_fields_len += match self.field(i) {
+                &UavcanField::PrimitiveType(_x) => 1,
+                &UavcanField::DynamicArray(_x) => 1,
+                &UavcanField::UavcanStruct(x) => x.flattened_fields_len(),
+            }   
+        }
+        flattened_fields_len
+    }
     
     fn flattened_field(&self, field_number: usize) -> &UavcanField {
         assert!(field_number > 0);
