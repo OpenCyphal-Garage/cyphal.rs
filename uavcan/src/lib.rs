@@ -115,10 +115,74 @@ pub trait ServiceFrameHeader : UavcanHeader {
 }
 
 pub trait UavcanStruct {
-    fn number_of_primitive_fields(&self) -> usize;
-    fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
+    fn fields_len(&self) -> usize;    
     fn field(&self, field_number: usize) -> &UavcanField;
+    fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField;
+    
+    fn flattened_fields_len(&self) -> usize;    
+    
+    fn flattened_field(&self, field_number: usize) -> &UavcanField {
+        assert!(field_number > 0);
+        assert!(field_number < self.flattened_fields_len());
+        
+        let mut former_fields_len = 0;
+        let mut current_field = 0;
+        loop {
+            let current_field_len = match self.field(current_field) {
+                &UavcanField::PrimitiveType(_x) => 1,
+                &UavcanField::DynamicArray(_x) => 1,
+                &UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
+            };
+            
+            if former_fields_len + current_field_len >= field_number {
+                break;
+            } else {
+                former_fields_len += current_field_len;
+                current_field += 1;
+            }
+        }
+        
+        
+        if let &UavcanField::UavcanStruct(x) = self.field(current_field) {
+            x.flattened_field(field_number - former_fields_len)
+        } else {
+            self.field(current_field)
+        }
+    }
+    
+    
+    fn flattened_field_as_mut(&mut self, field_number: usize) -> &mut UavcanField {
+        assert!(field_number > 0);
+        assert!(field_number < self.flattened_fields_len());
+        
+        let mut former_fields_len = 0;
+        let mut current_field = 0;
+        loop {
+            let current_field_len = match self.field(current_field) {
+                &UavcanField::PrimitiveType(_x) => 1,
+                &UavcanField::DynamicArray(_x) => 1,
+                &UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
+            };
+            
+            if former_fields_len + current_field_len >= field_number {
+                break;
+            } else {
+                former_fields_len += current_field_len;
+                current_field += 1;
+            }
+            
+        }
+        
+        if let &mut UavcanField::UavcanStruct(x) = self.field_as_mut(current_field) {
+            x.flattened_field_as_mut(field_number - former_fields_len)
+        } else {
+            self.field_as_mut(current_field)
+        }
+        
+    }
+
 }
+        
 
 pub trait DynamicArray{
     fn max_size() -> usize where Self: Sized;
