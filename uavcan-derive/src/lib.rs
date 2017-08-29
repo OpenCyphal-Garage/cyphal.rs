@@ -16,107 +16,88 @@ pub fn uavcan_sized(input: TokenStream) -> TokenStream {
     gen.parse().unwrap()
 }
 
-fn impl_uavcan_struct(ast: &syn::MacroInput) -> quote::Tokens {
+fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     let name = &ast.ident;
     let variant_data = match ast.body {
         Body::Enum(_) => panic!("UavcanSized is not derivable for enum"),
         Body::Struct(ref variant_data) => variant_data,
     };
 
-    let primitive_fields_sum = {
-        let mut tokens = Tokens::new();
-        for field in variant_data.fields() {
-            tokens.append("self.");
-            tokens.append(field.ident.as_ref().unwrap());
-            tokens.append(".number_of_primitive_fields() + ");  
-        }
-        tokens.append("0");
-        tokens
-    };
-
+    let number_of_fields = variant_data.fields().len();
     
 
-    let primitive_fields_as_mut_body = {
+    let field_as_mut_body = {
         let mut primitive_fields_builder = Tokens::new();
-    
-        let mut primitive_fields_start_index = Tokens::new();
-        let mut primitive_fields_end_index = Tokens::new();
-        primitive_fields_start_index.append("0");
-        primitive_fields_end_index.append("0");
-        for field in variant_data.fields() {
+        let mut primitive_fields_cases = Tokens::new();
+        
+        for (i, field) in variant_data.fields().iter().enumerate() {
             let field_name = field.ident.as_ref().unwrap();
-            primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-            primitive_fields_builder.append(
-                quote!{
-                    if field_number >= #primitive_fields_start_index &&
-                        field_number < #primitive_fields_end_index {
-                            return self.#field_name.field_as_mut(field_number - (#primitive_fields_start_index));
-                        }
-                });
-            primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-        }
-        primitive_fields_builder.append(
-            quote!{
-                else {
-                    unreachable!()
-                }
+            primitive_fields_cases.append(quote!{
+                #i => self.#field_name.as_mut_uavcan_field(),
             });
+        }
+        
+        primitive_fields_cases.append(quote!{
+            x => panic!("The index: {}, is not a valid Uavcan Struct field", x),
+        });
+        
+        primitive_fields_builder.append(quote!{
+            match field_number {
+                #primitive_fields_cases
+            }
+        });
+
         primitive_fields_builder
     };
         
-    let primitive_fields_body = {
+    let field_body = {
         let mut primitive_fields_builder = Tokens::new();
-    
-        let mut primitive_fields_start_index = Tokens::new();
-        let mut primitive_fields_end_index = Tokens::new();
-        primitive_fields_start_index.append("0");
-        primitive_fields_end_index.append("0");
-        for field in variant_data.fields() {
+        let mut primitive_fields_cases = Tokens::new();
+
+        for (i, field) in variant_data.fields().iter().enumerate() {
             let field_name = field.ident.as_ref().unwrap();
-            primitive_fields_end_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-            primitive_fields_builder.append(
-                quote!{
-                    if field_number >= #primitive_fields_start_index &&
-                        field_number < #primitive_fields_end_index {
-                            return self.#field_name.field(field_number - (#primitive_fields_start_index));
-                        }
-                });
-            primitive_fields_start_index.append(quote!{+ self.#field_name.number_of_primitive_fields()});
-        }
-        primitive_fields_builder.append(
-            quote!{
-                else {
-                    unreachable!()
-                }
+            primitive_fields_cases.append(quote!{
+                #i => self.#field_name.as_uavcan_field(),
             });
+        }
+        
+        primitive_fields_cases.append(quote!{
+            x => panic!("The index: {}, is not a valid Uavcan Struct field", x),
+        });
+        
+        primitive_fields_builder.append(quote!{
+            match field_number {
+                #primitive_fields_cases
+            }
+        });
+        
         primitive_fields_builder
     };
-        
-
     
     
-    quote! {
-        impl AsUavcanField {
-            fn as_uavcan_field(&self) -> UavcanField{
-                UavcanField::UavcanStruct(self)
+    
+    
+    quote!{
+        impl AsUavcanField for #name{
+            fn as_uavcan_field(&self) -> &UavcanField{
+                &UavcanField::UavcanStruct(self)
+            }
+            fn as_mut_uavcan_field(&mut self) -> &mut UavcanField{
+                &mut UavcanField::UavcanStruct(self)
             }
         }
 
         impl UavcanStruct for #name {
-            fn number_of_primitive_fields(&self) -> usize {
-                #primitive_fields_sum
+            fn fields_len(&self) -> usize {
+                #number_of_fields
             }
 
-            #[allow(unused_comparisons)]
             fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField {
-                assert!(field_number < self.number_of_primitive_fields());
-                #primitive_fields_as_mut_body
+                #field_as_mut_body
             }
 
-            #[allow(unused_comparisons)]
             fn field(&self, field_number: usize) -> &UavcanField {
-                assert!(field_number < self.number_of_primitive_fields());
-                #primitive_fields_body
+                #field_body
             }
         }
 
