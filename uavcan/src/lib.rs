@@ -221,7 +221,8 @@ pub enum UavcanField<'a>{
 }
 
 pub trait AsUavcanField {
-    fn as_uavcan_field(&self) -> UavcanField; 
+    fn as_uavcan_field(&self) -> &UavcanField; 
+    fn as_mut_uavcan_field(&mut self) -> &mut UavcanField; 
 }
 
 
