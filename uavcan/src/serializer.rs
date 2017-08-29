@@ -53,13 +53,13 @@ impl<T: UavcanStruct> Serializer<T> {
                 if self.type_index < primitive_field.length()-1 {
                     self.type_index += 1;
                     self.bit_index = 0;
-                } else if self.field_index < self.structure.number_of_primitive_fields() - 1 {
+                } else if self.field_index < self.structure.flattened_fields_len() - 1 {
                     self.bit_index = 0;
                     self.type_index = 0;
                     self.field_index += 1;
                     
                     // Dynamic length array tail optimization
-                    if (self.field_index == self.structure.number_of_primitive_fields() - 1) && !self.structure.field(self.field_index).constant_sized() {
+                    if (self.field_index == self.structure.flattened_fields_len() - 1) && !self.structure.field(self.field_index).constant_sized() {
                         self.type_index = 1;
                     }
                 } else {
@@ -106,7 +106,7 @@ impl<T: UavcanStruct> Serializer<T> {
                 type_index = 0;
                 field_index += 1;
             }
-            if field_index >= self.structure.number_of_primitive_fields() {
+            if field_index >= self.structure.flattened_fields_len() {
                 return bits_counted > 0;
             }
             
@@ -131,7 +131,7 @@ impl<T: UavcanStruct> Serializer<T> {
                 type_index = 0;
                 field_index += 1;
             }
-            if field_index >= self.structure.number_of_primitive_fields() {
+            if field_index >= self.structure.flattened_fields_len() {
                 return bits_counted
             }
         }
@@ -187,7 +187,7 @@ impl<T: UavcanStruct> Serializer<T> {
                 type_index = 0;
                 field_index += 1;
             }
-            if field_index >= self.structure.number_of_primitive_fields() {
+            if field_index >= self.structure.flattened_fields_len() {
                 return crc;
             }
         }

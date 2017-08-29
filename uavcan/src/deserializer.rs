@@ -91,7 +91,7 @@ impl<T: UavcanStruct> Deserializer<T> {
 
             loop {
                 
-                if self.current_field_index < self.structure.number_of_primitive_fields() {
+                if self.current_field_index < self.structure.flattened_fields_len() {
                     if self.current_type_index < self.structure.field(self.current_field_index).length() {
                         
                         let field_length = self.structure.field(self.current_field_index).bit_array(self.current_type_index).bit_length();
@@ -120,7 +120,7 @@ impl<T: UavcanStruct> Deserializer<T> {
     }
 
     pub fn into_structure(self) -> Result<T, DeserializerError> {
-        let number_of_fields = self.structure.number_of_primitive_fields();
+        let number_of_fields = self.structure.flattened_fields_len();
         let finished_parsing = number_of_fields == self.current_field_index;
         if finished_parsing {
             Ok(self.structure)
