@@ -4,6 +4,10 @@ use half::f16;
 use lib::core::ops::Range;
 use lib::core::fmt;
 use lib::core::cmp;
+use lib::core::ops::{
+    Index,
+    IndexMut,
+};
 
 use {
     UavcanField,
@@ -231,7 +235,23 @@ macro_rules! dynamic_array_def {
                 }
             }
         }
+
+        impl<T: UavcanPrimitiveType> Index<usize> for $i<T> {
+            type Output = T;
+            
+            fn index(&self, index: usize) -> &T {
+                &self.data[0..self.current_size][index]
+            }
+        }
         
+        impl< T: UavcanPrimitiveType> IndexMut<usize> for $i<T> {
+            fn index_mut(&mut self, index: usize) -> &mut T {
+                &mut self.data[0..self.current_size][index]
+            }
+        }
+
+
+            
         impl<T: UavcanPrimitiveType> DynamicArray for $i<T> {
             fn max_size() -> usize {$n}
             
