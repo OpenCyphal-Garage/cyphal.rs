@@ -79,11 +79,11 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     quote!{
         impl AsUavcanField for #name{
-            fn as_uavcan_field(&self) -> &UavcanField{
-                &UavcanField::UavcanStruct(self)
+            fn as_uavcan_field(&self) -> UavcanField{
+                UavcanField::UavcanStruct(self)
             }
-            fn as_mut_uavcan_field(&mut self) -> &mut UavcanField{
-                &mut UavcanField::UavcanStruct(self)
+            fn as_mut_uavcan_field(&mut self) -> MutUavcanField{
+                MutUavcanField::UavcanStruct(self)
             }
         }
 
@@ -92,11 +92,11 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 #number_of_fields
             }
 
-            fn field_as_mut(&mut self, field_number: usize) -> &mut UavcanField {
+            fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField {
                 #field_as_mut_body
             }
 
-            fn field(&self, field_number: usize) -> &UavcanField {
+            fn field(&self, field_number: usize) -> UavcanField {
                 #field_body
             }
         }
