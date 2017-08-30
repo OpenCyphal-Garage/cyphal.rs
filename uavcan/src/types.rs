@@ -12,6 +12,7 @@ use lib::core::ops::{
 
 use {
     UavcanField,
+    MutUavcanField,
     AsUavcanField,
     UavcanPrimitiveType,
     DynamicArray,
@@ -195,11 +196,11 @@ pub struct Float64 {
 }
 
 impl<T: UavcanPrimitiveType> AsUavcanField for T {
-    fn as_uavcan_field(&self) -> &UavcanField {
-        &UavcanField::PrimitiveType(self)
+    fn as_uavcan_field(&self) -> UavcanField {
+        UavcanField::PrimitiveType(self)
     }
-    fn as_mut_uavcan_field(&mut self) -> &mut UavcanField {
-        &mut UavcanField::PrimitiveType(self)
+    fn as_mut_uavcan_field(&mut self) -> MutUavcanField {
+        MutUavcanField::PrimitiveType(self)
     }
 }
 
@@ -268,12 +269,12 @@ macro_rules! dynamic_array_def {
             fn element_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {&mut self.data[0..self.current_size][index]}
         }
         
-        impl<T: UavcanPrimitiveType> AsUavcanField for $i<T> {
-            fn as_uavcan_field(&self) -> &UavcanField {
-                &UavcanField::DynamicArray(self)
+        impl<'a, T: UavcanPrimitiveType> AsUavcanField for $i<T> where $i<T> : 'a{
+            fn as_uavcan_field(&self) -> UavcanField {
+                UavcanField::DynamicArray(self)
             }
-            fn as_mut_uavcan_field(&mut self) -> &mut UavcanField {
-                &mut UavcanField::DynamicArray(self)
+            fn as_mut_uavcan_field(&mut self) -> MutUavcanField {
+                MutUavcanField::DynamicArray(self)
             }
         }
 
