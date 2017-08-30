@@ -1,3 +1,5 @@
+use lib::core::ops::Range;
+
 use {
     UavcanStruct,
 };
@@ -9,6 +11,66 @@ use bit_field::{
     BitArray,
 };
 
+pub enum SerializationResult {
+    BufferFull(usize),
+    Finished(usize),
+}
+
+pub struct SerializationChunk {
+    data: u64,
+    bit_length: usize,
+}
+
+impl SerializationChunk {
+    fn get_bits(&self, range: Range<usize>) -> u64 { self.data.get_bits(range.start as u8..range.end as u8) as u64}
+    fn set_bits(&mut self, range: Range<usize>, value: u64) { self.data.set_bits((range.start as u8..range.end as u8), value); }
+}
+
+struct SerializationBuffer<'a> {
+    data: &'a mut [u8],
+    bit_index: usize,
+}
+
+
+impl<'a> SerializationBuffer<'a>{
+    fn append(&mut self, data: SerializationChunk) -> SerializationResult {
+        let mut bits_serialized: usize = 0;
+        let mut remaining_bits = self.data.len() - self.bit_index;
+        
+        let byte_start = self.bit_index / 8;
+        let odd_bits_start = self.bit_index % 8;
+
+        // first get rid of the odd bits
+        if odd_bits_start != 0 && data.bit_length >= odd_bits_start {
+            self.data[byte_start].set_bits((odd_bits_start as u8)..8, data.get_bits(0..(8-odd_bits_start)) as u8);
+            bits_serialized += 8-odd_bits_start;
+            self.bit_index += 8-odd_bits_start;
+        } else if odd_bits_start != 0 && data.bit_length < odd_bits_start {
+            self.data[byte_start].set_bits((odd_bits_start as u8)..8, data.get_bits(0..(8-odd_bits_start)) as u8);
+            bits_serialized += data.bit_length;
+            self.bit_index += data.bit_length;
+            return SerializationResult::Finished(bits_serialized);
+        }
+
+        for i in byte_start+1..self.data.len() {
+            let remaining_bits = data.bit_length - bits_serialized;
+            if remaining_bits < 8 || (remaining_bits == 8 && i != self.data.len()-1) {
+                self.data[i] = data.get_bits(bits_serialized..bits_serialized+remaining_bits) as u8;
+                self.bit_index += remaining_bits;
+                bits_serialized += remaining_bits;
+                return SerializationResult::Finished(bits_serialized);
+            } else {
+                self.data[i] = data.get_bits(bits_serialized..(bits_serialized+8)) as u8;
+                self.bit_index += 8;
+                bits_serialized += 8;
+            }
+        }
+
+        
+        SerializationResult::BufferFull(bits_serialized)
+    }
+}                                        
+ 
 pub struct Serializer<T: UavcanStruct> {
     structure: T,
     field_index: usize,
@@ -16,10 +78,6 @@ pub struct Serializer<T: UavcanStruct> {
     bit_index: usize,
 }
 
-pub enum SerializationResult {
-    BufferFull,
-    Finished(usize),
-}
 
 impl<T: UavcanStruct> Serializer<T> {
     pub fn from_structure(structure: T) -> Self {
