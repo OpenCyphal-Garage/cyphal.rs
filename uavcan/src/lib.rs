@@ -254,6 +254,7 @@ mod tests {
         TransportFrame,
         UavcanStruct,
         UavcanField,
+        MutUavcanField,
         AsUavcanField,
     };
     

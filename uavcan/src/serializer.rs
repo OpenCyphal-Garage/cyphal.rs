@@ -203,6 +203,7 @@ mod tests {
     use {
         UavcanStruct,
         UavcanField,
+        MutUavcanField,
         AsUavcanField,
     };
 
