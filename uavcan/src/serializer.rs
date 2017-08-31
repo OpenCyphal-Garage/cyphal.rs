@@ -2,13 +2,15 @@ use lib::core::ops::Range;
 
 use {
     UavcanStruct,
+    UavcanPrimitiveType,
+    UavcanField,
+    DynamicArray,
 };
 
 use crc;
 
 use bit_field::{
     BitField,
-    BitArray,
 };
 
 pub enum SerializationResult {
@@ -16,56 +18,61 @@ pub enum SerializationResult {
     Finished(usize),
 }
 
-pub struct SerializationChunk {
-    data: u64,
-    bit_length: usize,
+impl SerializationResult {
+    pub fn bits_serialized(&self) -> usize {
+        match self {
+            &SerializationResult::BufferFull(bits) => bits,
+            &SerializationResult::Finished(bits) => bits,
+        }
+    }
 }
 
-impl SerializationChunk {
-    fn get_bits(&self, range: Range<usize>) -> u64 { self.data.get_bits(range.start as u8..range.end as u8) as u64}
-    fn set_bits(&mut self, range: Range<usize>, value: u64) { self.data.set_bits((range.start as u8..range.end as u8), value); }
-}
-
+#[derive(Debug, PartialEq)]
 struct SerializationBuffer<'a> {
     data: &'a mut [u8],
     bit_index: usize,
 }
+ 
+trait Serialize {
+    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+}
 
-
-impl<'a> SerializationBuffer<'a>{
-    fn append(&mut self, data: SerializationChunk) -> SerializationResult {
+impl<T: UavcanPrimitiveType> Serialize for T {
+    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
         let mut bits_serialized: usize = 0;
-        let mut remaining_bits = self.data.len() - self.bit_index;
         
-        let byte_start = self.bit_index / 8;
-        let odd_bits_start = self.bit_index % 8;
-
+        let mut byte_start = buffer.bit_index / 8;
+        let odd_bits_start = buffer.bit_index % 8;
+        
         // first get rid of the odd bits
-        if odd_bits_start != 0 && data.bit_length >= odd_bits_start {
-            self.data[byte_start].set_bits((odd_bits_start as u8)..8, data.get_bits(0..(8-odd_bits_start)) as u8);
+        if odd_bits_start != 0 && 8-odd_bits_start <= T::bit_length() - start_bit {
+            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit+8-odd_bits_start)) as u8);
             bits_serialized += 8-odd_bits_start;
-            self.bit_index += 8-odd_bits_start;
-        } else if odd_bits_start != 0 && data.bit_length < odd_bits_start {
-            self.data[byte_start].set_bits((odd_bits_start as u8)..8, data.get_bits(0..(8-odd_bits_start)) as u8);
-            bits_serialized += data.bit_length;
-            self.bit_index += data.bit_length;
+            buffer.bit_index += 8-odd_bits_start;
+            byte_start += 1;
+        } else if odd_bits_start != 0 && 8-odd_bits_start > T::bit_length() - start_bit {
+            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit + (T::bit_length() - start_bit) )) as u8);
+            bits_serialized += T::bit_length() - start_bit;
+            buffer.bit_index += T::bit_length() - start_bit;
             return SerializationResult::Finished(bits_serialized);
         }
-
-        for i in byte_start+1..self.data.len() {
-            let remaining_bits = data.bit_length - bits_serialized;
-            if remaining_bits < 8 || (remaining_bits == 8 && i != self.data.len()-1) {
-                self.data[i] = data.get_bits(bits_serialized..bits_serialized+remaining_bits) as u8;
-                self.bit_index += remaining_bits;
+        
+        for i in byte_start..buffer.data.len() {
+            let serialization_index = bits_serialized + start_bit;
+            let remaining_bits = T::bit_length() - serialization_index;
+            
+            if remaining_bits <= 8 {
+                buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
+                buffer.bit_index += remaining_bits;
                 bits_serialized += remaining_bits;
                 return SerializationResult::Finished(bits_serialized);
             } else {
-                self.data[i] = data.get_bits(bits_serialized..(bits_serialized+8)) as u8;
-                self.bit_index += 8;
+                buffer.data[i] = self.get_bits(serialization_index..(serialization_index+8)) as u8;
+                buffer.bit_index += 8;
                 bits_serialized += 8;
             }
         }
-
+        
         
         SerializationResult::BufferFull(bits_serialized)
     }
@@ -263,10 +270,13 @@ mod tests {
         UavcanField,
         MutUavcanField,
         AsUavcanField,
+        UavcanPrimitiveType,
     };
 
     use serializer::{
         Serializer,
+        Serialize,
+        SerializationBuffer,
     };
     
     use types::{
@@ -276,7 +286,37 @@ mod tests {
         Uint16,
         Uint32,
     };
-    
+
+
+    #[test]
+    fn uavcan_serialize_primitive_types() {
+        let uint2: Uint2 = 1.into();
+        let uint8: Uint8 = 128.into();
+        let uint16: Uint16 = 257.into();
+
+        let mut data = [0u8; 4];
+        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+
+        uint2.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1, 0, 0, 0]);
+
+        buffer.bit_index = 0;
+        uint8.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [128, 0, 0, 0]);
+            
+        buffer.bit_index = 0;
+        uint16.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1, 1, 0, 0]);
+            
+        uint2.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1, 1, 1, 0]);
+            
+        uint8.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1, 1, 1, 2]);
+            
+
+    }
+
     #[test]
     fn uavcan_serialize_test_byte_aligned() {
 
