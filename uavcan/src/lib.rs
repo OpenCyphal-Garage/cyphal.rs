@@ -192,7 +192,7 @@ pub trait UavcanStruct {
 }
         
 
-pub trait DynamicArray{
+pub trait DynamicArray : serializer::Serialize {
     fn max_size() -> usize where Self: Sized;
     
     fn length_bit_length() -> usize where Self: Sized;
@@ -231,7 +231,7 @@ pub trait AsUavcanField {
 }
 
 
-pub trait UavcanPrimitiveType {
+pub trait UavcanPrimitiveType : serializer::Serialize {
     fn bit_length() -> usize where Self: Sized;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
