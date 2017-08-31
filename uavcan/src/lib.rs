@@ -132,7 +132,7 @@ pub trait UavcanStruct {
     }
     
     fn flattened_field(&self, field_number: usize) -> UavcanField {
-        assert!(field_number > 0);
+        assert!(field_number >= 0);
         assert!(field_number < self.flattened_fields_len());
         
         let mut former_fields_len = 0;
@@ -161,7 +161,7 @@ pub trait UavcanStruct {
     
     
     fn flattened_field_as_mut(&mut self, field_number: usize) -> MutUavcanField {
-        assert!(field_number > 0);
+        assert!(field_number >= 0);
         assert!(field_number < self.flattened_fields_len());
         
         let mut former_fields_len = 0;
