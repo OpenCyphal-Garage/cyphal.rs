@@ -20,15 +20,6 @@ pub enum SerializationResult {
     Finished(usize),
 }
 
-impl SerializationResult {
-    pub fn bits_serialized(&self) -> usize {
-        match self {
-            &SerializationResult::BufferFull(bits) => bits,
-            &SerializationResult::Finished(bits) => bits,
-        }
-    }
-}
-
 #[derive(Debug, PartialEq)]
 struct SerializationBuffer<'a> {
     data: &'a mut [u8],
