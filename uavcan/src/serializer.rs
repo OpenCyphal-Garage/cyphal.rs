@@ -83,6 +83,39 @@ macro_rules! impl_serialize_for_primitive_type {
                 SerializationResult::BufferFull(bits_serialized)
 
             }
+            
+
+        }
+    };
+}
+
+macro_rules! impl_serialize_for_dynamic_array {
+    ($type:ident) => {
+        impl<T: UavcanPrimitiveType + Serialize> Serialize for $type<T> {
+            fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                let mut bits_serialized: usize = 0;
+                
+                let mut start_element = start_bit / Self::element_bit_length();
+                let start_element_bit = start_bit % Self::element_bit_length();
+
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    match self[start_element].serialize(start_element_bit, buffer) {
+                        SerializationResult::Finished(bits) => bits_serialized += bits,
+                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),
+                    }
+                    start_element += 1;
+                }
+
+                for i in start_element..self.length() {
+                    match self[i].serialize(0, buffer) {
+                        SerializationResult::Finished(bits) => bits_serialized += bits,
+                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),                        
+                    }
+                }
+
+                SerializationResult::BufferFull(bits_serialized)
+            }
         }
     };
 }
@@ -97,6 +130,17 @@ impl_serialize_for_primitive_type!(Uint8);
 impl_serialize_for_primitive_type!(Uint16);
 
 impl_serialize_for_primitive_type!(Uint32);
+
+
+impl_serialize_for_dynamic_array!(DynamicArray3);
+impl_serialize_for_dynamic_array!(DynamicArray4);
+impl_serialize_for_dynamic_array!(DynamicArray5);
+impl_serialize_for_dynamic_array!(DynamicArray6);
+impl_serialize_for_dynamic_array!(DynamicArray7);
+impl_serialize_for_dynamic_array!(DynamicArray8);
+
+    
+
 
 pub struct Serializer<T: UavcanStruct> {
     structure: T,
