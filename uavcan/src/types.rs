@@ -213,7 +213,7 @@ macro_rules! dynamic_array_def {
         }
         
         impl<T: UavcanPrimitiveType + Copy> $i<T> {
-            fn with_data(data: &[T]) -> Self {
+            pub fn with_data(data: &[T]) -> Self {
                 let mut data_t = [data[0]; $n];
                 for i in 0..data.len() {
                     data_t[i] = data[i];
