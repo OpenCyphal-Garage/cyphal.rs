@@ -198,6 +198,7 @@ pub trait DynamicArray{
     fn length_bit_length() -> usize where Self: Sized;
     fn element_bit_length() -> usize where Self: Sized;
     
+    fn length(&self) -> usize;
     fn set_length(&mut self, length: usize);
     fn element(&self, index: usize) -> &UavcanPrimitiveType;
     fn element_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;

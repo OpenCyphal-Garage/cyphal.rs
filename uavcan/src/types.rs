@@ -264,6 +264,7 @@ macro_rules! dynamic_array_def {
             fn length_bit_length() -> usize {$log_bits}
             fn element_bit_length() -> usize {T::bit_length()}
             
+            fn length(&self) -> usize {self.current_size}
             fn set_length(&mut self, length: usize) {self.current_size = length;}
             fn element(&self, index: usize) -> &UavcanPrimitiveType {& self.data[0..self.current_size][index]}
             fn element_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType {&mut self.data[0..self.current_size][index]}
