@@ -1,5 +1,7 @@
 use lib::core::ops::Range;
 
+use types::*;
+
 use {
     UavcanStruct,
     UavcanPrimitiveType,
@@ -37,47 +39,63 @@ trait Serialize {
     fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
 }
 
-impl<T: UavcanPrimitiveType> Serialize for T {
-    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-        let mut bits_serialized: usize = 0;
-        
-        let mut byte_start = buffer.bit_index / 8;
-        let odd_bits_start = buffer.bit_index % 8;
-        
-        // first get rid of the odd bits
-        if odd_bits_start != 0 && 8-odd_bits_start <= T::bit_length() - start_bit {
-            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit+8-odd_bits_start)) as u8);
-            bits_serialized += 8-odd_bits_start;
-            buffer.bit_index += 8-odd_bits_start;
-            byte_start += 1;
-        } else if odd_bits_start != 0 && 8-odd_bits_start > T::bit_length() - start_bit {
-            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit + (T::bit_length() - start_bit) )) as u8);
-            bits_serialized += T::bit_length() - start_bit;
-            buffer.bit_index += T::bit_length() - start_bit;
-            return SerializationResult::Finished(bits_serialized);
-        }
-        
-        for i in byte_start..buffer.data.len() {
-            let serialization_index = bits_serialized + start_bit;
-            let remaining_bits = T::bit_length() - serialization_index;
-            
-            if remaining_bits <= 8 {
-                buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
-                buffer.bit_index += remaining_bits;
-                bits_serialized += remaining_bits;
-                return SerializationResult::Finished(bits_serialized);
-            } else {
-                buffer.data[i] = self.get_bits(serialization_index..(serialization_index+8)) as u8;
-                buffer.bit_index += 8;
-                bits_serialized += 8;
+macro_rules! impl_serialize_for_primitive_type {
+    ($type:ident) => {
+        impl Serialize for $type {
+            fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                let mut bits_serialized: usize = 0;
+                
+                let mut byte_start = buffer.bit_index / 8;
+                let odd_bits_start = buffer.bit_index % 8;
+                
+                // first get rid of the odd bits
+                if odd_bits_start != 0 && 8-odd_bits_start <= $type::bit_length() - start_bit {
+                    buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit+8-odd_bits_start)) as u8);
+                    bits_serialized += 8-odd_bits_start;
+                    buffer.bit_index += 8-odd_bits_start;
+                    byte_start += 1;
+                } else if odd_bits_start != 0 && 8-odd_bits_start > $type::bit_length() - start_bit {
+                    buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit + ($type::bit_length() - start_bit) )) as u8);
+                    bits_serialized += $type::bit_length() - start_bit;
+                    buffer.bit_index += $type::bit_length() - start_bit;
+                    return SerializationResult::Finished(bits_serialized);
+                }
+                
+                for i in byte_start..buffer.data.len() {
+                    let serialization_index = bits_serialized + start_bit;
+                    let remaining_bits = $type::bit_length() - serialization_index;
+                    
+                    if remaining_bits <= 8 {
+                        buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
+                        buffer.bit_index += remaining_bits;
+                        bits_serialized += remaining_bits;
+                        return SerializationResult::Finished(bits_serialized);
+                    } else {
+                        buffer.data[i] = self.get_bits(serialization_index..(serialization_index+8)) as u8;
+                        buffer.bit_index += 8;
+                        bits_serialized += 8;
+                    }
+                }
+                
+                
+                SerializationResult::BufferFull(bits_serialized)
+
             }
         }
-        
-        
-        SerializationResult::BufferFull(bits_serialized)
-    }
-}                                        
- 
+    };
+}
+
+impl_serialize_for_primitive_type!(Uint2);
+impl_serialize_for_primitive_type!(Uint3);
+impl_serialize_for_primitive_type!(Uint4);
+impl_serialize_for_primitive_type!(Uint5);
+
+impl_serialize_for_primitive_type!(Uint8);
+
+impl_serialize_for_primitive_type!(Uint16);
+
+impl_serialize_for_primitive_type!(Uint32);
+
 pub struct Serializer<T: UavcanStruct> {
     structure: T,
     field_index: usize,
