@@ -324,6 +324,12 @@ impl From<u8> for Uint3 {
     }
 }
 
+impl From<u8> for Uint7 {
+    fn from(t: u8) -> Uint7 {
+        Uint7{value: t.get_bits(0..7)}
+    }
+}
+
 impl From<u8> for Uint8 {
     fn from(t: u8) -> Uint8 {
         Uint8{value: t.get_bits(0..8)}
@@ -388,6 +394,12 @@ impl UavcanPrimitiveType for Uint4 {
 
 impl UavcanPrimitiveType for Uint5 {
     #[inline] fn bit_length() -> usize { 5 }
+    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
+    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
+}
+
+impl UavcanPrimitiveType for Uint7 {
+    #[inline] fn bit_length() -> usize { 7 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
 }
