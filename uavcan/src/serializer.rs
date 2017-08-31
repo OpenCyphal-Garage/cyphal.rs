@@ -336,14 +336,7 @@ mod tests {
         SerializationBuffer,
     };
     
-    use types::{
-        Uint2,
-        Uint3,
-        Uint8,
-        Uint16,
-        Uint32,
-    };
-
+    use types::*;
 
     #[test]
     fn uavcan_serialize_primitive_types() {
@@ -371,6 +364,52 @@ mod tests {
         uint8.serialize(0, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 1, 2]);
             
+
+    }
+
+    #[test]
+    fn uavcan_serialize_dynamic_array() {
+        let a1: DynamicArray4<Uint2> = DynamicArray4::with_data(&[1.into(), 0.into(), 1.into(), 0.into()]);
+        let a2: DynamicArray6<Uint2> = DynamicArray6::with_data(&[1.into(), 0.into(), 1.into(), 0.into(), 1.into(), 0.into()]);
+        let a3: DynamicArray4<Uint7> = DynamicArray4::with_data(&[1.into(), 2.into(), 4.into(), 8.into()]);
+
+        let mut data = [0u8; 4];
+        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+
+        a1.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [0b00010001, 0, 0, 0]);
+
+        buffer.bit_index = 0;
+        a2.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [0b00010001, 0b00000001, 0, 0]);
+            
+        buffer.bit_index = 0;
+        a3.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1, 1, 1, 1]);            
+
+    }
+
+    #[test]
+    fn uavcan_serialize_dynamic_array_partially() {
+        let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 4.into(), 16.into(), 64.into()]);
+
+        let mut data = [0u8; 1];
+        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+
+        a.serialize(0, &mut buffer);
+        assert_eq!(buffer.data, [1]);
+        
+        buffer.bit_index = 0;
+        a.serialize(8, &mut buffer);
+        assert_eq!(buffer.data, [2]);
+
+        buffer.bit_index = 0;
+        a.serialize(16, &mut buffer);
+        assert_eq!(buffer.data, [4]);
+
+        buffer.bit_index = 0;
+        a.serialize(24, &mut buffer);
+        assert_eq!(buffer.data, [8]);
 
     }
 
