@@ -111,11 +111,13 @@ macro_rules! impl_serialize_for_dynamic_array {
     };
 }
 
+
 impl_serialize_for_primitive_type!(Uint2);
 impl_serialize_for_primitive_type!(Uint3);
 impl_serialize_for_primitive_type!(Uint4);
 impl_serialize_for_primitive_type!(Uint5);
 
+impl_serialize_for_primitive_type!(Uint7);
 impl_serialize_for_primitive_type!(Uint8);
 
 impl_serialize_for_primitive_type!(Uint16);
