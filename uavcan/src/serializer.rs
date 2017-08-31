@@ -64,8 +64,10 @@ macro_rules! impl_serialize_for_primitive_type {
                 for i in byte_start..buffer.data.len() {
                     let serialization_index = bits_serialized + start_bit;
                     let remaining_bits = $type::bit_length() - serialization_index;
-                    
-                    if remaining_bits <= 8 {
+
+                    if remaining_bits == 0 {
+                        return SerializationResult::Finished(bits_serialized);
+                    } else if remaining_bits <= 8 {
                         buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
                         buffer.bit_index += remaining_bits;
                         bits_serialized += remaining_bits;
