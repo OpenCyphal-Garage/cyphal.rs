@@ -259,6 +259,9 @@ impl<T: UavcanStruct> Serializer<T> {
     pub fn crc(&mut self, data_type_signature: u64) -> u16 {
         let mut crc = 0xffff;
 
+        let field_index = self.field_index;
+        let bit_index = self.bit_index;
+        
         for i in 0..4 {
             crc = crc::add_byte(crc, &(data_type_signature.get_bits(8*i..8*(i+1)) as u8));;
         }
@@ -267,6 +270,8 @@ impl<T: UavcanStruct> Serializer<T> {
             let mut buffer = [0u8; 8];
             if let SerializationResult::Finished(_bits) = self.serialize(&mut buffer) {
                 crc = crc::add(crc, &buffer);
+                self.field_index = field_index;
+                self.bit_index = bit_index;
                 return crc;
             } else {
                 crc = crc::add(crc, &buffer);
