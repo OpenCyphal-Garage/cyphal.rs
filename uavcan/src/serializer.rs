@@ -226,35 +226,6 @@ impl<T: UavcanStruct> Serializer<T> {
     }
 
 
-    fn any_remaining_bits(&self) -> bool {
-        let mut bits_counted = 0;
-        
-        let mut field_index = self.field_index;
-        let mut type_index = self.type_index;
-        let mut bit_index = self.bit_index;
-
-        loop {
-            let primitive_type = self.structure.field(field_index).bit_array(type_index);
-            bits_counted += primitive_type.bit_length() - bit_index;
-            
-            if bits_counted > 0 { return true;}
-            
-            bit_index = 0;
-            type_index += 1;
-
-            if type_index >= self.structure.field(field_index).length() {
-                type_index = 0;
-                field_index += 1;
-            }
-            if field_index >= self.structure.flattened_fields_len() {
-                return bits_counted > 0;
-            }
-            
-        }
-    }
-
-
-
     pub fn bits_remaining(&self) -> usize {
         let mut bits_counted = 0;
         
