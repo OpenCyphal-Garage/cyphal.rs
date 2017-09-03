@@ -111,7 +111,7 @@ macro_rules! impl_serialize_for_dynamic_array {
                     }
                 }
 
-                SerializationResult::BufferFull(bits_serialized)
+                SerializationResult::Finished(bits_serialized)
             }
             
             fn bits_remaining(&self, start_bit: usize) -> usize {
