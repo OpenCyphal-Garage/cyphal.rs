@@ -153,7 +153,6 @@ impl_serialize_for_dynamic_array!(DynamicArray90);
 pub struct Serializer<T: UavcanStruct> {
     structure: T,
     field_index: usize,
-    type_index: usize,
     bit_index: usize,
 }
 
@@ -163,12 +162,11 @@ impl<T: UavcanStruct> Serializer<T> {
         Self{
             structure: structure,
             field_index: 0,
-            type_index: 0,
             bit_index: 0,
         }
     }
 
-
+    
     /// serialize(&self, buffer: &mut [u]) -> usize
     ///
     /// serialize into buffer untill one of two occurs
@@ -177,51 +175,45 @@ impl<T: UavcanStruct> Serializer<T> {
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
     pub fn serialize(&mut self, buffer: &mut [u8]) -> SerializationResult {
-        let buffer_bit_length = buffer.len()*8;
-        let mut buffer_next_bit = 0;
+        let mut serialization_buffer = SerializationBuffer{data: buffer, bit_index: 0};
 
-        while buffer_next_bit < buffer_bit_length {
-            let primitive_field = self.structure.field(self.field_index);
-            let primitive_type = primitive_field.bit_array(self.type_index);
-            let buffer_bits_remaining = buffer_bit_length - buffer_next_bit;
-            let type_bits_remaining = primitive_type.bit_length() - self.bit_index;
-            
-            if type_bits_remaining == 0 {
-                if self.type_index < primitive_field.length()-1 {
-                    self.type_index += 1;
-                    self.bit_index = 0;
-                } else if self.field_index < self.structure.flattened_fields_len() - 1 {
-                    self.bit_index = 0;
-                    self.type_index = 0;
-                    self.field_index += 1;
-                    
-                    // Dynamic length array tail optimization
-                    if (self.field_index == self.structure.flattened_fields_len() - 1) && !self.structure.field(self.field_index).constant_sized() {
-                        self.type_index = 1;
+        loop {
+            match self.structure.flattened_field(self.field_index) {
+                UavcanField::PrimitiveType(primitive_type) => {
+                    match primitive_type.serialize(self.bit_index, &mut serialization_buffer) {
+                        SerializationResult::Finished(_bits) => {
+                            self.field_index += 1;
+                            self.bit_index = 0;
+                        },
+                        SerializationResult::BufferFull(bits) => {
+                            self.bit_index += bits;
+                            return SerializationResult::BufferFull(serialization_buffer.bit_index);
+                        },
                     }
-                } else {
-                    return SerializationResult::Finished(buffer_next_bit);
-                }
-            } else if buffer_bits_remaining >= 8 && type_bits_remaining >= 8 {
-                buffer.set_bits(buffer_next_bit..buffer_next_bit+8, primitive_type.get_bits(self.bit_index..self.bit_index+8) as u8);
-                buffer_next_bit += 8;
-                self.bit_index += 8;
-            } else if buffer_bits_remaining <= type_bits_remaining {
-                buffer.set_bits(buffer_next_bit..buffer_bit_length, primitive_type.get_bits(self.bit_index..self.bit_index+(buffer_bit_length-buffer_next_bit)) as u8);
-                self.bit_index += buffer_bit_length - buffer_next_bit;
-                buffer_next_bit = buffer_bit_length;
-            } else if buffer_bits_remaining > type_bits_remaining {
-                buffer.set_bits(buffer_next_bit..buffer_next_bit+type_bits_remaining, primitive_type.get_bits(self.bit_index..self.bit_index+type_bits_remaining) as u8);
-                buffer_next_bit += type_bits_remaining;
-                self.bit_index += type_bits_remaining;
+                },
+                UavcanField::DynamicArray(array) => {
+                    match array.serialize(self.bit_index, &mut serialization_buffer) {
+                        SerializationResult::Finished(_bits) => {
+                            self.field_index += 1;
+                            self.bit_index = 0;
+                        },
+                        SerializationResult::BufferFull(bits) => {
+                            self.bit_index += bits;
+                            return SerializationResult::BufferFull(serialization_buffer.bit_index);
+                        },
+                    }
+                },
+                UavcanField::UavcanStruct(_x) => unreachable!(),
+            }
+
+            if self.field_index == self.structure.flattened_fields_len() {
+                return SerializationResult::Finished(serialization_buffer.bit_index);
             }
         }
-        if self.any_remaining_bits() {
-            return SerializationResult::BufferFull;
-        } else {
-            return SerializationResult::Finished(buffer_next_bit);
-        }
+                
+        
     }
+
 
     fn any_remaining_bits(&self) -> bool {
         let mut bits_counted = 0;
