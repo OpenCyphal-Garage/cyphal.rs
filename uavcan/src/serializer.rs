@@ -15,6 +15,7 @@ use bit_field::{
     BitField,
 };
 
+#[derive(Debug, PartialEq)]
 pub enum SerializationResult {
     BufferFull(usize),
     Finished(usize),
@@ -298,11 +299,7 @@ mod tests {
         UavcanPrimitiveType,
     };
 
-    use serializer::{
-        Serializer,
-        Serialize,
-        SerializationBuffer,
-    };
+    use serializer::*;
     
     use types::*;
 
@@ -315,15 +312,15 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        uint2.serialize(0, &mut buffer);
+        assert_eq!(uint2.serialize(0, &mut buffer), SerializationResult::Finished(2));
         assert_eq!(buffer.data, [1, 0, 0, 0]);
 
         buffer.bit_index = 0;
-        uint8.serialize(0, &mut buffer);
+        assert_eq!(uint8.serialize(0, &mut buffer), SerializationResult::Finished(8));
         assert_eq!(buffer.data, [128, 0, 0, 0]);
             
         buffer.bit_index = 0;
-        uint16.serialize(0, &mut buffer);
+        assert_eq!(uint16.serialize(0, &mut buffer), SerializationResult::Finished(16));
         assert_eq!(buffer.data, [1, 1, 0, 0]);
             
         uint2.serialize(0, &mut buffer);
@@ -344,7 +341,7 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        a1.serialize(0, &mut buffer);
+        assert_eq!(a1.serialize(0, &mut buffer), SerializationResult::Finished(8));
         assert_eq!(buffer.data, [0b00010001, 0, 0, 0]);
 
         buffer.bit_index = 0;
