@@ -493,12 +493,13 @@ mod tests {
 
         let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
 
-        assert_eq!(serializer.remaining_bits(), 56);
+        assert_eq!(serializer.bits_remaining(), 56);
 
         let mut array: [u8; 7] = [0; 7];
         serializer.serialize(&mut array);
 
-        assert_eq!(serializer.remaining_bits(), 0);
+        assert_eq!(serializer.bits_remaining(), 0);
     }
+   
 }
 
