@@ -39,7 +39,7 @@ impl<B: UavcanStruct> FrameGenerator<B> {
     }
     
     pub fn next_transport_frame<T: TransportFrame>(&mut self) -> Option<T> {
-        let remaining_bits = self.serializer.remaining_bits();
+        let remaining_bits = self.serializer.bits_remaining();
         let max_data_length = T::max_data_length();
         let max_payload_length = max_data_length - 1;
         let mut transport_frame = T::with_length(self.id, max_data_length);
