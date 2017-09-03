@@ -26,8 +26,9 @@ struct SerializationBuffer<'a> {
     bit_index: usize,
 }
  
-trait Serialize {
+pub trait Serialize {
     fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    fn bits_remaining(&self, start_bit: usize) -> usize;
 }
 
 macro_rules! impl_serialize_for_primitive_type {
@@ -74,7 +75,11 @@ macro_rules! impl_serialize_for_primitive_type {
                 SerializationResult::BufferFull(bits_serialized)
 
             }
-            
+
+            fn bits_remaining(&self, start_bit: usize) -> usize {
+                assert!(start_bit < Self::bit_length());
+                Self::bit_length() - start_bit
+            }           
 
         }
     };
@@ -107,7 +112,13 @@ macro_rules! impl_serialize_for_dynamic_array {
 
                 SerializationResult::BufferFull(bits_serialized)
             }
+            
+            fn bits_remaining(&self, start_bit: usize) -> usize {
+                assert!(start_bit < T::bit_length() * self.length());
+                T::bit_length() * self.length() - start_bit
+            }           
         }
+        
     };
 }
 
