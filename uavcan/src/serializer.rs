@@ -284,7 +284,7 @@ impl<T: UavcanStruct> Serializer<T> {
         }
     }
 
-    pub fn crc(&self, data_type_signature: u64) -> u16 {
+    pub fn crc(&mut self, data_type_signature: u64) -> u16 {
         let mut field_index = 0;
         let mut type_index = 0;
 
@@ -295,51 +295,23 @@ impl<T: UavcanStruct> Serializer<T> {
         for i in 0..4 {
             crc = crc::add_byte(crc, &(data_type_signature.get_bits(8*i..8*(i+1)) as u8));;
         }
-        
-        loop {
-            let primitive_type = self.structure.field(field_index).bit_array(type_index);
-            let bit_length = primitive_type.bit_length();
-            let mut bit_index = 0;
-            let data = primitive_type.get_bits(0..bit_length);
 
-            if remaining_bits + bit_length < 8 {
-                remaining_data.set_bits(remaining_bits as u8..(remaining_bits+bit_length) as u8, data.get_bits(0..bit_length as u8) as u8);
-                bit_index = bit_length;
-                remaining_bits += bit_length;
-            } else {
-                if remaining_bits != 0 {
-                    crc::add_byte(crc, &0u8
-                                  .set_bits(0..remaining_bits as u8, remaining_data.get_bits(0..remaining_bits as u8) as u8)
-                                  .set_bits(remaining_bits as u8..8, data.get_bits(0..8-remaining_bits as u8) as u8)
-                                  .get_bits(0..8)
-                    );
-                    bit_index += 8-remaining_bits;
-                    remaining_bits = 0;
-                }
-                
-                while bit_length - bit_index >= 8 {
-                    crc::add_byte(crc, &(data.get_bits(bit_index as u8..bit_index as u8+8) as u8));
-                    bit_index += 8;
-                }
-                
-                remaining_bits = bit_length-bit_index;
-                if bit_length-bit_index != 0 {
-                    remaining_data = data.get_bits(bit_index as u8..bit_length as u8) as u8;
-                }
-            }
-                    
-            type_index += 1;
-            
-            if type_index >= self.structure.field(field_index).length() {
-                type_index = 0;
-                field_index += 1;
-            }
-            if field_index >= self.structure.flattened_fields_len() {
+        loop {
+            let mut buffer = [0u8];
+            if let SerializationResult::Finished(_bits) = self.serialize(&mut buffer) {
+                crc = crc::add(crc, &buffer);
                 return crc;
+            } else {
+                crc = crc::add(crc, &buffer);
             }
+            
         }
         
     }
+        
+
+
+
 }       
     
 
