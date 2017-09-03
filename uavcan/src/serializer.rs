@@ -124,6 +124,8 @@ impl_serialize_for_primitive_type!(Uint16);
 
 impl_serialize_for_primitive_type!(Uint32);
 
+impl_serialize_for_primitive_type!(Float16);
+
 
 impl_serialize_for_dynamic_array!(DynamicArray3);
 impl_serialize_for_dynamic_array!(DynamicArray4);
@@ -131,6 +133,19 @@ impl_serialize_for_dynamic_array!(DynamicArray5);
 impl_serialize_for_dynamic_array!(DynamicArray6);
 impl_serialize_for_dynamic_array!(DynamicArray7);
 impl_serialize_for_dynamic_array!(DynamicArray8);
+impl_serialize_for_dynamic_array!(DynamicArray9);
+impl_serialize_for_dynamic_array!(DynamicArray10);
+impl_serialize_for_dynamic_array!(DynamicArray11);
+impl_serialize_for_dynamic_array!(DynamicArray12);
+impl_serialize_for_dynamic_array!(DynamicArray13);
+impl_serialize_for_dynamic_array!(DynamicArray14);
+impl_serialize_for_dynamic_array!(DynamicArray15);
+impl_serialize_for_dynamic_array!(DynamicArray16);
+
+impl_serialize_for_dynamic_array!(DynamicArray31);
+impl_serialize_for_dynamic_array!(DynamicArray32);
+
+impl_serialize_for_dynamic_array!(DynamicArray90);
 
     
 
