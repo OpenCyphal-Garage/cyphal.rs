@@ -135,7 +135,7 @@ pub trait UavcanStruct {
         assert!(field_number >= 0);
         assert!(field_number < self.flattened_fields_len());
         
-        let mut former_fields_len = 0;
+        let mut accumulated_fields_len = 0;
         let mut current_field = 0;
         loop {
             let current_field_len = match self.field(current_field) {
@@ -144,16 +144,16 @@ pub trait UavcanStruct {
                 UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
             };
             
-            if former_fields_len + current_field_len >= field_number {
+            if accumulated_fields_len + current_field_len > field_number {
                 break;
             } else {
-                former_fields_len += current_field_len;
+                accumulated_fields_len += current_field_len;
                 current_field += 1;
             }
         }
 
         match self.field(current_field) {
-            UavcanField::UavcanStruct(x) => x.flattened_field(field_number - former_fields_len),
+            UavcanField::UavcanStruct(x) => x.flattened_field(field_number - accumulated_fields_len),
             x => x,
         }
 
@@ -164,7 +164,7 @@ pub trait UavcanStruct {
         assert!(field_number >= 0);
         assert!(field_number < self.flattened_fields_len());
         
-        let mut former_fields_len = 0;
+        let mut accumulated_fields_len = 0;
         let mut current_field = 0;
         loop {
             let current_field_len = match self.field(current_field) {
@@ -173,17 +173,17 @@ pub trait UavcanStruct {
                 UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
             };
             
-            if former_fields_len + current_field_len >= field_number {
+            if accumulated_fields_len + current_field_len > field_number {
                 break;
             } else {
-                former_fields_len += current_field_len;
+                accumulated_fields_len += current_field_len;
                 current_field += 1;
             }
             
         }
 
         match self.field_as_mut(current_field) {
-            MutUavcanField::UavcanStruct(x) => x.flattened_field_as_mut(field_number - former_fields_len),
+            MutUavcanField::UavcanStruct(x) => x.flattened_field_as_mut(field_number - accumulated_fields_len),
             x => x,
         }
         
