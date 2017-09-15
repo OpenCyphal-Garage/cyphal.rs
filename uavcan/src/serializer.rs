@@ -401,16 +401,16 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        assert_eq!(a1.serialize(0, &mut buffer), SerializationResult::Finished(8));
-        assert_eq!(buffer.data, [0b00010001, 0, 0, 0]);
+        assert_eq!(a1.serialize(0, &mut buffer), SerializationResult::Finished(11));
+        assert_eq!(buffer.data, [0b10001100, 0, 0, 0]);
 
         buffer.bit_index = 0;
         a2.serialize(0, &mut buffer);
-        assert_eq!(buffer.data, [0b00010001, 0b00000001, 0, 0]);
+        assert_eq!(buffer.data, [0b10001110, 0b0001000, 0, 0]);
             
         buffer.bit_index = 0;
         a3.serialize(0, &mut buffer);
-        assert_eq!(buffer.data, [1, 1, 1, 1]);            
+        assert_eq!(buffer.data, [12, 8, 8, 8]);            
 
     }
 
