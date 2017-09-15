@@ -7,6 +7,7 @@ use {
     UavcanPrimitiveType,
     UavcanField,
     DynamicArray,
+    DynamicArrayLength,
 };
 
 use crc;
