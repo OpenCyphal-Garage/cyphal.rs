@@ -355,25 +355,25 @@ mod tests {
     }
 
     #[test]
-    fn uavcan_serialize_dynamic_array_partially() {
+    fn uavcan_serialize_dynamic_array_without_length() {
         let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 4.into(), 16.into(), 64.into()]);
 
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        a.serialize(0, &mut buffer);
+        a.serialize(3, &mut buffer);
         assert_eq!(buffer.data, [1]);
         
         buffer.bit_index = 0;
-        a.serialize(8, &mut buffer);
+        a.serialize(11, &mut buffer);
         assert_eq!(buffer.data, [2]);
 
         buffer.bit_index = 0;
-        a.serialize(16, &mut buffer);
+        a.serialize(19, &mut buffer);
         assert_eq!(buffer.data, [4]);
 
         buffer.bit_index = 0;
-        a.serialize(24, &mut buffer);
+        a.serialize(27, &mut buffer);
         assert_eq!(buffer.data, [8]);
 
     }
