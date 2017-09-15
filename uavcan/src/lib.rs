@@ -264,12 +264,7 @@ mod tests {
         AsUavcanField,
     };
     
-    use types::{
-        Uint2,
-        Uint3,
-        Uint16,
-        Uint32,
-    };
+    use types::*;
 
     // Implementing some types common for several tests
     
