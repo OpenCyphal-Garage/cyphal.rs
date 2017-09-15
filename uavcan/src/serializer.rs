@@ -143,9 +143,17 @@ macro_rules! impl_serialize_for_dynamic_array {
         impl<T: UavcanPrimitiveType + Serialize> Serialize for $type<T> {
             fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
                 let mut bits_serialized: usize = 0;
+
+                // serialize length
+                if start_bit < self.length().bit_length {
+                    match self.length().serialize(start_bit, buffer) {
+                        SerializationResult::Finished(bits) => bits_serialized += bits,
+                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),
+                    }
+                }
                 
-                let mut start_element = start_bit / Self::element_bit_length();
-                let start_element_bit = start_bit % Self::element_bit_length();
+                let mut start_element = (start_bit + bits_serialized - Self::length_bit_length()) / Self::element_bit_length();
+                let start_element_bit = (start_bit + bits_serialized - Self::length_bit_length()) % Self::element_bit_length();
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
@@ -156,7 +164,7 @@ macro_rules! impl_serialize_for_dynamic_array {
                     start_element += 1;
                 }
 
-                for i in start_element..self.length() {
+                for i in start_element..self.length().current_length {
                     match self[i].serialize(0, buffer) {
                         SerializationResult::Finished(bits) => bits_serialized += bits,
                         SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),                        
@@ -167,8 +175,8 @@ macro_rules! impl_serialize_for_dynamic_array {
             }
             
             fn bits_remaining(&self, start_bit: usize) -> usize {
-                assert!(start_bit < T::bit_length() * self.length());
-                T::bit_length() * self.length() - start_bit
+                assert!(start_bit < T::bit_length() * self.length().current_length);
+                T::bit_length() * self.length().current_length - start_bit
             }           
         }
         
