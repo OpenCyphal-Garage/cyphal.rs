@@ -82,6 +82,7 @@ mod tests {
     use{
         UavcanStruct,
         UavcanField,
+        MutUavcanField,
         AsUavcanField,
         UavcanHeader,
         MessageFrameHeader,
@@ -92,15 +93,7 @@ mod tests {
 
     use bit_field::BitField;
     
-    use types::{
-        Uint2,
-        Uint3,
-        Uint8,
-        Uint16,
-        Uint32,
-        DynamicArray31,
-        DynamicArray90,
-    };
+    use types::*;
 
     use tests::{
         CanFrame,
