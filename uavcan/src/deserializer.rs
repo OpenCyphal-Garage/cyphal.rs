@@ -10,6 +10,7 @@ use types::*;
 use {
     UavcanStruct,
     UavcanPrimitiveType,
+    DynamicArrayLength,
 };
 
 #[derive(Debug)]
@@ -22,6 +23,17 @@ pub enum DeserializationResult {
 
 pub trait Deserialize {
     fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
+
+impl Deserialize for DynamicArrayLength {
+    fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+        if buffer.bit_length() + start_bit < self.bit_length {
+            DeserializationResult::BufferInsufficient(0)
+        } else {
+            self.current_length.set_bits(start_bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-start_bit) as usize);
+            DeserializationResult::Finished(self.bit_length)
+        }
+    }
 }
 
 macro_rules! impl_deserialize_for_primitive_type {
