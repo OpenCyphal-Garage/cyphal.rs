@@ -11,14 +11,13 @@ use {
     UavcanStruct,
     UavcanPrimitiveType,
     DynamicArrayLength,
+    DynamicArray,
 };
 
 #[derive(Debug)]
 pub enum DeserializationResult {
     Finished(usize),
     BufferInsufficient(usize),
-    StructureExhausted,
-    NotFinished,
 }
 
 pub trait Deserialize {
@@ -66,6 +65,70 @@ impl_deserialize_for_primitive_type!(Uint16);
 impl_deserialize_for_primitive_type!(Uint32);
 
 impl_deserialize_for_primitive_type!(Float16);
+
+
+macro_rules! impl_deserialize_for_dynamic_array {
+    ($type:ident) => {
+        impl<T: UavcanPrimitiveType + Deserialize> Deserialize for $type<T> {
+            fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                let mut bits_deserialized: usize = 0;
+                
+                // deserialize length
+                if start_bit < self.length().bit_length {
+                    match self.length().deserialize(start_bit, buffer) {
+                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
+                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),
+                    }
+                }
+                
+                let mut start_element = (start_bit + bits_deserialized - Self::length_bit_length()) / Self::element_bit_length();
+                let start_element_bit = (start_bit + bits_deserialized - Self::length_bit_length()) % Self::element_bit_length();
+
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    match self[start_element].deserialize(start_element_bit, buffer) {
+                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
+                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),
+                    }
+                    start_element += 1;
+                }
+
+                for i in start_element..self.length().current_length {
+                    match self[i].deserialize(0, buffer) {
+                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
+                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),                        
+                    }
+                }
+
+                DeserializationResult::Finished(bits_deserialized)
+            }
+            
+        
+        }
+        
+    };
+}
+
+impl_deserialize_for_dynamic_array!(DynamicArray3);
+impl_deserialize_for_dynamic_array!(DynamicArray4);
+impl_deserialize_for_dynamic_array!(DynamicArray5);
+impl_deserialize_for_dynamic_array!(DynamicArray6);
+impl_deserialize_for_dynamic_array!(DynamicArray7);
+impl_deserialize_for_dynamic_array!(DynamicArray8);
+impl_deserialize_for_dynamic_array!(DynamicArray9);
+impl_deserialize_for_dynamic_array!(DynamicArray10);
+impl_deserialize_for_dynamic_array!(DynamicArray11);
+impl_deserialize_for_dynamic_array!(DynamicArray12);
+impl_deserialize_for_dynamic_array!(DynamicArray13);
+impl_deserialize_for_dynamic_array!(DynamicArray14);
+impl_deserialize_for_dynamic_array!(DynamicArray15);
+impl_deserialize_for_dynamic_array!(DynamicArray16);
+
+impl_deserialize_for_dynamic_array!(DynamicArray31);
+impl_deserialize_for_dynamic_array!(DynamicArray32);
+
+impl_deserialize_for_dynamic_array!(DynamicArray90);
+
 
 
 pub struct Deserializer<T: UavcanStruct> {
