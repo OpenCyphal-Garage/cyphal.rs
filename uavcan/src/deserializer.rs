@@ -10,7 +10,9 @@ use {
 };
 
 #[derive(Debug)]
-pub enum DeserializerError {
+pub enum DeserializationResult {
+    Finished,
+    BufferInsufficient,
     StructureExhausted,
     NotFinished,
 }
@@ -19,16 +21,16 @@ pub struct Deserializer<T: UavcanStruct> {
     structure: T,
     current_field_index: usize,
     current_type_index: usize,
-    buffer: DeserializerQueue,
+    buffer: DeserializationBuffer,
 }
 
-struct DeserializerQueue {
+struct DeserializationBuffer {
     buffer: [u8; 15],
     buffer_end_bit: usize,
 }
 
-impl DeserializerQueue {
-    fn new() -> Self { DeserializerQueue{buffer: [0;15], buffer_end_bit: 0} }
+impl DeserializationBuffer {
+    fn new() -> Self { DeserializationBuffer{buffer: [0;15], buffer_end_bit: 0} }
         
     fn bit_length(&self) -> usize { self.buffer_end_bit }
     
