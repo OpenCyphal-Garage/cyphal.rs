@@ -270,7 +270,12 @@ impl<T: UavcanStruct> Serializer<T> {
                     }
                 },
                 UavcanField::DynamicArray(array) => {
-                    match array.serialize(self.bit_index, &mut serialization_buffer) {
+                    let bit_index = if self.field_index == self.structure.flattened_fields_len()-1 && array.tail_optimizable() {
+                        self.bit_index + array.length().bit_length
+                    } else {
+                        self.bit_index
+                    };
+                    match array.serialize(bit_index, &mut serialization_buffer) {
                         SerializationResult::Finished(_bits) => {
                             self.field_index += 1;
                             self.bit_index = 0;
