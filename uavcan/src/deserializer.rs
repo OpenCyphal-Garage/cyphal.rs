@@ -5,17 +5,56 @@ use bit_field::{
     BitArray,
 };
 
+use types::*;
+
 use {
     UavcanStruct,
+    UavcanPrimitiveType,
 };
 
 #[derive(Debug)]
 pub enum DeserializationResult {
-    Finished,
-    BufferInsufficient,
+    Finished(usize),
+    BufferInsufficient(usize),
     StructureExhausted,
     NotFinished,
 }
+
+pub trait Deserialize {
+    fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
+
+macro_rules! impl_deserialize_for_primitive_type {
+    ($type:ident) => {
+        impl Deserialize for $type {
+            fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                if buffer.bit_length() + start_bit < Self::bit_length() {
+                    DeserializationResult::BufferInsufficient(0)
+                } else {
+                    self.set_bits(start_bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-start_bit));
+                    DeserializationResult::Finished(Self::bit_length())
+                }
+            }
+        }
+        
+        
+    };
+}
+
+impl_deserialize_for_primitive_type!(Uint2);
+impl_deserialize_for_primitive_type!(Uint3);
+impl_deserialize_for_primitive_type!(Uint4);
+impl_deserialize_for_primitive_type!(Uint5);
+    
+impl_deserialize_for_primitive_type!(Uint7);
+impl_deserialize_for_primitive_type!(Uint8);
+
+impl_deserialize_for_primitive_type!(Uint16);
+
+impl_deserialize_for_primitive_type!(Uint32);
+
+impl_deserialize_for_primitive_type!(Float16);
+
 
 pub struct Deserializer<T: UavcanStruct> {
     structure: T,
