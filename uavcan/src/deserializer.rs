@@ -278,6 +278,7 @@ mod tests {
     use {
         UavcanStruct,
         UavcanField,
+        MutUavcanField,
         AsUavcanField,
     };
 
@@ -306,7 +307,7 @@ mod tests {
 
         let mut deserializer: Deserializer<Message> = Deserializer::new();
 
-        deserializer = deserializer.deserialize(&[17, 19, 0, 0, 0, 21, 0, 23]).unwrap();
+        deserializer.deserialize(&[17, 19, 0, 0, 0, 21, 0, 23]);
 
         let parsed_message = deserializer.into_structure().unwrap();
 
@@ -336,7 +337,7 @@ mod tests {
         
         let mut deserializer: Deserializer<NodeStatus> = Deserializer::new();
 
-        deserializer = deserializer.deserialize(&[1, 0, 0, 0, 0b10001110, 5, 0]).unwrap();
+        deserializer.deserialize(&[1, 0, 0, 0, 0b10001110, 5, 0]);
 
         let parsed_message = deserializer.into_structure().unwrap();
         
@@ -349,4 +350,3 @@ mod tests {
         
     }
 }
-
