@@ -8,7 +8,7 @@ use {
 };
 
 use deserializer::{
-    DeserializerError,
+    DeserializationResult,
     Deserializer,
 };
 
@@ -23,15 +23,6 @@ pub enum BuilderError {
     FormatError,
     IdError,
     NotFinishedParsing,
-}
-
-impl From<DeserializerError> for BuilderError {
-    fn from(deserializer_error: DeserializerError) -> Self {
-        match deserializer_error {
-            DeserializerError::StructureExhausted => BuilderError::FormatError,
-            DeserializerError::NotFinished => BuilderError::NotFinishedParsing,
-        }
-    }
 }
 
 pub struct MessageBuilder<B: UavcanStruct> {
@@ -57,7 +48,7 @@ impl<B: UavcanStruct> MessageBuilder<B> {
         }
     }
     
-    pub fn add_frame<F: TransportFrame>(mut self, frame: &F) -> Result<Self, BuilderError> {
+    pub fn add_frame<F: TransportFrame>(&mut self, frame: &F) -> Result<(), BuilderError> {
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);
@@ -79,22 +70,25 @@ impl<B: UavcanStruct> MessageBuilder<B> {
             &frame.data()[0..frame.data().len()-1]
         };
 
-        self.deserializer = match self.deserializer.deserialize(payload) {
-            Ok(x) => x,
-            Err(DeserializerError::StructureExhausted) => return Err(BuilderError::FormatError),
-            Err(DeserializerError::NotFinished) => unreachable!(),
-        };
-            
+        self.deserializer.deserialize(payload);            
 
-        return Ok(self);
+        return Ok(());
     }
 
     pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
-        if let Ok(id) = H::from_id(self.id) {
-            Ok(F::from_parts(id, self.deserializer.into_structure()?))
+        let header = if let Ok(id) = H::from_id(self.id) {
+            id
         } else {
-            Err(BuilderError::IdError)
-        }
+            return Err(BuilderError::IdError)
+        };
+
+        let body = if let Ok(body) = self.deserializer.into_structure() {
+            body
+        } else {
+            return Err(BuilderError::NotFinishedParsing)
+        };
+
+        Ok(F::from_parts(header, body))
     }
                 
 }
