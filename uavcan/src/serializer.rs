@@ -1,5 +1,3 @@
-use lib::core::ops::Range;
-
 use types::*;
 
 use {

@@ -8,7 +8,6 @@ use {
 };
 
 use deserializer::{
-    DeserializationResult,
     Deserializer,
 };
 

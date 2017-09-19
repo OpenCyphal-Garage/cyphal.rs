@@ -1,5 +1,4 @@
 use bit_field::BitField;
-use bit_field::BitArray;
 use half::f16;
 use lib;
 use lib::core::ops::Range;

@@ -12,7 +12,6 @@ use {
     UavcanPrimitiveType,
     DynamicArrayLength,
     DynamicArray,
-    UavcanField,
     MutUavcanField,
 };
 

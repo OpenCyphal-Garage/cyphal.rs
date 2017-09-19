@@ -26,8 +26,6 @@ mod lib {
     }
 }
 
-use lib::core::fmt::Debug;
-
 pub use uavcan_derive::*;
 
 #[macro_use]
@@ -41,8 +39,6 @@ pub mod frame_generator;
 
 use lib::core::convert::{From};
 use lib::core::ops::Range;
-
-use bit_field::BitArray;
 
 
 /// The TransportFrame is uavcan cores main interface to the outside world
