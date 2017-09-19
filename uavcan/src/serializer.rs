@@ -23,7 +23,7 @@ pub enum SerializationResult {
 }
 
 #[derive(Debug, PartialEq)]
-struct SerializationBuffer<'a> {
+pub struct SerializationBuffer<'a> {
     data: &'a mut [u8],
     bit_index: usize,
 }

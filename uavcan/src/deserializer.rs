@@ -135,7 +135,7 @@ impl_deserialize_for_dynamic_array!(DynamicArray90);
 
 
 
-struct DeserializationBuffer {
+pub struct DeserializationBuffer {
     buffer: [u8; 15],
     buffer_end_bit: usize,
 }
