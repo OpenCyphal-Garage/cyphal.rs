@@ -225,7 +225,7 @@ macro_rules! dynamic_array_def {
                 }
             }
             
-            fn iter(&self) -> lib::core::slice::Iter<T> {
+            pub fn iter(&self) -> lib::core::slice::Iter<T> {
                 self.data[0..self.current_size].iter()
             }
         }
