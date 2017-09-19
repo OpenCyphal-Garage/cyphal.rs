@@ -375,4 +375,27 @@ mod tests {
         assert_eq!(parsed_message.vendor_specific_status_code, 5.into());
         
     }
+
+    #[test]
+    fn deserialize_dynamic_array() {
+
+        #[derive(UavcanStruct)]
+        struct TestMessage {
+            pad: Uint5,
+            text1: DynamicArray7<Uint8>,
+            text2: DynamicArray8<Uint8>,
+        }
+        //test_array: DynamicArray8<Uint8> = DynamicArray8::with_str("test");
+
+        let mut deserializer: Deserializer<TestMessage> = Deserializer::new();
+
+        deserializer.deserialize(&[0u8.set_bits(5..8, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
+        
+        let parsed_message = deserializer.into_structure().unwrap();
+
+        assert_eq!(parsed_message.text1.length().current_length, 4);
+        assert_eq!(parsed_message.text1, DynamicArray7::with_str("test"));
+        assert_eq!(parsed_message.text2.length().current_length, 3);
+        assert_eq!(parsed_message.text2, DynamicArray8::with_str("lol"));
+    }
 }
