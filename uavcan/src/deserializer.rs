@@ -12,6 +12,7 @@ use {
     UavcanPrimitiveType,
     DynamicArrayLength,
     DynamicArray,
+    UavcanField,
     MutUavcanField,
 };
 
@@ -76,8 +77,9 @@ macro_rules! impl_deserialize_for_dynamic_array {
                 
                 // deserialize length
                 if start_bit < self.length().bit_length {
-                    match self.length().deserialize(start_bit, buffer) {
-                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
+                    let mut length = self.length();
+                    match length.deserialize(start_bit, buffer) {
+                        DeserializationResult::Finished(bits) => {self.set_length(length.current_length); bits_deserialized += bits}, // ugly hack, fix when dispatching is mostly done static
                         DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),
                     }
                 }
@@ -228,16 +230,28 @@ impl<T: UavcanStruct> Deserializer<T> {
                         }
                     },
                     MutUavcanField::DynamicArray(array) => {
-                        let bit_index = if self.field_index == flattened_fields-1 && array.tail_optimizable() {
+                        let array_optimization = self.field_index == flattened_fields-1 && array.tail_optimizable();
+                        let bit_index = if array_optimization {
+                            if self.bit_index == 0 {
+                                array.set_length(1)
+                            } else {
+                                let current_length = array.length().current_length;
+                                array.set_length(current_length+1);
+                            }
                             self.bit_index + array.length().bit_length
                         } else {
                             self.bit_index
                         };
                         match array.deserialize(bit_index, &mut self.buffer) {
                             DeserializationResult::Finished(bits) => {
-                                bits_deserialized += bits;
-                                self.field_index += 1;
-                                self.bit_index = 0;
+                                if array_optimization {
+                                    bits_deserialized += bits;
+                                    self.bit_index += bits;
+                                } else {
+                                    bits_deserialized += bits;
+                                    self.field_index += 1;
+                                    self.bit_index = 0;
+                                }
                             },
                             DeserializationResult::BufferInsufficient(bits) => {
                                 bits_deserialized += bits;
@@ -260,14 +274,29 @@ impl<T: UavcanStruct> Deserializer<T> {
         DeserializationResult::BufferInsufficient(bits_deserialized)
     }
 
-    pub fn into_structure(self) -> Result<T, ()> {
+    pub fn into_structure(mut self) -> Result<T, ()> {
         let number_of_fields = self.structure.flattened_fields_len();
-        let finished_parsing = number_of_fields == self.field_index;
-        if finished_parsing {
+
+        let finished = if number_of_fields == self.field_index {
+            true
+        } else if let MutUavcanField::DynamicArray(array) = self.structure.flattened_field_as_mut(self.field_index) {
+            if array.tail_optimizable() {
+                let current_length = array.length().current_length;
+                array.set_length(current_length-1);
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if finished {
             Ok(self.structure)
         } else {
             Err(())
-        }
+        }   
+         
     }
 }
 
