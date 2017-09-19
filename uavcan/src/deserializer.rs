@@ -304,24 +304,21 @@ impl<T: UavcanStruct> Deserializer<T> {
 #[cfg(test)]
 mod tests {
 
+    use bit_field::BitField;
+    
     use {
         UavcanStruct,
         UavcanField,
         MutUavcanField,
         AsUavcanField,
+        DynamicArray
     };
 
     use deserializer::{
         Deserializer,
     };
     
-    use types::{
-        Uint2,
-        Uint3,
-        Uint8,
-        Uint16,
-        Uint32,
-    };
+    use types::*;
     
     #[test]
     fn uavcan_parse_test_byte_aligned() {
