@@ -117,22 +117,16 @@ pub trait ServiceFrameHeader : UavcanHeader {
     fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
 }
 
+
+
+
+
 pub trait UavcanStruct {
     fn fields_len(&self) -> usize;    
     fn field(&self, field_number: usize) -> UavcanField;
     fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField;
     
-    fn flattened_fields_len(&self) -> usize {
-        let mut flattened_fields_len = 0;
-        for i in 0..self.fields_len() {
-            flattened_fields_len += match self.field(i) {
-                UavcanField::PrimitiveType(_x) => 1,
-                UavcanField::DynamicArray(_x) => 1,
-                UavcanField::UavcanStruct(x) => x.flattened_fields_len(),
-            }   
-        }
-        flattened_fields_len
-    }
+    fn flattened_fields_len(&self) -> usize;
     
     fn flattened_field(&self, field_number: usize) -> UavcanField {
         assert!(field_number < self.flattened_fields_len());
