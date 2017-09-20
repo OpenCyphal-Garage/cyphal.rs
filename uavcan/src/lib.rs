@@ -42,7 +42,7 @@ use bit_field::BitField;
 use lib::core::convert::{From};
 use lib::core::ops::Range;
 
-use serializer::{
+pub use serializer::{
     SerializationResult,
     SerializationBuffer,        
 };
@@ -128,7 +128,7 @@ pub trait UavcanStruct {
     
     fn flattened_fields_len(&self) -> usize;
 
-    fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer);
+    fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     
     fn flattened_field(&self, field_number: usize) -> UavcanField {
         assert!(field_number < self.flattened_fields_len());

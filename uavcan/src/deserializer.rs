@@ -307,11 +307,13 @@ mod tests {
     
     use {
         SerializationBuffer,
+        SerializationResult,
         UavcanStruct,
         UavcanField,
         MutUavcanField,
         AsUavcanField,
-        DynamicArray
+        DynamicArray,
+        UavcanPrimitiveType,
     };
 
     use deserializer::{
@@ -319,6 +321,8 @@ mod tests {
     };
     
     use types::*;
+
+    use serializer::*;
     
     #[test]
     fn uavcan_parse_test_byte_aligned() {

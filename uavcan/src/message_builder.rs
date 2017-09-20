@@ -109,6 +109,7 @@ mod tests {
         TailByte,
         DynamicArray,
         SerializationBuffer,
+        UavcanPrimitiveType,
     };
     
     use types::{
@@ -133,6 +134,8 @@ mod tests {
     use frame_generator::{
         FrameGenerator,
     };
+
+    use serializer::*;
     
     #[test]
     fn parse_from_can_frames_simple() {

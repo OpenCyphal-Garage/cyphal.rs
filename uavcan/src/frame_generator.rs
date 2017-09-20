@@ -8,11 +8,7 @@ use {
     UavcanStruct,
 };
 
-use serializer::{
-    SerializationResult,
-    SerializationBuffer,
-    Serializer,
-};
+use serializer::*;
 
 
 
@@ -95,6 +91,7 @@ mod tests {
         TailByte,
         DynamicArray,
         SerializationBuffer,
+        UavcanPrimitiveType,
     };
 
     use bit_field::BitField;
@@ -110,6 +107,8 @@ mod tests {
     use frame_generator::{
         FrameGenerator,
     };
+
+    use serializer::*;
     
     #[test]
     fn serialize_node_status_frame() {

@@ -141,43 +141,7 @@ impl<T: UavcanStruct> Serializer<T> {
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
     pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
-
-        loop {
-            match self.structure.flattened_field(self.field_index) {
-                UavcanField::PrimitiveType(primitive_type) => {
-                    match primitive_type.serialize(&mut self.bit_index, buffer) {
-                        SerializationResult::Finished => {
-                            self.field_index += 1;
-                            self.bit_index = 0;
-                        },
-                        SerializationResult::BufferFull => {
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                },
-                UavcanField::DynamicArray(array) => {
-                    if self.bit_index == 0 && self.field_index == self.structure.flattened_fields_len()-1 && array.tail_optimizable() {
-                        self.bit_index += array.length().bit_length
-                    } 
-                    match array.serialize(&mut self.bit_index, buffer) {
-                        SerializationResult::Finished => {
-                            self.field_index += 1;
-                            self.bit_index = 0;
-                        },
-                        SerializationResult::BufferFull => {
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                },
-                UavcanField::UavcanStruct(_x) => unreachable!(),
-            }
-
-            if self.field_index == self.structure.flattened_fields_len() {
-                return SerializationResult::Finished;
-            }
-        }
-                
-        
+        self.structure.serialize(&mut self.field_index, &mut self.bit_index, buffer)
     }
 
 

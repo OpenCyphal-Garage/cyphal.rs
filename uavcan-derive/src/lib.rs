@@ -41,6 +41,89 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         flattened_fields_builder
     };
 
+    let serialize_body = {
+        let mut serialize_builder = Tokens::new();
+        let mut field_index = Tokens::new();
+
+        field_index.append(quote!{0});
+        
+        for (i, field) in variant_data.fields().iter().enumerate() {
+            let field_ident = &field.ident;
+            let field_type = &field.ty;
+            let field_type_path_segment: &syn::Ident = {
+                if let syn::Ty::Path(_, ref path) = *field_type {
+                    &path.segments.as_slice().last().unwrap().ident
+                } else {
+                    panic!("Type name not found")
+                }
+            };
+
+            if i != 0 { serialize_builder.append(quote!{ else });}
+            
+            if is_primitive_type(field_type) {
+                serialize_builder.append(quote!{if *flattened_field == #field_index {
+                    if self.#field_ident.serialize(bit, buffer) == SerializationResult::Finished {
+                        *flattened_field += 1;
+                        *bit = 0;
+                    } else {
+                        return SerializationResult::BufferFull;
+                    }
+                }});                
+                field_index.append(quote!{ +1});
+            } else if is_dynamic_array(field_type) {
+                let element_type = {
+                    if let syn::Ty::Path(_, ref path) = *field_type {
+                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
+                            &param_data.types[0]
+                        } else {
+                            panic!("Element type name not found")
+                        }
+                    } else {
+                        panic!("Type name not found")
+                    }
+                };
+                
+                // check for tail optimization
+                if i == variant_data.fields().len() - 1 {
+                    serialize_builder.append(quote!{if *flattened_field == #field_index {
+                        let mut skewed_bit = *bit + #field_type_path_segment::<Uint8>::length_bit_length();
+                        if self.#field_ident.serialize(&mut skewed_bit, buffer) == SerializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
+                            return SerializationResult::BufferFull;
+                        }                        
+                    }});
+                    field_index.append(quote!{ +1});
+                } else {
+                    serialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if self.#field_ident.serialize(bit, buffer) == SerializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            return SerializationResult::BufferFull;
+                        }
+                    }});
+                    field_index.append(quote!{ +1});
+                }
+            } else {                
+                serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + self.#field_ident.flattened_fields_len() {
+                    let mut current_field = *flattened_field - #field_index;
+                    if self.#field_ident.serialize(&mut current_field, bit, buffer) == SerializationResult::Finished {
+                        *flattened_field = #field_index + self.#field_ident.flattened_fields_len();
+                        *bit = 0;
+                    } else {
+                        *flattened_field = #field_index + current_field;
+                        return SerializationResult::BufferFull;
+                    }
+                }});
+                field_index.append(quote!{ +self.#field_ident.flattened_fields_len()});
+            }
+        }
+        serialize_builder
+    };
+
     let field_as_mut_body = {
         let mut primitive_fields_builder = Tokens::new();
         let mut primitive_fields_cases = Tokens::new();
@@ -109,6 +192,13 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
             fn flattened_fields_len(&self) -> usize {
                 #number_of_flattened_fields
+            }
+
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                while *flattened_field != self.flattened_fields_len(){
+                    #serialize_body
+                }
+                SerializationResult::Finished
             }
 
             fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField {
