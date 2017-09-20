@@ -26,6 +26,11 @@ mod lib {
     }
 }
 
+mod uavcan {
+    #[allow(unused_imports)]
+    use *;
+}
+
 pub use uavcan_derive::*;
 
 #[macro_use]

@@ -80,6 +80,8 @@ impl<B: UavcanStruct> FrameGenerator<B> {
 #[cfg(test)]
 mod tests {
 
+    use uavcan;
+    
     use{
         UavcanStruct,
         UavcanField,

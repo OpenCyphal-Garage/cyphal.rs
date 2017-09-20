@@ -210,6 +210,8 @@ impl<T: UavcanStruct> Serializer<T> {
 
 #[cfg(test)]
 mod tests {
+    
+    use uavcan;
 
     use {
         UavcanStruct,

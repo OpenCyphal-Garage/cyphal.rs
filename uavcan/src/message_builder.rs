@@ -97,6 +97,8 @@ impl<B: UavcanStruct> MessageBuilder<B> {
 mod tests {
 
     use bit_field::BitField;
+
+    use uavcan;
     
     use{
         UavcanStruct,

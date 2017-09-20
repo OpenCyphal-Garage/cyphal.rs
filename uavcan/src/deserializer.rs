@@ -303,6 +303,8 @@ impl<T: UavcanStruct> Deserializer<T> {
 #[cfg(test)]
 mod tests {
 
+    use uavcan;
+    
     use bit_field::BitField;
     
     use {
