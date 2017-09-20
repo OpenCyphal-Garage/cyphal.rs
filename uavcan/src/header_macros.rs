@@ -180,7 +180,7 @@ macro_rules! uavcan_frame{
     );
 }
 
-#[allow(unused_macros)]
+#[macro_export]
 macro_rules! uavcan_frame_impls{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
         
