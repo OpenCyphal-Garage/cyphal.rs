@@ -22,59 +22,16 @@ pub enum SerializationResult {
 
 #[derive(Debug, PartialEq)]
 pub struct SerializationBuffer<'a> {
-    data: &'a mut [u8],
-    bit_index: usize,
+    pub data: &'a mut [u8],
+    pub bit_index: usize,
 }
 
 pub trait Serialize {
-    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn bits_remaining(&self, start_bit: usize) -> usize;
     fn tail_optimizable(&self) -> bool;
 }
 
 impl Serialize for DynamicArrayLength {
-    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-        let mut bits_serialized: usize = 0;
-        
-        let mut byte_start = buffer.bit_index / 8;
-        let odd_bits_start = buffer.bit_index % 8;
-        
-        // first get rid of the odd bits
-        if odd_bits_start != 0 && 8-odd_bits_start <= self.bit_length - start_bit {
-            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.current_length.get_bits((start_bit as u8)..(start_bit+8-odd_bits_start) as u8) as u8);
-            bits_serialized += 8-odd_bits_start;
-            buffer.bit_index += 8-odd_bits_start;
-            byte_start += 1;
-        } else if odd_bits_start != 0 && 8-odd_bits_start > self.bit_length - start_bit {
-            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.current_length.get_bits((start_bit as u8)..(start_bit + (self.bit_length - start_bit) ) as u8) as u8);
-            bits_serialized += self.bit_length - start_bit;
-            buffer.bit_index += self.bit_length - start_bit;
-            return SerializationResult::Finished(bits_serialized);
-        }
-        
-        for i in byte_start..buffer.data.len() {
-            let serialization_index = bits_serialized + start_bit;
-            let remaining_bits = self.bit_length - serialization_index;
-
-            if remaining_bits == 0 {
-                return SerializationResult::Finished(bits_serialized);
-            } else if remaining_bits <= 8 {
-                buffer.data[i] = self.current_length.get_bits((serialization_index as u8)..(serialization_index+remaining_bits) as u8) as u8;
-                buffer.bit_index += remaining_bits;
-                bits_serialized += remaining_bits;
-                return SerializationResult::Finished(bits_serialized);
-            } else {
-                buffer.data[i] = self.current_length.get_bits((serialization_index as u8)..(serialization_index+8) as u8) as u8;
-                buffer.bit_index += 8;
-                bits_serialized += 8;
-            }
-        }
-        
-        
-        SerializationResult::BufferFull(bits_serialized)
-
-    }
-
     fn bits_remaining(&self, start_bit: usize) -> usize {
         assert!(start_bit < self.bit_length);
         self.bit_length - start_bit
@@ -87,48 +44,6 @@ impl Serialize for DynamicArrayLength {
 macro_rules! impl_serialize_for_primitive_type {
     ($type:ident) => {
         impl Serialize for $type {
-            fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                let mut bits_serialized: usize = 0;
-                
-                let mut byte_start = buffer.bit_index / 8;
-                let odd_bits_start = buffer.bit_index % 8;
-                
-                // first get rid of the odd bits
-                if odd_bits_start != 0 && 8-odd_bits_start <= $type::bit_length() - start_bit {
-                    buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit+8-odd_bits_start)) as u8);
-                    bits_serialized += 8-odd_bits_start;
-                    buffer.bit_index += 8-odd_bits_start;
-                    byte_start += 1;
-                } else if odd_bits_start != 0 && 8-odd_bits_start > $type::bit_length() - start_bit {
-                    buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(start_bit..(start_bit + ($type::bit_length() - start_bit) )) as u8);
-                    bits_serialized += $type::bit_length() - start_bit;
-                    buffer.bit_index += $type::bit_length() - start_bit;
-                    return SerializationResult::Finished(bits_serialized);
-                }
-                
-                for i in byte_start..buffer.data.len() {
-                    let serialization_index = bits_serialized + start_bit;
-                    let remaining_bits = $type::bit_length() - serialization_index;
-
-                    if remaining_bits == 0 {
-                        return SerializationResult::Finished(bits_serialized);
-                    } else if remaining_bits <= 8 {
-                        buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
-                        buffer.bit_index += remaining_bits;
-                        bits_serialized += remaining_bits;
-                        return SerializationResult::Finished(bits_serialized);
-                    } else {
-                        buffer.data[i] = self.get_bits(serialization_index..(serialization_index+8)) as u8;
-                        buffer.bit_index += 8;
-                        bits_serialized += 8;
-                    }
-                }
-                
-                
-                SerializationResult::BufferFull(bits_serialized)
-
-            }
-
             fn bits_remaining(&self, start_bit: usize) -> usize {
                 assert!(start_bit < Self::bit_length());
                 Self::bit_length() - start_bit
@@ -142,39 +57,7 @@ macro_rules! impl_serialize_for_primitive_type {
 
 macro_rules! impl_serialize_for_dynamic_array {
     ($type:ident) => {
-        impl<T: UavcanPrimitiveType + Serialize> Serialize for $type<T> {
-            fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                let mut bits_serialized: usize = 0;
-
-                // serialize length
-                if start_bit < self.length().bit_length {
-                    match self.length().serialize(start_bit, buffer) {
-                        SerializationResult::Finished(bits) => bits_serialized += bits,
-                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),
-                    }
-                }
-                
-                let mut start_element = (start_bit + bits_serialized - Self::length_bit_length()) / Self::element_bit_length();
-                let start_element_bit = (start_bit + bits_serialized - Self::length_bit_length()) % Self::element_bit_length();
-
-                // first get rid of the odd bits
-                if start_element_bit != 0 {
-                    match self[start_element].serialize(start_element_bit, buffer) {
-                        SerializationResult::Finished(bits) => bits_serialized += bits,
-                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),
-                    }
-                    start_element += 1;
-                }
-
-                for i in start_element..self.length().current_length {
-                    match self[i].serialize(0, buffer) {
-                        SerializationResult::Finished(bits) => bits_serialized += bits,
-                        SerializationResult::BufferFull(bits) => return SerializationResult::BufferFull(bits_serialized + bits),                        
-                    }
-                }
-
-                SerializationResult::Finished(bits_serialized)
-            }
+        impl<T: UavcanPrimitiveType> Serialize for $type<T> {
             
             fn bits_remaining(&self, start_bit: usize) -> usize {
                 assert!(start_bit < T::bit_length() * self.length().current_length);

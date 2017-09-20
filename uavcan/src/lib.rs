@@ -37,8 +37,15 @@ pub mod message_builder;
 mod serializer;
 pub mod frame_generator;
 
+use bit_field::BitField;
+
 use lib::core::convert::{From};
 use lib::core::ops::Range;
+
+use serializer::{
+    SerializationResult,
+    SerializationBuffer,        
+};
 
 
 /// The TransportFrame is uavcan cores main interface to the outside world
@@ -199,9 +206,60 @@ pub trait DynamicArray : serializer::Serialize + deserializer::Deserialize {
     
     fn length(&self) -> DynamicArrayLength;
     fn set_length(&mut self, length: usize);
-    fn element(&self, index: usize) -> &UavcanPrimitiveType;
-    fn element_as_mut(&mut self, index: usize) -> &mut UavcanPrimitiveType;
+
+    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+
 }
+
+
+impl DynamicArrayLength {
+    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+        let mut bits_serialized: usize = 0;
+        
+        let mut byte_start = buffer.bit_index / 8;
+        let odd_bits_start = buffer.bit_index % 8;
+        
+        // first get rid of the odd bits
+        if odd_bits_start != 0 && 8-odd_bits_start <= self.bit_length - start_bit {
+            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.current_length.get_bits((start_bit as u8)..(start_bit+8-odd_bits_start) as u8) as u8);
+            bits_serialized += 8-odd_bits_start;
+            buffer.bit_index += 8-odd_bits_start;
+            byte_start += 1;
+        } else if odd_bits_start != 0 && 8-odd_bits_start > self.bit_length - start_bit {
+            buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.current_length.get_bits((start_bit as u8)..(start_bit + (self.bit_length - start_bit) ) as u8) as u8);
+            bits_serialized += self.bit_length - start_bit;
+            buffer.bit_index += self.bit_length - start_bit;
+            return SerializationResult::Finished(bits_serialized);
+        }
+        
+        for i in byte_start..buffer.data.len() {
+            let serialization_index = bits_serialized + start_bit;
+            let remaining_bits = self.bit_length - serialization_index;
+
+            if remaining_bits == 0 {
+                return SerializationResult::Finished(bits_serialized);
+            } else if remaining_bits <= 8 {
+                buffer.data[i] = self.current_length.get_bits((serialization_index as u8)..(serialization_index+remaining_bits) as u8) as u8;
+                buffer.bit_index += remaining_bits;
+                bits_serialized += remaining_bits;
+                return SerializationResult::Finished(bits_serialized);
+            } else {
+                buffer.data[i] = self.current_length.get_bits((serialization_index as u8)..(serialization_index+8) as u8) as u8;
+                buffer.bit_index += 8;
+                bits_serialized += 8;
+            }
+        }
+        
+        
+        SerializationResult::BufferFull(bits_serialized)
+
+    }
+
+}
+
+
+
+
 
 /// An UavcanField is a field of a flatted out uavcan struct
 ///
@@ -230,11 +288,24 @@ pub trait AsUavcanField {
 }
 
 
+
+
+
+
+
+
 pub trait UavcanPrimitiveType : serializer::Serialize + deserializer::Deserialize {
     fn bit_length() -> usize where Self: Sized;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
+    fn serialize(&self, start_bit: usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    
 }
+
+
+
+
+
 
 pub trait UavcanFrame<H: UavcanHeader, B: UavcanStruct> {
     fn from_parts(header: H, body: B) -> Self;
