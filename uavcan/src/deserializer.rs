@@ -306,6 +306,7 @@ mod tests {
     use bit_field::BitField;
     
     use {
+        SerializationBuffer,
         UavcanStruct,
         UavcanField,
         MutUavcanField,

@@ -89,6 +89,7 @@ mod tests {
         UavcanFrame,
         TailByte,
         DynamicArray,
+        SerializationBuffer,
     };
 
     use bit_field::BitField;
