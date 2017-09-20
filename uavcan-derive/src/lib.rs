@@ -62,11 +62,11 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             
             if is_primitive_type(field_type) {
                 serialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if self.#field_ident.serialize(bit, buffer) == SerializationResult::Finished {
+                    if self.#field_ident.serialize(bit, buffer) == uavcan::SerializationResult::Finished {
                         *flattened_field += 1;
                         *bit = 0;
                     } else {
-                        return SerializationResult::BufferFull;
+                        return uavcan::SerializationResult::BufferFull;
                     }
                 }});                
                 field_index.append(quote!{ +1});
@@ -87,22 +87,22 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 if i == variant_data.fields().len() - 1 {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
                         let mut skewed_bit = *bit + #field_type_path_segment::<Uint8>::length_bit_length();
-                        if self.#field_ident.serialize(&mut skewed_bit, buffer) == SerializationResult::Finished {
+                        if self.#field_ident.serialize(&mut skewed_bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
                             *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
-                            return SerializationResult::BufferFull;
+                            return uavcan::SerializationResult::BufferFull;
                         }                        
                     }});
                     field_index.append(quote!{ +1});
                 } else {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
-                        if self.#field_ident.serialize(bit, buffer) == SerializationResult::Finished {
+                        if self.#field_ident.serialize(bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
-                            return SerializationResult::BufferFull;
+                            return uavcan::SerializationResult::BufferFull;
                         }
                     }});
                     field_index.append(quote!{ +1});
@@ -110,12 +110,12 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             } else {                
                 serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + self.#field_ident.flattened_fields_len() {
                     let mut current_field = *flattened_field - #field_index;
-                    if self.#field_ident.serialize(&mut current_field, bit, buffer) == SerializationResult::Finished {
+                    if self.#field_ident.serialize(&mut current_field, bit, buffer) == uavcan::SerializationResult::Finished {
                         *flattened_field = #field_index + self.#field_ident.flattened_fields_len();
                         *bit = 0;
                     } else {
                         *flattened_field = #field_index + current_field;
-                        return SerializationResult::BufferFull;
+                        return uavcan::SerializationResult::BufferFull;
                     }
                 }});
                 field_index.append(quote!{ +self.#field_ident.flattened_fields_len()});
@@ -176,12 +176,12 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     
     quote!{
-        impl AsUavcanField for #name{
-            fn as_uavcan_field(&self) -> UavcanField{
-                UavcanField::UavcanStruct(self)
+        impl uavcan::AsUavcanField for #name{
+            fn as_uavcan_field(&self) -> uavcan::UavcanField{
+                uavcan::UavcanField::UavcanStruct(self)
             }
-            fn as_mut_uavcan_field(&mut self) -> MutUavcanField{
-                MutUavcanField::UavcanStruct(self)
+            fn as_mut_uavcan_field(&mut self) -> uavcan::MutUavcanField{
+                uavcan::MutUavcanField::UavcanStruct(self)
             }
         }
 
@@ -194,18 +194,18 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 #number_of_flattened_fields
             }
 
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::serializer::SerializationBuffer) -> uavcan::serializer::SerializationResult {
                 while *flattened_field != self.flattened_fields_len(){
                     #serialize_body
                 }
-                SerializationResult::Finished
+                uavcan::SerializationResult::Finished
             }
 
-            fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField {
+            fn field_as_mut(&mut self, field_number: usize) -> uavcan::MutUavcanField {
                 #field_as_mut_body
             }
 
-            fn field(&self, field_number: usize) -> UavcanField {
+            fn field(&self, field_number: usize) -> uavcan::UavcanField {
                 #field_body
             }
         }
