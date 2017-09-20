@@ -16,8 +16,8 @@ use bit_field::{
 
 #[derive(Debug, PartialEq)]
 pub enum SerializationResult {
-    BufferFull(usize),
-    Finished(usize),
+    BufferFull,
+    Finished,
 }
 
 #[derive(Debug, PartialEq)]
@@ -140,19 +140,18 @@ impl<T: UavcanStruct> Serializer<T> {
     /// 2. structure is exahusted (all data have been serialized)
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
-    pub fn serialize(&mut self, buffer: &mut [u8]) -> SerializationResult {
-        let mut serialization_buffer = SerializationBuffer{data: buffer, bit_index: 0};
+    pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
 
         loop {
             match self.structure.flattened_field(self.field_index) {
                 UavcanField::PrimitiveType(primitive_type) => {
-                    match primitive_type.serialize(&mut self.bit_index, &mut serialization_buffer) {
-                        SerializationResult::Finished(_bits) => {
+                    match primitive_type.serialize(&mut self.bit_index, buffer) {
+                        SerializationResult::Finished => {
                             self.field_index += 1;
                             self.bit_index = 0;
                         },
-                        SerializationResult::BufferFull(_bits) => {
-                            return SerializationResult::BufferFull(serialization_buffer.bit_index);
+                        SerializationResult::BufferFull => {
+                            return SerializationResult::BufferFull;
                         },
                     }
                 },
@@ -160,13 +159,13 @@ impl<T: UavcanStruct> Serializer<T> {
                     if self.bit_index == 0 && self.field_index == self.structure.flattened_fields_len()-1 && array.tail_optimizable() {
                         self.bit_index += array.length().bit_length
                     } 
-                    match array.serialize(&mut self.bit_index, &mut serialization_buffer) {
-                        SerializationResult::Finished(_bits) => {
+                    match array.serialize(&mut self.bit_index, buffer) {
+                        SerializationResult::Finished => {
                             self.field_index += 1;
                             self.bit_index = 0;
                         },
-                        SerializationResult::BufferFull(_bits) => {
-                            return SerializationResult::BufferFull(serialization_buffer.bit_index);
+                        SerializationResult::BufferFull => {
+                            return SerializationResult::BufferFull;
                         },
                     }
                 },
@@ -174,7 +173,7 @@ impl<T: UavcanStruct> Serializer<T> {
             }
 
             if self.field_index == self.structure.flattened_fields_len() {
-                return SerializationResult::Finished(serialization_buffer.bit_index);
+                return SerializationResult::Finished;
             }
         }
                 
@@ -223,13 +222,15 @@ impl<T: UavcanStruct> Serializer<T> {
 
         loop {
             let mut buffer = [0u8; 8];
-            if let SerializationResult::Finished(_bits) = self.serialize(&mut buffer) {
-                crc = crc::add(crc, &buffer);
+            
+            let mut serialization_buffer = SerializationBuffer{data: &mut buffer, bit_index: 0};
+            if let SerializationResult::Finished = self.serialize(&mut serialization_buffer) {
+                crc = crc::add(crc, &serialization_buffer.data);
                 self.field_index = field_index;
                 self.bit_index = bit_index;
                 return crc;
             } else {
-                crc = crc::add(crc, &buffer);
+                crc = crc::add(crc, &serialization_buffer.data);
             }
             
         }
@@ -267,15 +268,21 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        assert_eq!(uint2.serialize(&mut 0, &mut buffer), SerializationResult::Finished(2));
+        let mut bits_serialized = 0;
+        assert_eq!(uint2.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
+        assert_eq!(bits_serialized, 2);
         assert_eq!(buffer.data, [1, 0, 0, 0]);
 
         buffer.bit_index = 0;
-        assert_eq!(uint8.serialize(&mut 0, &mut buffer), SerializationResult::Finished(8));
+        bits_serialized = 0;
+        assert_eq!(uint8.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
+        assert_eq!(bits_serialized, 8);
         assert_eq!(buffer.data, [128, 0, 0, 0]);
             
         buffer.bit_index = 0;
-        assert_eq!(uint16.serialize(&mut 0, &mut buffer), SerializationResult::Finished(16));
+        bits_serialized = 0;
+        assert_eq!(uint16.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
+        assert_eq!(bits_serialized, 16);
         assert_eq!(buffer.data, [1, 1, 0, 0]);
             
         uint2.serialize(&mut 0, &mut buffer);
@@ -296,7 +303,9 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
-        assert_eq!(a1.serialize(&mut 0, &mut buffer), SerializationResult::Finished(11));
+        let mut bits_serialized = 0;
+        assert_eq!(a1.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
+        assert_eq!(bits_serialized, 11);
         assert_eq!(buffer.data, [0b10001100, 0, 0, 0]);
 
         buffer.bit_index = 0;
@@ -355,9 +364,11 @@ mod tests {
         let mut serializer: Serializer<Message> = Serializer::from_structure(message);
         let mut array: [u8; 8] = [0; 8];
 
-        serializer.serialize(&mut array);
+        
+        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
+        serializer.serialize(&mut buffer);
 
-        assert_eq!(array, [17, 19, 0, 0, 0, 21, 0, 23]);
+        assert_eq!(buffer.data, [17, 19, 0, 0, 0, 21, 0, 23]);
         
     }
 
@@ -386,9 +397,10 @@ mod tests {
         let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
         let mut array: [u8; 7] = [0; 7];
 
-        serializer.serialize(&mut array);
+        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
+        serializer.serialize(&mut buffer);
 
-        assert_eq!(array, [1, 0, 0, 0, 0b10001110, 5, 0]);      
+        assert_eq!(buffer.data, [1, 0, 0, 0, 0b10001110, 5, 0]);      
 
         
     }
@@ -419,7 +431,8 @@ mod tests {
         assert_eq!(serializer.bits_remaining(), 56);
 
         let mut array: [u8; 7] = [0; 7];
-        serializer.serialize(&mut array);
+        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
+        serializer.serialize(&mut buffer);
 
         assert_eq!(serializer.bits_remaining(), 0);
     }

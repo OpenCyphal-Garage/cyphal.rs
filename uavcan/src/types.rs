@@ -273,16 +273,13 @@ macro_rules! dynamic_array_def {
             fn set_length(&mut self, length: usize) {self.current_size = length;}
 
             fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                let mut bits_serialized: usize = 0;
-                
                 // serialize length
                 if *bit < self.length().bit_length {
                     match self.length().serialize(bit, buffer) {
-                        SerializationResult::Finished(bits) => {
-                            bits_serialized += bits;
+                        SerializationResult::Finished => {
                         },
-                        SerializationResult::BufferFull(bits) => {
-                            return SerializationResult::BufferFull(bits_serialized + bits);
+                        SerializationResult::BufferFull => {
+                            return SerializationResult::BufferFull;
                         },
                     }
                 }
@@ -292,33 +289,33 @@ macro_rules! dynamic_array_def {
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
-                    match self[start_element].serialize(&mut start_element_bit.clone(), buffer) {
-                        SerializationResult::Finished(bits) => {
-                            bits_serialized += bits;
-                            *bit += bits;
+                    let mut bits_serialized = start_element_bit;
+                    match self[start_element].serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
                         },
-                        SerializationResult::BufferFull(bits) => {
-                            *bit += bits;
-                            return SerializationResult::BufferFull(bits_serialized + bits);
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
                         },
                     }
                     start_element += 1;
                 }
 
                 for i in start_element..self.length().current_length {
-                    match self[i].serialize(&mut 0, buffer) {
-                        SerializationResult::Finished(bits) => {
-                            bits_serialized += bits;
-                            *bit += bits;
+                    let mut bits_serialized = 0;
+                    match self[i].serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
                         },
-                        SerializationResult::BufferFull(bits) => {
-                            *bit += bits;
-                            return SerializationResult::BufferFull(bits_serialized + bits);
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
                         },
                     }
                 }
 
-                SerializationResult::Finished(bits_serialized)
+                SerializationResult::Finished
             }
 
 
@@ -431,7 +428,6 @@ impl From<Float64> for f64 {
 macro_rules! impl_serialize_for_primitive_type {
     () => {
         fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult where Self: Sized{
-            let mut bits_serialized: usize = 0;
             
             let mut byte_start = buffer.bit_index / 8;
             let odd_bits_start = buffer.bit_index % 8;
@@ -439,39 +435,34 @@ macro_rules! impl_serialize_for_primitive_type {
             // first get rid of the odd bits
             if odd_bits_start != 0 && 8-odd_bits_start <= Self::bit_length() - *bit {
                 buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(*bit+8-odd_bits_start)) as u8);
-                bits_serialized += 8-odd_bits_start;
                 *bit += 8-odd_bits_start;
                 buffer.bit_index += 8-odd_bits_start;
                 byte_start += 1;
             } else if odd_bits_start != 0 && 8-odd_bits_start > Self::bit_length() - *bit {
                 buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(Self::bit_length())) as u8);
-                bits_serialized += Self::bit_length() - *bit;
                 buffer.bit_index += Self::bit_length() - *bit;
                 *bit += Self::bit_length();
-                return SerializationResult::Finished(bits_serialized);
+                return SerializationResult::Finished;
             }
             
             for i in byte_start..buffer.data.len() {
-                let serialization_index = *bit;
-                let remaining_bits = Self::bit_length() - serialization_index;
+                let remaining_bits = Self::bit_length() - *bit;
 
                 if remaining_bits == 0 {
-                    return SerializationResult::Finished(bits_serialized);
+                    return SerializationResult::Finished;
                 } else if remaining_bits <= 8 {
-                    buffer.data[i] = self.get_bits(serialization_index..serialization_index+remaining_bits) as u8;
+                    buffer.data[i] = self.get_bits(*bit..*bit+remaining_bits) as u8;
                     buffer.bit_index += remaining_bits;
-                    bits_serialized += remaining_bits;
                     *bit += remaining_bits;
-                    return SerializationResult::Finished(bits_serialized);
+                    return SerializationResult::Finished;
                 } else {
-                    buffer.data[i] = self.get_bits(serialization_index..(serialization_index+8)) as u8;
+                    buffer.data[i] = self.get_bits(*bit..(*bit+8)) as u8;
                     buffer.bit_index += 8;
-                    bits_serialized += 8;
                     *bit += 8;
                 }
             }
             
-            SerializationResult::BufferFull(bits_serialized)
+            SerializationResult::BufferFull
         }
 
 
