@@ -26,6 +26,13 @@ pub struct SerializationBuffer<'a> {
     pub bit_index: usize,
 }
 
+impl<'a> SerializationBuffer<'a> {
+    pub fn full(&self) -> bool {
+        if self.bit_index == self.data.len()*8 {true}
+        else {false}
+    }
+}
+
 pub trait Serialize {
     fn bits_remaining(&self, start_bit: usize) -> usize;
     fn tail_optimizable(&self) -> bool;
