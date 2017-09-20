@@ -427,26 +427,27 @@ impl From<Float64> for f64 {
 
 macro_rules! impl_serialize_for_primitive_type {
     () => {
-        fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult where Self: Sized{
-            
+        fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
             let mut byte_start = buffer.bit_index / 8;
             let odd_bits_start = buffer.bit_index % 8;
+
+            let mut remaining_bits = Self::bit_length() - *bit;
             
             // first get rid of the odd bits
-            if odd_bits_start != 0 && 8-odd_bits_start <= Self::bit_length() - *bit {
+            if odd_bits_start != 0 && 8-odd_bits_start <= remaining_bits {
                 buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(*bit+8-odd_bits_start)) as u8);
                 *bit += 8-odd_bits_start;
                 buffer.bit_index += 8-odd_bits_start;
                 byte_start += 1;
-            } else if odd_bits_start != 0 && 8-odd_bits_start > Self::bit_length() - *bit {
+            } else if odd_bits_start != 0 && 8-odd_bits_start > remaining_bits {
                 buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(Self::bit_length())) as u8);
-                buffer.bit_index += Self::bit_length() - *bit;
-                *bit += Self::bit_length();
+                buffer.bit_index += remaining_bits;
+                *bit = Self::bit_length();
                 return SerializationResult::Finished;
             }
             
             for i in byte_start..buffer.data.len() {
-                let remaining_bits = Self::bit_length() - *bit;
+                remaining_bits = Self::bit_length() - *bit;
 
                 if remaining_bits == 0 {
                     return SerializationResult::Finished;
