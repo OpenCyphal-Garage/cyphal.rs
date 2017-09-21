@@ -132,12 +132,14 @@ pub trait ServiceFrameHeader : UavcanHeader {
 
 
 pub trait UavcanStruct {
+    
     fn fields_len(&self) -> usize;    
     fn field(&self, field_number: usize) -> UavcanField;
     fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField;
     
     fn flattened_fields_len(&self) -> usize;
 
+    fn tail_array_optimizable(&self) -> bool;
     fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;

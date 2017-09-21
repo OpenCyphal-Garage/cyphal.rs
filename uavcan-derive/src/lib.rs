@@ -26,6 +26,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     };
 
     let number_of_fields = variant_data.fields().len();
+    
+    let tail_array_optimizable = is_dynamic_array(&variant_data.fields().last().unwrap().ty);        
 
     let number_of_flattened_fields = {
         let mut flattened_fields_builder = Tokens::new();
@@ -309,6 +311,10 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         }
 
         impl UavcanStruct for #name {
+            fn tail_array_optimizable(&self) -> bool {
+                #tail_array_optimizable
+            }
+            
             fn fields_len(&self) -> usize {
                 #number_of_fields
             }
