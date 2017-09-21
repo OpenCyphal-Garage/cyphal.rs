@@ -88,7 +88,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 // check for tail optimization
                 if i == variant_data.fields().len() - 1 {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
-                        let mut skewed_bit = *bit + #field_type_path_segment::<Uint8>::length_bit_length();
+                        let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
                         if self.#field_ident.serialize(&mut skewed_bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
