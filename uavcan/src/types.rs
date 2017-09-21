@@ -520,7 +520,14 @@ macro_rules! impl_serialize_for_primitive_type {
         }
 
         fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-            if buffer.bit_length() + *bit < Self::bit_length() {
+            let buffer_len = buffer.bit_length();
+            if buffer_len == 0 && *bit == Self::bit_length() {
+                DeserializationResult::Finished
+            } else if buffer_len == 0 && *bit != Self::bit_length() {
+                DeserializationResult::BufferInsufficient
+            } else if buffer_len < Self::bit_length() - *bit {
+                self.set_bits(*bit..(*bit+buffer_len), buffer.pop_bits(buffer_len));
+                *bit += buffer_len;
                 DeserializationResult::BufferInsufficient
             } else {
                 self.set_bits(*bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-*bit));

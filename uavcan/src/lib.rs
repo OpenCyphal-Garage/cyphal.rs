@@ -265,7 +265,10 @@ impl DynamicArrayLength {
     }
 
     fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-        if buffer.bit_length() + *bit < self.bit_length {
+        let buffer_len = buffer.bit_length();
+        if buffer_len + *bit < self.bit_length {
+            self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
+            *bit += buffer_len;
             DeserializationResult::BufferInsufficient
         } else {
             self.current_length.set_bits(*bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-*bit) as usize);
