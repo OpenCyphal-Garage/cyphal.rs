@@ -17,8 +17,8 @@ use {
 
 #[derive(Debug)]
 pub enum DeserializationResult {
-    Finished(usize),
-    BufferInsufficient(usize),
+    Finished,
+    BufferInsufficient,
 }
 
 pub trait Deserialize {
@@ -28,11 +28,11 @@ pub trait Deserialize {
 impl Deserialize for DynamicArrayLength {
     fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
         if buffer.bit_length() + *bit < self.bit_length {
-            DeserializationResult::BufferInsufficient(0)
+            DeserializationResult::BufferInsufficient
         } else {
             self.current_length.set_bits(*bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-*bit) as usize);
             *bit += self.bit_length;
-            DeserializationResult::Finished(self.bit_length)
+            DeserializationResult::Finished
         }
     }
 }
@@ -42,11 +42,11 @@ macro_rules! impl_deserialize_for_primitive_type {
         impl Deserialize for $type {
             fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 if buffer.bit_length() + *bit < Self::bit_length() {
-                    DeserializationResult::BufferInsufficient(0)
+                    DeserializationResult::BufferInsufficient
                 } else {
                     self.set_bits(*bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-*bit));
                     *bit += Self::bit_length();
-                    DeserializationResult::Finished(Self::bit_length())
+                    DeserializationResult::Finished
                 }
             }
         }
@@ -74,18 +74,16 @@ macro_rules! impl_deserialize_for_dynamic_array {
     ($type:ident) => {
         impl<T: UavcanPrimitiveType + Deserialize> Deserialize for $type<T> {
             fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-                let mut bits_deserialized: usize = 0;
                 
                 // deserialize length
                 if *bit < self.length().bit_length {
                     let mut length = self.length();
                     match length.deserialize(bit, buffer) {
-                        DeserializationResult::Finished(bits) => {
+                        DeserializationResult::Finished => {
                             self.set_length(length.current_length); // ugly hack, fix when dispatching is mostly done static
-                            bits_deserialized += bits;
                         }, 
-                        DeserializationResult::BufferInsufficient(bits) => {
-                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits)
+                        DeserializationResult::BufferInsufficient => {
+                            return DeserializationResult::BufferInsufficient
                         },
                     }
                 }
@@ -95,34 +93,33 @@ macro_rules! impl_deserialize_for_dynamic_array {
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
-                    let mut bit_counter = start_element_bit;
-                    match self[start_element].deserialize(&mut bit_counter, buffer) {
-                        DeserializationResult::Finished(bits) => {
-                            bits_deserialized += bits;
-                            *bit += bits;
+                    let mut bits_deserialized = start_element_bit;
+                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
                         },
-                        DeserializationResult::BufferInsufficient(bits) => {
-                            *bit += bits;
-                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits);
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
                         },
                     }
                     start_element += 1;
                 }
 
                 for i in start_element..self.length().current_length {
-                    match self[i].deserialize(&mut 0, buffer) {
-                        DeserializationResult::Finished(bits) => {
-                            bits_deserialized += bits;
-                            *bit += bits;
+                    let mut bits_deserialized = start_element_bit;
+                    match self[i].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
                         },
-                        DeserializationResult::BufferInsufficient(bits) => {
-                            *bit += bits;
-                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits);
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
                         },
                     }
                 }
 
-                DeserializationResult::Finished(bits_deserialized)
+                DeserializationResult::Finished
             }
             
         
@@ -226,7 +223,6 @@ impl<T: UavcanStruct> Deserializer<T> {
     }
 
     pub fn deserialize(&mut self, input: &[u8]) -> DeserializationResult {
-        let mut bits_deserialized: usize = 0;
         let flattened_fields = self.structure.flattened_fields_len();
         
         for chunk in input.chunks(8) {
@@ -236,44 +232,34 @@ impl<T: UavcanStruct> Deserializer<T> {
                 match self.structure.flattened_field_as_mut(self.field_index) {
                     MutUavcanField::PrimitiveType(primitive_type) => {
                         match primitive_type.deserialize(&mut self.bit_index, &mut self.buffer) {
-                            DeserializationResult::Finished(bits) => {
-                                bits_deserialized += bits;
+                            DeserializationResult::Finished => {
                                 self.field_index += 1;
                                 self.bit_index = 0;
                             },
-                            DeserializationResult::BufferInsufficient(bits) => {
-                                bits_deserialized += bits;
+                            DeserializationResult::BufferInsufficient => {
                                 break;
                             },
                         }
                     },
                     MutUavcanField::DynamicArray(array) => {
                         let array_optimization = self.field_index == flattened_fields-1 && array.tail_optimizable();
-                        let mut bit_index = if array_optimization {
+                        if array_optimization {
                             if self.bit_index == 0 {
-                                array.set_length(1)
+                                self.bit_index += array.length().bit_length;                                    
+                                array.set_length(1);
                             } else {
                                 let current_length = array.length().current_length;
                                 array.set_length(current_length+1);
                             }
-                            self.bit_index + array.length().bit_length
-                        } else {
-                            self.bit_index
-                        };
-                        match array.deserialize(&mut bit_index, &mut self.buffer) {
-                            DeserializationResult::Finished(bits) => {
-                                if array_optimization {
-                                    bits_deserialized += bits;
-                                    self.bit_index += bits;
-                                } else {
-                                    bits_deserialized += bits;
+                        }
+                        match array.deserialize(&mut self.bit_index, &mut self.buffer) {
+                            DeserializationResult::Finished => {
+                                if !array_optimization {
                                     self.field_index += 1;
                                     self.bit_index = 0;
                                 }
                             },
-                            DeserializationResult::BufferInsufficient(bits) => {
-                                bits_deserialized += bits;
-                                self.bit_index += bits;
+                            DeserializationResult::BufferInsufficient => {
                                 break;
                             },
                         }
@@ -282,14 +268,14 @@ impl<T: UavcanStruct> Deserializer<T> {
                 }
                 
                 if self.field_index == self.structure.flattened_fields_len() {
-                    return DeserializationResult::Finished(bits_deserialized);
+                    return DeserializationResult::Finished;
                 }
                 
             }
             
         }
 
-        DeserializationResult::BufferInsufficient(bits_deserialized)
+        DeserializationResult::BufferInsufficient
     }
 
     pub fn into_structure(mut self) -> Result<T, ()> {
