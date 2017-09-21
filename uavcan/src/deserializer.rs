@@ -15,7 +15,7 @@ use {
     MutUavcanField,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DeserializationResult {
     Finished,
     BufferInsufficient,
@@ -23,13 +23,16 @@ pub enum DeserializationResult {
 
 
 
-pub struct DeserializationBuffer {
-    buffer: [u8; 15],
+pub struct DeserializationBuffer<'a> {
+    buffer: &'a mut [u8],
     buffer_end_bit: usize,
 }
 
-impl DeserializationBuffer {
-    pub fn new() -> Self { DeserializationBuffer{buffer: [0;15], buffer_end_bit: 0} }
+impl<'a> DeserializationBuffer<'a> {
+    pub fn with_buffer(buffer: &'a mut [u8]) -> Self {
+        let buffer_len = buffer.len();
+        DeserializationBuffer{buffer: buffer, buffer_end_bit: buffer_len*8}
+    }
         
     pub fn bit_length(&self) -> usize { self.buffer_end_bit }
     
@@ -82,7 +85,6 @@ pub struct Deserializer<T: UavcanStruct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
-    buffer: DeserializationBuffer,
 }
 
 impl<T: UavcanStruct> Deserializer<T> {
@@ -91,63 +93,12 @@ impl<T: UavcanStruct> Deserializer<T> {
         unsafe {
             structure = mem::zeroed();
         };            
-        Deserializer{structure: structure, field_index: 0, bit_index: 0, buffer: DeserializationBuffer::new()}
+        Deserializer{structure: structure, field_index: 0, bit_index: 0}
     }
 
-    pub fn deserialize(&mut self, input: &[u8]) -> DeserializationResult {
-        let flattened_fields = self.structure.flattened_fields_len();
-        
-        for chunk in input.chunks(8) {
-            self.buffer.push(chunk);
-
-            loop {
-                match self.structure.flattened_field_as_mut(self.field_index) {
-                    MutUavcanField::PrimitiveType(primitive_type) => {
-                        match primitive_type.deserialize(&mut self.bit_index, &mut self.buffer) {
-                            DeserializationResult::Finished => {
-                                self.field_index += 1;
-                                self.bit_index = 0;
-                            },
-                            DeserializationResult::BufferInsufficient => {
-                                break;
-                            },
-                        }
-                    },
-                    MutUavcanField::DynamicArray(array) => {
-                        let array_optimization = self.field_index == flattened_fields-1 && array.tail_optimizable();
-                        if array_optimization {
-                            if self.bit_index == 0 {
-                                self.bit_index += array.length().bit_length;                                    
-                                array.set_length(1);
-                            } else {
-                                let current_length = array.length().current_length;
-                                array.set_length(current_length+1);
-                            }
-                        }
-                        match array.deserialize(&mut self.bit_index, &mut self.buffer) {
-                            DeserializationResult::Finished => {
-                                if !array_optimization {
-                                    self.field_index += 1;
-                                    self.bit_index = 0;
-                                }
-                            },
-                            DeserializationResult::BufferInsufficient => {
-                                break;
-                            },
-                        }
-                    },
-                    MutUavcanField::UavcanStruct(_x) => unreachable!(),
-                }
-                
-                if self.field_index == self.structure.flattened_fields_len() {
-                    return DeserializationResult::Finished;
-                }
-                
-            }
-            
-        }
-
-        DeserializationResult::BufferInsufficient
+    pub fn deserialize(&mut self, input: &mut [u8]) -> DeserializationResult {
+        let mut buffer = DeserializationBuffer::with_buffer(input);
+        self.structure.deserialize(&mut self.field_index, &mut self.bit_index, &mut buffer)
     }
 
     pub fn into_structure(mut self) -> Result<T, ()> {
@@ -157,8 +108,6 @@ impl<T: UavcanStruct> Deserializer<T> {
             true
         } else if let MutUavcanField::DynamicArray(array) = self.structure.flattened_field_as_mut(self.field_index) {
             if array.tail_optimizable() {
-                let current_length = array.length().current_length;
-                array.set_length(current_length-1);
                 true
             } else {
                 false
@@ -216,7 +165,7 @@ mod tests {
 
         let mut deserializer: Deserializer<Message> = Deserializer::new();
 
-        deserializer.deserialize(&[17, 19, 0, 0, 0, 21, 0, 23]);
+        deserializer.deserialize(&mut [17, 19, 0, 0, 0, 21, 0, 23]);
 
         let parsed_message = deserializer.into_structure().unwrap();
 
@@ -246,7 +195,7 @@ mod tests {
         
         let mut deserializer: Deserializer<NodeStatus> = Deserializer::new();
 
-        deserializer.deserialize(&[1, 0, 0, 0, 0b10001110, 5, 0]);
+        deserializer.deserialize(&mut [1, 0, 0, 0, 0b10001110, 5, 0]);
 
         let parsed_message = deserializer.into_structure().unwrap();
         
@@ -272,7 +221,7 @@ mod tests {
 
         let mut deserializer: Deserializer<TestMessage> = Deserializer::new();
 
-        deserializer.deserialize(&[0u8.set_bits(5..8, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
+        deserializer.deserialize(&mut [0u8.set_bits(5..8, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
         
         let parsed_message = deserializer.into_structure().unwrap();
 

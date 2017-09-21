@@ -1,3 +1,5 @@
+#![recursion_limit="128"]
+
 extern crate proc_macro;
 extern crate syn;
 #[macro_use]
@@ -124,6 +126,87 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         serialize_builder
     };
 
+    let deserialize_body = {
+        let mut deserialize_builder = Tokens::new();
+        let mut field_index = Tokens::new();
+
+        field_index.append(quote!{0});
+        
+        for (i, field) in variant_data.fields().iter().enumerate() {
+            let field_ident = &field.ident;
+            let field_type = &field.ty;
+            let field_type_path_segment: &syn::Ident = {
+                if let syn::Ty::Path(_, ref path) = *field_type {
+                    &path.segments.as_slice().last().unwrap().ident
+                } else {
+                    panic!("Type name not found")
+                }
+            };
+            
+            if i != 0 { deserialize_builder.append(quote!{ else });}
+            
+            if is_primitive_type(field_type) {
+                deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                    if self.#field_ident.deserialize(bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                        *flattened_field += 1;
+                        *bit = 0;
+                    } else {
+                        return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                    }
+                }});                
+                field_index.append(quote!{ +1});
+            } else if is_dynamic_array(field_type) {
+                let element_type = {
+                    if let syn::Ty::Path(_, ref path) = *field_type {
+                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
+                            &param_data.types[0]
+                        } else {
+                            panic!("Element type name not found")
+                        }
+                    } else {
+                        panic!("Type name not found")
+                    }
+                };
+                
+                // check for tail optimization
+                if i == variant_data.fields().len() - 1 {
+                    deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                        let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
+                        self.#field_ident.set_length( ( #element_type::bit_length()-1 + *bit + buffer.bit_length()) / #element_type::bit_length() );
+                        self.#field_ident.deserialize(&mut skewed_bit, buffer);
+                        *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
+                        return uavcan::deserializer::DeserializationResult::Finished;                         
+                    }});
+                    field_index.append(quote!{ +1});
+                } else {
+                    deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if self.#field_ident.deserialize(bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                        }
+                    }});
+                    field_index.append(quote!{ +1});
+                }
+            } else {                
+                deserialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + self.#field_ident.flattened_fields_len() {
+                    let mut current_field = *flattened_field - #field_index;
+                    if self.#field_ident.deserialize(&mut current_field, bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                        *flattened_field = #field_index + self.#field_ident.flattened_fields_len();
+                        *bit = 0;
+                    } else {
+                        *flattened_field = #field_index + current_field;
+                        return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                    }
+                }});
+                field_index.append(quote!{ +self.#field_ident.flattened_fields_len()});
+            }
+        }
+        deserialize_builder
+
+    };
+
     let field_as_mut_body = {
         let mut primitive_fields_builder = Tokens::new();
         let mut primitive_fields_cases = Tokens::new();
@@ -199,6 +282,13 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     #serialize_body
                 }
                 uavcan::SerializationResult::Finished
+            }
+
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::deserializer::DeserializationBuffer) -> uavcan::deserializer::DeserializationResult {
+                while *flattened_field != self.flattened_fields_len(){
+                    #deserialize_body
+                }
+                uavcan::DeserializationResult::Finished
             }
 
             fn field_as_mut(&mut self, field_number: usize) -> uavcan::MutUavcanField {
