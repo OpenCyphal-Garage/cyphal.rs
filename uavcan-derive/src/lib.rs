@@ -299,17 +299,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     
     
-    
     quote!{
-        impl uavcan::AsUavcanField for #name{
-            fn as_uavcan_field(&self) -> uavcan::UavcanField{
-                uavcan::UavcanField::UavcanStruct(self)
-            }
-            fn as_mut_uavcan_field(&mut self) -> uavcan::MutUavcanField{
-                uavcan::MutUavcanField::UavcanStruct(self)
-            }
-        }
-
         impl UavcanStruct for #name {
             fn tail_array_optimizable(&self) -> bool {
                 #tail_array_optimizable
@@ -341,13 +331,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 uavcan::DeserializationResult::Finished
             }
 
-            fn field_as_mut(&mut self, field_number: usize) -> uavcan::MutUavcanField {
-                #field_as_mut_body
-            }
-
-            fn field(&self, field_number: usize) -> uavcan::UavcanField {
-                #field_body
-            }
         }
 
     }

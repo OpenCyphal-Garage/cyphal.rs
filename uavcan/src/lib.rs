@@ -134,72 +134,13 @@ pub trait ServiceFrameHeader : UavcanHeader {
 pub trait UavcanStruct {
     
     fn fields_len(&self) -> usize;    
-    fn field(&self, field_number: usize) -> UavcanField;
-    fn field_as_mut(&mut self, field_number: usize) -> MutUavcanField;
-    
+
     fn flattened_fields_len(&self) -> usize;
 
     fn tail_array_optimizable(&self) -> bool;
     fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-    
-    fn flattened_field(&self, field_number: usize) -> UavcanField {
-        assert!(field_number < self.flattened_fields_len());
-        
-        let mut accumulated_fields_len = 0;
-        let mut current_field = 0;
-        loop {
-            let current_field_len = match self.field(current_field) {
-                UavcanField::PrimitiveType(_x) => 1,
-                UavcanField::DynamicArray(_x) => 1,
-                UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
-            };
-            
-            if accumulated_fields_len + current_field_len > field_number {
-                break;
-            } else {
-                accumulated_fields_len += current_field_len;
-                current_field += 1;
-            }
-        }
-
-        match self.field(current_field) {
-            UavcanField::UavcanStruct(x) => x.flattened_field(field_number - accumulated_fields_len),
-            x => x,
-        }
-
-    }
-    
-    
-    fn flattened_field_as_mut(&mut self, field_number: usize) -> MutUavcanField {
-        assert!(field_number < self.flattened_fields_len());
-        
-        let mut accumulated_fields_len = 0;
-        let mut current_field = 0;
-        loop {
-            let current_field_len = match self.field(current_field) {
-                UavcanField::PrimitiveType(_x) => 1,
-                UavcanField::DynamicArray(_x) => 1,
-                UavcanField::UavcanStruct(x) => x.flattened_fields_len(),                
-            };
-            
-            if accumulated_fields_len + current_field_len > field_number {
-                break;
-            } else {
-                accumulated_fields_len += current_field_len;
-                current_field += 1;
-            }
-            
-        }
-
-        match self.field_as_mut(current_field) {
-            MutUavcanField::UavcanStruct(x) => x.flattened_field_as_mut(field_number - accumulated_fields_len),
-            x => x,
-        }
-        
-    }
-
 }
 
 
@@ -287,37 +228,6 @@ impl DynamicArrayLength {
 
 
 
-/// An UavcanField is a field of a flatted out uavcan struct
-///
-/// It's a superset of Primitive Data Types from the uavcan protocol
-/// also containing both constant and variable size arrays.
-///
-/// All primitive data types have 1 primitive fields,
-/// All composite data structures have the same number of primtiive fields
-/// as the sum of their members. Except the variable length array.
-/// This array has number of primitive fields as their members (elements)+1
-pub enum UavcanField<'a>{
-    PrimitiveType(&'a UavcanPrimitiveType),
-    DynamicArray(&'a DynamicArray),
-    UavcanStruct(&'a UavcanStruct),
-}
-
-pub enum MutUavcanField<'a>{
-    PrimitiveType(&'a mut UavcanPrimitiveType),
-    DynamicArray(&'a mut DynamicArray),
-    UavcanStruct(&'a mut UavcanStruct),
-}
-
-pub trait AsUavcanField {
-    fn as_uavcan_field(&self) -> UavcanField; 
-    fn as_mut_uavcan_field(&mut self) -> MutUavcanField; 
-}
-
-
-
-
-
-
 
 
 pub trait UavcanPrimitiveType {
@@ -345,15 +255,16 @@ pub trait UavcanFrame<H: UavcanHeader, B: UavcanStruct> {
 
 
 
+
+
+
+
 #[cfg(test)]
 mod tests {
 
     use {
         TransportFrame,
         UavcanStruct,
-        UavcanField,
-        MutUavcanField,
-        AsUavcanField,
     };
     
     use types::*;

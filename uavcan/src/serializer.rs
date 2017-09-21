@@ -3,7 +3,6 @@ use types::*;
 use {
     UavcanStruct,
     UavcanPrimitiveType,
-    UavcanField,
     DynamicArray,
     DynamicArrayLength,
 };
@@ -108,9 +107,6 @@ mod tests {
 
     use {
         UavcanStruct,
-        UavcanField,
-        MutUavcanField,
-        AsUavcanField,
         UavcanPrimitiveType,
     };
 

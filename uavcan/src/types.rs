@@ -10,9 +10,6 @@ use lib::core::ops::{
 };
 
 use {
-    UavcanField,
-    MutUavcanField,
-    AsUavcanField,
     UavcanPrimitiveType,
     DynamicArray,
     DynamicArrayLength,
@@ -205,14 +202,6 @@ pub struct Float64 {
     value: f64,
 }
 
-impl<T: UavcanPrimitiveType> AsUavcanField for T {
-    fn as_uavcan_field(&self) -> UavcanField {
-        UavcanField::PrimitiveType(self)
-    }
-    fn as_mut_uavcan_field(&mut self) -> MutUavcanField {
-        MutUavcanField::PrimitiveType(self)
-    }
-}
 
 macro_rules! dynamic_array_def {
     ($i:ident, $n:expr, $log_bits:expr) => {
@@ -375,15 +364,6 @@ macro_rules! dynamic_array_def {
             
         }
         
-        impl<'a, T: UavcanPrimitiveType> AsUavcanField for $i<T> where $i<T> : 'a{
-            fn as_uavcan_field(&self) -> UavcanField {
-                UavcanField::DynamicArray(self)
-            }
-            fn as_mut_uavcan_field(&mut self) -> MutUavcanField {
-                MutUavcanField::DynamicArray(self)
-            }
-        }
-
         // This is needed since it can't be derived for arrays larger than 32 yet
         impl<T: UavcanPrimitiveType + cmp::PartialEq> cmp::PartialEq for $i<T> {
             fn eq(&self, other: &Self) -> bool {

@@ -12,7 +12,6 @@ use {
     UavcanPrimitiveType,
     DynamicArrayLength,
     DynamicArray,
-    MutUavcanField,
 };
 
 #[derive(Debug, PartialEq)]
@@ -133,9 +132,6 @@ mod tests {
         SerializationBuffer,
         SerializationResult,
         UavcanStruct,
-        UavcanField,
-        MutUavcanField,
-        AsUavcanField,
         DynamicArray,
         UavcanPrimitiveType,
     };
