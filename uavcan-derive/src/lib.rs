@@ -25,8 +25,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         Body::Struct(ref variant_data) => variant_data,
     };
 
-    let number_of_fields = variant_data.fields().len();
-    
     let tail_array_optimizable = is_dynamic_array(&variant_data.fields().last().unwrap().ty);        
 
     let number_of_flattened_fields = {
@@ -252,10 +250,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         impl UavcanStruct for #name {
             const TAIL_ARRAY_OPTIMIZABLE: bool = #tail_array_optimizable;
             
-            fn fields_len(&self) -> usize {
-                #number_of_fields
-            }
-
             fn flattened_fields_len(&self) -> usize {
                 #number_of_flattened_fields
             }

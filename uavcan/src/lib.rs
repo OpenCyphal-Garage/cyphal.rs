@@ -134,8 +134,6 @@ pub trait ServiceFrameHeader : UavcanHeader {
 pub trait UavcanStruct {
     const TAIL_ARRAY_OPTIMIZABLE: bool;
     
-    fn fields_len(&self) -> usize;    
-
     fn flattened_fields_len(&self) -> usize;
 
     fn bit_length(&self) -> usize;
