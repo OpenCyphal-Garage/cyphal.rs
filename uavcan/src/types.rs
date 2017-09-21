@@ -23,6 +23,11 @@ use serializer::{
     SerializationBuffer,
 };
 
+use deserializer::{
+    DeserializationResult,
+    DeserializationBuffer,
+};
+
 
 
 #[derive(Default, Clone, Copy, Debug, PartialEq)]
@@ -317,8 +322,56 @@ macro_rules! dynamic_array_def {
 
                 SerializationResult::Finished
             }
+            
+            fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                
+                // deserialize length
+                if *bit < self.length().bit_length {
+                    let mut length = self.length();
+                    match length.deserialize(bit, buffer) {
+                        DeserializationResult::Finished => {
+                            self.set_length(length.current_length); // ugly hack, fix when dispatching is mostly done static
+                        }, 
+                        DeserializationResult::BufferInsufficient => {
+                            return DeserializationResult::BufferInsufficient
+                        },
+                    }
+                }
+                
+                let mut start_element = (*bit - Self::length_bit_length()) / Self::element_bit_length();
+                let start_element_bit = (*bit - Self::length_bit_length()) % Self::element_bit_length();
+                
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    let mut bits_deserialized = start_element_bit;
+                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                    start_element += 1;
+                }
+                
+                for i in start_element..self.length().current_length {
+                    let mut bits_deserialized = start_element_bit;
+                    match self[i].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                }
 
-
+                DeserializationResult::Finished
+            }
+            
             
         }
         
@@ -464,6 +517,17 @@ macro_rules! impl_serialize_for_primitive_type {
             }
             
             SerializationResult::BufferFull
+        }
+
+        fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            if buffer.bit_length() + *bit < Self::bit_length() {
+                DeserializationResult::BufferInsufficient
+            } else {
+                self.set_bits(*bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-*bit));
+                *bit += Self::bit_length();
+                DeserializationResult::Finished
+            }
+            
         }
 
 

@@ -52,6 +52,11 @@ pub use serializer::{
     SerializationBuffer,        
 };
 
+use deserializer::{
+    DeserializationResult,
+    DeserializationBuffer,
+};
+
 
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///
@@ -194,12 +199,15 @@ pub trait UavcanStruct {
 }
 
 
+
+
+
 pub struct DynamicArrayLength {
     bit_length: usize,
     current_length: usize,
 }
 
-pub trait DynamicArray : serializer::Serialize + deserializer::Deserialize {
+pub trait DynamicArray : serializer::Serialize {
     fn max_size() -> usize where Self: Sized;
     
     fn length_bit_length() -> usize where Self: Sized;
@@ -209,6 +217,7 @@ pub trait DynamicArray : serializer::Serialize + deserializer::Deserialize {
     fn set_length(&mut self, length: usize);
 
     fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
 
 }
 
@@ -255,6 +264,16 @@ impl DynamicArrayLength {
 
     }
 
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+        if buffer.bit_length() + *bit < self.bit_length {
+            DeserializationResult::BufferInsufficient
+        } else {
+            self.current_length.set_bits(*bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-*bit) as usize);
+            *bit += self.bit_length;
+            DeserializationResult::Finished
+        }
+    }
+        
 }
 
 
@@ -294,12 +313,13 @@ pub trait AsUavcanField {
 
 
 
-pub trait UavcanPrimitiveType : serializer::Serialize + deserializer::Deserialize {
+pub trait UavcanPrimitiveType : serializer::Serialize {
     fn bit_length() -> usize where Self: Sized;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
     fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+
 }
 
 
