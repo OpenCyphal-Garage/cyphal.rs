@@ -250,9 +250,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     quote!{
         impl UavcanStruct for #name {
-            fn tail_array_optimizable(&self) -> bool {
-                #tail_array_optimizable
-            }
+            const TAIL_ARRAY_OPTIMIZABLE: bool = #tail_array_optimizable;
             
             fn fields_len(&self) -> usize {
                 #number_of_fields

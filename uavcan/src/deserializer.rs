@@ -105,7 +105,7 @@ impl<T: UavcanStruct> Deserializer<T> {
 
         let finished = if number_of_fields == self.field_index {
             true
-        } else if number_of_fields - 1 == self.field_index && self.structure.tail_array_optimizable(){
+        } else if number_of_fields - 1 == self.field_index && T::TAIL_ARRAY_OPTIMIZABLE{
             true
         } else {
             false
