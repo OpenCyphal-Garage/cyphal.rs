@@ -34,15 +34,10 @@ impl<'a> SerializationBuffer<'a> {
 }
 
 pub trait Serialize {
-    fn bits_remaining(&self, start_bit: usize) -> usize;
     fn tail_optimizable(&self) -> bool;
 }
 
 impl Serialize for DynamicArrayLength {
-    fn bits_remaining(&self, start_bit: usize) -> usize {
-        assert!(start_bit < self.bit_length);
-        self.bit_length - start_bit
-    }           
 
     fn tail_optimizable(&self) -> bool {false}
     
@@ -51,10 +46,6 @@ impl Serialize for DynamicArrayLength {
 macro_rules! impl_serialize_for_primitive_type {
     ($type:ident) => {
         impl Serialize for $type {
-            fn bits_remaining(&self, start_bit: usize) -> usize {
-                assert!(start_bit < Self::bit_length());
-                Self::bit_length() - start_bit
-            }
 
             fn tail_optimizable(&self) -> bool {false}
 
@@ -65,11 +56,6 @@ macro_rules! impl_serialize_for_primitive_type {
 macro_rules! impl_serialize_for_dynamic_array {
     ($type:ident) => {
         impl<T: UavcanPrimitiveType> Serialize for $type<T> {
-            
-            fn bits_remaining(&self, start_bit: usize) -> usize {
-                assert!(start_bit < T::bit_length() * self.length().current_length);
-                T::bit_length() * self.length().current_length - start_bit
-            }
             
             fn tail_optimizable(&self) -> bool {Self::element_bit_length() <= 8}
         }
