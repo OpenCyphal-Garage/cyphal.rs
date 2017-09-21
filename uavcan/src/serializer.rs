@@ -144,34 +144,8 @@ impl<T: UavcanStruct> Serializer<T> {
         self.structure.serialize(&mut self.field_index, &mut self.bit_index, buffer)
     }
 
-
-    pub fn bits_remaining(&self) -> usize {
-        let mut bits_counted = 0;
-        
-        let mut field_index = self.field_index;
-        let mut bit_index = self.bit_index;
-
-        loop {
-            if field_index == self.structure.flattened_fields_len() {
-                return bits_counted;
-            }
-            
-            bits_counted += match self.structure.flattened_field(field_index) {
-                UavcanField::PrimitiveType(primitive_type) => {
-                    primitive_type.bits_remaining(bit_index)
-                },
-                UavcanField::DynamicArray(array) => {
-                    array.bits_remaining(bit_index)
-                },
-                UavcanField::UavcanStruct(_struct) => {
-                    unreachable!()
-                },
-            };
-
-            bit_index = 0;
-            field_index += 1;
-
-        }
+    pub fn single_frame_transfer(&self) -> bool {
+        self.structure.bit_length() <= 8*8
     }
 
     pub fn crc(&mut self, data_type_signature: u64) -> u16 {
@@ -372,36 +346,5 @@ mod tests {
     }
 
     
-    #[test]
-    fn remaining_bits() {
-
-        #[derive(UavcanStruct)]
-        struct NodeStatus {
-            uptime_sec: Uint32,
-            health: Uint2,
-            mode: Uint3,
-            sub_mode: Uint3,
-            vendor_specific_status_code: Uint16,
-        }
-
-        let message = NodeStatus{
-            uptime_sec: 1.into(),
-            health: 2.into(),
-            mode: 3.into(),
-            sub_mode: 4.into(),
-            vendor_specific_status_code: 5.into(),
-        };
-
-        let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
-
-        assert_eq!(serializer.bits_remaining(), 56);
-
-        let mut array: [u8; 7] = [0; 7];
-        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
-        serializer.serialize(&mut buffer);
-
-        assert_eq!(serializer.bits_remaining(), 0);
-    }
-   
 }
 

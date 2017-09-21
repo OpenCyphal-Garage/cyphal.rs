@@ -16,6 +16,7 @@ pub struct FrameGenerator<B: UavcanStruct> {
     serializer: Serializer<B>,
     data_type_signature: u64,
     started: bool,
+    finished: bool,
     id: u32,
     toggle: bool,
     transfer_id: u8,
@@ -28,6 +29,7 @@ impl<B: UavcanStruct> FrameGenerator<B> {
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
+            finished: false,
             data_type_signature: dts,
             id: header.id(),
             toggle: false,
@@ -36,14 +38,13 @@ impl<B: UavcanStruct> FrameGenerator<B> {
     }
     
     pub fn next_transport_frame<T: TransportFrame>(&mut self) -> Option<T> {
-        let remaining_bits = self.serializer.bits_remaining();
         let max_data_length = T::max_data_length();
         let max_payload_length = max_data_length - 1;
         let mut transport_frame = T::with_length(self.id, max_data_length);
         
-        let first_of_multi_frame = !self.started && (remaining_bits > max_payload_length*8);
+        let first_of_multi_frame = !self.started && !self.serializer.single_frame_transfer();
 
-        if remaining_bits == 0 {
+        if self.finished {
             return None;
         } else if first_of_multi_frame {
             let crc = self.serializer.crc(self.data_type_signature);
@@ -58,6 +59,7 @@ impl<B: UavcanStruct> FrameGenerator<B> {
             let (frame_length, end_of_transfer) = {
                 let mut buffer = SerializationBuffer{data: &mut transport_frame.data_as_mut()[0..max_data_length-1], bit_index: 0};
                 if SerializationResult::Finished == self.serializer.serialize(&mut buffer){
+                    self.finished = true;
                     ((buffer.bit_index+7)/8 + 1, true)
                 } else {
                     (max_data_length, false)

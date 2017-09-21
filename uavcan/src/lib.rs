@@ -138,6 +138,7 @@ pub trait UavcanStruct {
     
     fn flattened_fields_len(&self) -> usize;
 
+    fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
     

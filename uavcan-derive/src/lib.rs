@@ -207,6 +207,46 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
     };
 
+        let bit_length_body = {
+        let mut bit_length_builder = Tokens::new();
+        
+        for (i, field) in variant_data.fields().iter().enumerate() {
+            let field_type = &field.ty;
+            let field_type_path_segment: &syn::Ident = {
+                if let syn::Ty::Path(_, ref path) = *field_type {
+                    &path.segments.as_slice().last().unwrap().ident
+                } else {
+                    panic!("Type name not found")
+                }
+            };
+            
+            if i != 0 {bit_length_builder.append(quote!{ + });}
+            
+            if i == variant_data.fields().len() - 1 && is_dynamic_array(field_type) {
+                let element_type = {
+                    if let syn::Ty::Path(_, ref path) = *field_type {
+                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
+                            &param_data.types[0]
+                        } else {
+                            panic!("Element type name not found")
+                        }
+                    } else {
+                        panic!("Type name not found")
+                    }
+                };
+                
+                bit_length_builder.append(bit_length(field));
+                bit_length_builder.append(quote!{ - #field_type_path_segment::<#element_type>::length_bit_length()});
+            } else {
+                bit_length_builder.append(bit_length(field));
+            }
+        }
+        
+        bit_length_builder
+    };
+    
+
+
     let field_as_mut_body = {
         let mut primitive_fields_builder = Tokens::new();
         let mut primitive_fields_cases = Tokens::new();
@@ -275,6 +315,10 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
             fn flattened_fields_len(&self) -> usize {
                 #number_of_flattened_fields
+            }
+
+            fn bit_length(&self) -> usize {
+                #bit_length_body
             }
 
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::serializer::SerializationBuffer) -> uavcan::serializer::SerializationResult {
@@ -352,5 +396,37 @@ fn number_of_flattened_fields(field: &syn::Field) -> Tokens {
     } else {
         let ident = &field.ident;
         quote!{self.#ident.flattened_fields_len()}
+    }
+}
+
+fn bit_length(field: &syn::Field) -> Tokens {
+    let field_ident = &field.ident;
+    let field_type = &field.ty;
+    let field_type_path_segment: &syn::Ident = {
+        if let syn::Ty::Path(_, ref path) = *field_type {
+            &path.segments.as_slice().last().unwrap().ident
+        } else {
+            panic!("Type name not found")
+        }
+    };
+
+    if is_primitive_type(field_type) {
+        quote!{#field_type::bit_length()}
+    } else if is_dynamic_array(field_type) {
+        let element_type = {
+            if let syn::Ty::Path(_, ref path) = *field_type {
+                if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
+                    &param_data.types[0]
+                } else {
+                    panic!("Element type name not found")
+                }
+            } else {
+                panic!("Type name not found")
+            }
+        };
+
+        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::bit_length())}
+    } else {
+        quote!{self.#field_ident.bit_length()}
     }
 }
