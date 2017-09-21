@@ -22,15 +22,16 @@ pub enum DeserializationResult {
 }
 
 pub trait Deserialize {
-    fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
 }
 
 impl Deserialize for DynamicArrayLength {
-    fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-        if buffer.bit_length() + start_bit < self.bit_length {
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+        if buffer.bit_length() + *bit < self.bit_length {
             DeserializationResult::BufferInsufficient(0)
         } else {
-            self.current_length.set_bits(start_bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-start_bit) as usize);
+            self.current_length.set_bits(*bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-*bit) as usize);
+            *bit += self.bit_length;
             DeserializationResult::Finished(self.bit_length)
         }
     }
@@ -39,11 +40,12 @@ impl Deserialize for DynamicArrayLength {
 macro_rules! impl_deserialize_for_primitive_type {
     ($type:ident) => {
         impl Deserialize for $type {
-            fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-                if buffer.bit_length() + start_bit < Self::bit_length() {
+            fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                if buffer.bit_length() + *bit < Self::bit_length() {
                     DeserializationResult::BufferInsufficient(0)
                 } else {
-                    self.set_bits(start_bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-start_bit));
+                    self.set_bits(*bit..Self::bit_length(), buffer.pop_bits(Self::bit_length()-*bit));
+                    *bit += Self::bit_length();
                     DeserializationResult::Finished(Self::bit_length())
                 }
             }
@@ -71,34 +73,52 @@ impl_deserialize_for_primitive_type!(Float16);
 macro_rules! impl_deserialize_for_dynamic_array {
     ($type:ident) => {
         impl<T: UavcanPrimitiveType + Deserialize> Deserialize for $type<T> {
-            fn deserialize(&mut self, start_bit: usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 let mut bits_deserialized: usize = 0;
                 
                 // deserialize length
-                if start_bit < self.length().bit_length {
+                if *bit < self.length().bit_length {
                     let mut length = self.length();
-                    match length.deserialize(start_bit, buffer) {
-                        DeserializationResult::Finished(bits) => {self.set_length(length.current_length); bits_deserialized += bits}, // ugly hack, fix when dispatching is mostly done static
-                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),
+                    match length.deserialize(bit, buffer) {
+                        DeserializationResult::Finished(bits) => {
+                            self.set_length(length.current_length); // ugly hack, fix when dispatching is mostly done static
+                            bits_deserialized += bits;
+                        }, 
+                        DeserializationResult::BufferInsufficient(bits) => {
+                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits)
+                        },
                     }
                 }
                 
-                let mut start_element = (start_bit + bits_deserialized - Self::length_bit_length()) / Self::element_bit_length();
-                let start_element_bit = (start_bit + bits_deserialized - Self::length_bit_length()) % Self::element_bit_length();
+                let mut start_element = (*bit - Self::length_bit_length()) / Self::element_bit_length();
+                let start_element_bit = (*bit - Self::length_bit_length()) % Self::element_bit_length();
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
-                    match self[start_element].deserialize(start_element_bit, buffer) {
-                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
-                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),
+                    let mut bit_counter = start_element_bit;
+                    match self[start_element].deserialize(&mut bit_counter, buffer) {
+                        DeserializationResult::Finished(bits) => {
+                            bits_deserialized += bits;
+                            *bit += bits;
+                        },
+                        DeserializationResult::BufferInsufficient(bits) => {
+                            *bit += bits;
+                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits);
+                        },
                     }
                     start_element += 1;
                 }
 
                 for i in start_element..self.length().current_length {
-                    match self[i].deserialize(0, buffer) {
-                        DeserializationResult::Finished(bits) => bits_deserialized += bits,
-                        DeserializationResult::BufferInsufficient(bits) => return DeserializationResult::BufferInsufficient(bits_deserialized + bits),                        
+                    match self[i].deserialize(&mut 0, buffer) {
+                        DeserializationResult::Finished(bits) => {
+                            bits_deserialized += bits;
+                            *bit += bits;
+                        },
+                        DeserializationResult::BufferInsufficient(bits) => {
+                            *bit += bits;
+                            return DeserializationResult::BufferInsufficient(bits_deserialized + bits);
+                        },
                     }
                 }
 
@@ -215,7 +235,7 @@ impl<T: UavcanStruct> Deserializer<T> {
             loop {
                 match self.structure.flattened_field_as_mut(self.field_index) {
                     MutUavcanField::PrimitiveType(primitive_type) => {
-                        match primitive_type.deserialize(self.bit_index, &mut self.buffer) {
+                        match primitive_type.deserialize(&mut self.bit_index, &mut self.buffer) {
                             DeserializationResult::Finished(bits) => {
                                 bits_deserialized += bits;
                                 self.field_index += 1;
@@ -223,14 +243,13 @@ impl<T: UavcanStruct> Deserializer<T> {
                             },
                             DeserializationResult::BufferInsufficient(bits) => {
                                 bits_deserialized += bits;
-                                self.bit_index += bits;
                                 break;
                             },
                         }
                     },
                     MutUavcanField::DynamicArray(array) => {
                         let array_optimization = self.field_index == flattened_fields-1 && array.tail_optimizable();
-                        let bit_index = if array_optimization {
+                        let mut bit_index = if array_optimization {
                             if self.bit_index == 0 {
                                 array.set_length(1)
                             } else {
@@ -241,7 +260,7 @@ impl<T: UavcanStruct> Deserializer<T> {
                         } else {
                             self.bit_index
                         };
-                        match array.deserialize(bit_index, &mut self.buffer) {
+                        match array.deserialize(&mut bit_index, &mut self.buffer) {
                             DeserializationResult::Finished(bits) => {
                                 if array_optimization {
                                     bits_deserialized += bits;
