@@ -106,12 +106,8 @@ impl<T: UavcanStruct> Deserializer<T> {
 
         let finished = if number_of_fields == self.field_index {
             true
-        } else if let MutUavcanField::DynamicArray(array) = self.structure.flattened_field_as_mut(self.field_index) {
-            if array.tail_optimizable() {
-                true
-            } else {
-                false
-            }
+        } else if number_of_fields - 1 == self.field_index && self.structure.tail_array_optimizable(){
+            true
         } else {
             false
         };
