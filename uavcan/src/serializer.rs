@@ -1,8 +1,8 @@
 use types::*;
 
 use {
-    UavcanStruct,
-    UavcanPrimitiveType,
+    Struct,
+    PrimitiveType,
     DynamicArray,
     DynamicArrayLength,
 };
@@ -114,14 +114,14 @@ impl<'a> SerializationBuffer<'a> {
 
 
 
-pub struct Serializer<T: UavcanStruct> {
+pub struct Serializer<T: Struct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
 }
 
 
-impl<T: UavcanStruct> Serializer<T> {
+impl<T: Struct> Serializer<T> {
     pub fn from_structure(structure: T) -> Self {
         Self{
             structure: structure,
@@ -186,8 +186,8 @@ mod tests {
     use uavcan;
 
     use {
-        UavcanStruct,
-        UavcanPrimitiveType,
+        Struct,
+        PrimitiveType,
     };
 
     use serializer::*;

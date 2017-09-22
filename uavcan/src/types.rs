@@ -10,7 +10,7 @@ use lib::core::ops::{
 };
 
 use {
-    UavcanPrimitiveType,
+    PrimitiveType,
     DynamicArray,
     DynamicArrayLength,
 };
@@ -206,12 +206,12 @@ pub struct Float64 {
 macro_rules! dynamic_array_def {
     ($i:ident, $n:expr, $log_bits:expr) => {
 
-        pub struct $i<T: UavcanPrimitiveType> {
+        pub struct $i<T: PrimitiveType> {
             current_size: usize,
             data: [T; $n],
         }
         
-        impl<T: UavcanPrimitiveType + Copy> $i<T> {
+        impl<T: PrimitiveType + Copy> $i<T> {
             pub fn with_data(data: &[T]) -> Self {
                 let mut data_t = [data[0]; $n];
                 for i in 0..data.len() {
@@ -241,7 +241,7 @@ macro_rules! dynamic_array_def {
             }
         }
 
-        impl<T: UavcanPrimitiveType> Index<usize> for $i<T> {
+        impl<T: PrimitiveType> Index<usize> for $i<T> {
             type Output = T;
             
             fn index(&self, index: usize) -> &T {
@@ -249,7 +249,7 @@ macro_rules! dynamic_array_def {
             }
         }
         
-        impl< T: UavcanPrimitiveType> IndexMut<usize> for $i<T> {
+        impl< T: PrimitiveType> IndexMut<usize> for $i<T> {
             fn index_mut(&mut self, index: usize) -> &mut T {
                 &mut self.data[0..self.current_size][index]
             }
@@ -257,7 +257,7 @@ macro_rules! dynamic_array_def {
 
 
             
-        impl<T: UavcanPrimitiveType> DynamicArray for $i<T> {
+        impl<T: PrimitiveType> DynamicArray for $i<T> {
             fn length_bit_length() -> usize {$log_bits}
             
             fn length(&self) -> DynamicArrayLength {DynamicArrayLength{bit_length: $log_bits, current_length: self.current_size}}
@@ -362,7 +362,7 @@ macro_rules! dynamic_array_def {
         }
         
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: UavcanPrimitiveType + cmp::PartialEq> cmp::PartialEq for $i<T> {
+        impl<T: PrimitiveType + cmp::PartialEq> cmp::PartialEq for $i<T> {
             fn eq(&self, other: &Self) -> bool {
                 if self.current_size != other.current_size {
                     return false;
@@ -379,7 +379,7 @@ macro_rules! dynamic_array_def {
         }
             
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: UavcanPrimitiveType + fmt::Debug> fmt::Debug for $i<T> {
+        impl<T: PrimitiveType + fmt::Debug> fmt::Debug for $i<T> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "$i<T> {{ data: [")?;
                 for i in 0..self.current_size {
@@ -499,63 +499,63 @@ macro_rules! impl_serialize_for_primitive_type {
 }
 
 
-impl UavcanPrimitiveType for Uint2 {
+impl PrimitiveType for Uint2 {
     #[inline] fn bit_length() -> usize { 2 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint3 {
+impl PrimitiveType for Uint3 {
     #[inline] fn bit_length() -> usize { 3 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint4 {
+impl PrimitiveType for Uint4 {
     #[inline] fn bit_length() -> usize { 4 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint5 {
+impl PrimitiveType for Uint5 {
     #[inline] fn bit_length() -> usize { 5 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint7 {
+impl PrimitiveType for Uint7 {
     #[inline] fn bit_length() -> usize { 7 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint8 {
+impl PrimitiveType for Uint8 {
     #[inline] fn bit_length() -> usize { 8 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Uint16 {
+impl PrimitiveType for Uint16 {
     #[inline] fn bit_length() -> usize { 16 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u16); }
     impl_serialize_for_primitive_type!();
 }
     
-impl UavcanPrimitiveType for Uint32 {
+impl PrimitiveType for Uint32 {
     #[inline] fn bit_length() -> usize { 32 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u32); }
     impl_serialize_for_primitive_type!();
 }
 
-impl UavcanPrimitiveType for Float16 {
+impl PrimitiveType for Float16 {
     #[inline] fn bit_length() -> usize { 16 }
     #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.as_bits().get_bits(range.start as u8..range.end as u8) as u64}
     #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.as_bits().set_bits((range.start as u8..range.end as u8), value as u16); }

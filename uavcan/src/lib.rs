@@ -112,7 +112,7 @@ impl From<u8> for TailByte {
 
 
 
-pub trait UavcanHeader {
+pub trait Header {
     fn from_id(u32) -> Result<Self, ()> where Self: Sized;
     
     fn id(&self) -> u32;
@@ -120,19 +120,19 @@ pub trait UavcanHeader {
     fn get_priority(&self) -> u8;
 }
 
-pub trait MessageFrameHeader : UavcanHeader {
+pub trait MessageFrameHeader : Header {
     const TYPE_ID: u16;
     
     fn new(priority: u8, source_node: u8) -> Self;
 }
 
-pub trait AnonymousFrameHeader : UavcanHeader {
+pub trait AnonymousFrameHeader : Header {
     const TYPE_ID: u8;
     
     fn new(priority: u8, discriminator: u16) -> Self;
 }
 
-pub trait ServiceFrameHeader : UavcanHeader {
+pub trait ServiceFrameHeader : Header {
     const TYPE_ID: u8;
     
     fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
@@ -142,7 +142,7 @@ pub trait ServiceFrameHeader : UavcanHeader {
 
 
 
-pub trait UavcanStruct {
+pub trait Struct {
     const TAIL_ARRAY_OPTIMIZABLE: bool;
     const FLATTENED_FIELDS_NUMBER: usize;
 
@@ -209,7 +209,7 @@ impl DynamicArrayLength {
 
 
 
-pub trait UavcanPrimitiveType {
+pub trait PrimitiveType {
     fn bit_length() -> usize where Self: Sized;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
@@ -223,9 +223,9 @@ pub trait UavcanPrimitiveType {
 
 
 
-pub trait UavcanFrame {
-    type Header : UavcanHeader;
-    type Body : UavcanStruct;
+pub trait Frame {
+    type Header : Header;
+    type Body : Struct;
 
     const DATA_TYPE_SIGNATURE: u64;
     
@@ -247,7 +247,7 @@ mod tests {
 
     use {
         TransferFrame,
-        UavcanStruct,
+        Struct,
     };
     
     use types::*;

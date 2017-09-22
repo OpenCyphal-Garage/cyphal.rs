@@ -10,8 +10,8 @@ use types::*;
 pub use serializer::SerializationBuffer as DeserializationBuffer;
 
 use {
-    UavcanStruct,
-    UavcanPrimitiveType,
+    Struct,
+    PrimitiveType,
     DynamicArrayLength,
     DynamicArray,
 };
@@ -24,13 +24,13 @@ pub enum DeserializationResult {
 
 
 
-pub struct Deserializer<T: UavcanStruct> {
+pub struct Deserializer<T: Struct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
 }
 
-impl<T: UavcanStruct> Deserializer<T> {
+impl<T: Struct> Deserializer<T> {
     pub fn new() -> Deserializer<T> {
         let structure: T;
         unsafe {
@@ -75,9 +75,9 @@ mod tests {
     use {
         SerializationBuffer,
         SerializationResult,
-        UavcanStruct,
+        Struct,
         DynamicArray,
-        UavcanPrimitiveType,
+        PrimitiveType,
     };
 
     use deserializer::{

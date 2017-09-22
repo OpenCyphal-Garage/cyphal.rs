@@ -250,7 +250,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     
     quote!{
-        impl UavcanStruct for #name {
+        impl uavcan::Struct for #name {
             const TAIL_ARRAY_OPTIMIZABLE: bool = #tail_array_optimizable;
             const FLATTENED_FIELDS_NUMBER: usize = #number_of_flattened_fields;
 

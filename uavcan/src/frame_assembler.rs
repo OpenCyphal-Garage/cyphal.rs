@@ -1,10 +1,10 @@
 use bit_field::BitField;
 
 use {
-    UavcanFrame,
-    UavcanStruct,
+    Frame,
+    Struct,
     TransferFrame,
-    UavcanHeader,
+    Header,
 };
 
 use deserializer::{
@@ -24,7 +24,7 @@ pub enum AssemblerError {
     NotFinishedParsing,
 }
 
-pub struct FrameAssembler<F: UavcanFrame> {
+pub struct FrameAssembler<F: Frame> {
     deserializer: Deserializer<F::Body>,
     started: bool,
     id: u32,
@@ -34,7 +34,7 @@ pub struct FrameAssembler<F: UavcanFrame> {
     transfer_id: u8,    
 }
 
-impl<F: UavcanFrame> FrameAssembler<F> {
+impl<F: Frame> FrameAssembler<F> {
     pub fn new() -> Self {
         Self{
             deserializer: Deserializer::new(),
@@ -102,14 +102,14 @@ mod tests {
     use uavcan;
     
     use{
-        UavcanStruct,
-        UavcanHeader,
+        Struct,
+        Header,
         MessageFrameHeader,
-        UavcanFrame,
+        Frame,
         TailByte,
         DynamicArray,
         SerializationBuffer,
-        UavcanPrimitiveType,
+        PrimitiveType,
     };
     
     use types::{

@@ -7,7 +7,7 @@ macro_rules! message_frame_header{
             source_node: u8,
         }        
         
-        impl UavcanHeader for $t {
+        impl uavcan::Header for $t {
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
@@ -35,7 +35,7 @@ macro_rules! message_frame_header{
             }
         }
         
-        impl MessageFrameHeader for $t {
+        impl uavcan::MessageFrameHeader for $t {
             const TYPE_ID: u16 = $n;
             
             fn new(priority: u8, source_node: u8) -> Self {
@@ -58,7 +58,7 @@ macro_rules! anonymous_frame_header{
             type_id: u8,
         }
 
-        impl UavcanHeader for $t {
+        impl uavcan::Header for $t {
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, 0);
@@ -88,7 +88,7 @@ macro_rules! anonymous_frame_header{
             }
         }
         
-        impl AnonymousFrameHeader for $t {
+        impl uavcan::AnonymousFrameHeader for $t {
             const TYPE_ID: u8 = $n;
             
             fn new(priority: u8, discriminator: u16) -> Self {
@@ -114,7 +114,7 @@ macro_rules! service_frame_header{
             source_node: u8,
         }
 
-        impl UavcanHeader for $t {
+        impl uavcan::Header for $t {
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
@@ -144,7 +144,7 @@ macro_rules! service_frame_header{
             }
         }
                 
-        impl ServiceFrameHeader for $t {
+        impl uavcan::ServiceFrameHeader for $t {
             const TYPE_ID: u8 = $n;
             
             fn new(priority: u8, request_not_response: bool, source_node: u8, destination_node: u8) -> Self {
@@ -184,7 +184,7 @@ macro_rules! uavcan_frame{
 macro_rules! uavcan_frame_impls{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
         
-        impl UavcanFrame for $name {
+        impl uavcan::Frame for $name {
             type Header = $header_type;
             type Body = $body_type;
 

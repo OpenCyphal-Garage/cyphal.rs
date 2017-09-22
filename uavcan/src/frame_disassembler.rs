@@ -3,16 +3,16 @@ use bit_field::BitField;
 use {
     TailByte,
     TransferFrame,
-    UavcanFrame,
-    UavcanHeader,
-    UavcanStruct,
+    Frame,
+    Header,
+    Struct,
 };
 
 use serializer::*;
 
 
 
-pub struct FrameDisassembler<F: UavcanFrame> {
+pub struct FrameDisassembler<F: Frame> {
     serializer: Serializer<F::Body>,
     started: bool,
     finished: bool,
@@ -21,7 +21,7 @@ pub struct FrameDisassembler<F: UavcanFrame> {
     transfer_id: u8,
 }
 
-impl<F: UavcanFrame> FrameDisassembler<F> {
+impl<F: Frame> FrameDisassembler<F> {
     pub fn from_uavcan_frame(frame: F, transfer_id: u8) -> Self {
         let (header, body) = frame.to_parts();
         Self{
@@ -82,14 +82,14 @@ mod tests {
     use uavcan;
     
     use{
-        UavcanStruct,
-        UavcanHeader,
+        Struct,
+        Header,
         MessageFrameHeader,
-        UavcanFrame,
+        Frame,
         TailByte,
         DynamicArray,
         SerializationBuffer,
-        UavcanPrimitiveType,
+        PrimitiveType,
     };
 
     use bit_field::BitField;
