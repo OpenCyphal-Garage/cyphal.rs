@@ -258,8 +258,6 @@ macro_rules! dynamic_array_def {
 
             
         impl<T: UavcanPrimitiveType> DynamicArray for $i<T> {
-            fn max_size() -> usize {$n}
-            
             fn length_bit_length() -> usize {$log_bits}
             
             fn length(&self) -> DynamicArrayLength {DynamicArrayLength{bit_length: $log_bits, current_length: self.current_size}}

@@ -161,8 +161,6 @@ pub struct DynamicArrayLength {
 }
 
 pub trait DynamicArray {
-    fn max_size() -> usize where Self: Sized;
-    
     fn length_bit_length() -> usize where Self: Sized;
     
     fn length(&self) -> DynamicArrayLength;
