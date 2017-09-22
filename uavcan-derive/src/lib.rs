@@ -210,7 +210,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
     };
 
-        let bit_length_body = {
+    let bit_length_body = {
         let mut bit_length_builder = Tokens::new();
         
         for (i, field) in variant_data.fields().iter().enumerate() {
