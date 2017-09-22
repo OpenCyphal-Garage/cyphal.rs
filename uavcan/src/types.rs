@@ -460,42 +460,22 @@ impl From<Float64> for f64 {
 macro_rules! impl_serialize_for_primitive_type {
     () => {
         fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
-            let mut byte_start = buffer.bit_index / 8;
-            let odd_bits_start = buffer.bit_index % 8;
+            let type_bits_remaining = Self::bit_length() - *bit;
+            let buffer_bits_remaining = buffer.bits_remaining();
 
-            let mut remaining_bits = Self::bit_length() - *bit;
-            
-            // first get rid of the odd bits
-            if odd_bits_start != 0 && 8-odd_bits_start <= remaining_bits {
-                buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(*bit+8-odd_bits_start)) as u8);
-                *bit += 8-odd_bits_start;
-                buffer.bit_index += 8-odd_bits_start;
-                byte_start += 1;
-            } else if odd_bits_start != 0 && 8-odd_bits_start > remaining_bits {
-                buffer.data[byte_start].set_bits((odd_bits_start as u8)..8, self.get_bits(*bit..(Self::bit_length())) as u8);
-                buffer.bit_index += remaining_bits;
+            if type_bits_remaining == 0 {
+                SerializationResult::Finished
+            } else if buffer_bits_remaining == 0 {
+                SerializationResult::BufferFull
+            } else if buffer_bits_remaining >= type_bits_remaining {
+                buffer.push_bits(type_bits_remaining, self.get_bits(*bit..Self::bit_length()) as u64);
                 *bit = Self::bit_length();
-                return SerializationResult::Finished;
+                SerializationResult::Finished
+            } else {
+                buffer.push_bits(buffer_bits_remaining, self.get_bits(*bit..(*bit + buffer_bits_remaining)) as u64);
+                *bit += buffer_bits_remaining;
+                SerializationResult::BufferFull
             }
-            
-            for i in byte_start..buffer.data.len() {
-                remaining_bits = Self::bit_length() - *bit;
-
-                if remaining_bits == 0 {
-                    return SerializationResult::Finished;
-                } else if remaining_bits <= 8 {
-                    buffer.data[i] = self.get_bits(*bit..*bit+remaining_bits) as u8;
-                    buffer.bit_index += remaining_bits;
-                    *bit += remaining_bits;
-                    return SerializationResult::Finished;
-                } else {
-                    buffer.data[i] = self.get_bits(*bit..(*bit+8)) as u8;
-                    buffer.bit_index += 8;
-                    *bit += 8;
-                }
-            }
-            
-            SerializationResult::BufferFull
         }
 
         fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {

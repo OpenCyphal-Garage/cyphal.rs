@@ -33,6 +33,7 @@ impl<'a> SerializationBuffer<'a> {
     }
         
     pub fn bit_length(&self) -> usize { self.bit_index }
+    pub fn bits_remaining(&self) -> usize { self.data.len()*8 - self.bit_index }
     
     pub fn pop_bits(&mut self, bit_length: usize) -> u64 {
         assert!(bit_length <= 64);
@@ -65,6 +66,48 @@ impl<'a> SerializationBuffer<'a> {
         
         self.bit_index -= bit_length;
         return bits;
+    }
+
+    pub fn push_bits(&mut self, bit_length: usize, bits: u64) {
+        assert!(bit_length <= 64);
+        assert!(self.bit_index + bit_length <= self.data.len()*8);
+
+        let mut bit = 0;
+        let mut remaining_bits = bit_length;
+        
+        let mut byte_start = self.bit_index / 8;
+        let odd_bits_start = self.bit_index % 8;
+        
+        // first get rid of the odd bits
+        if odd_bits_start != 0 && 8-odd_bits_start <= remaining_bits {
+            self.data[byte_start].set_bits((odd_bits_start as u8)..8, bits.get_bits((bit as u8)..(bit+8-odd_bits_start) as u8) as u8);
+            self.bit_index += 8-odd_bits_start;
+            bit += 8-odd_bits_start;
+            byte_start += 1;
+        } else if odd_bits_start != 0 && 8-odd_bits_start > remaining_bits {
+            self.data[byte_start].set_bits((odd_bits_start as u8)..8, bits.get_bits((bit as u8)..(bit + (bit_length - bit) ) as u8) as u8);
+            self.bit_index += remaining_bits;
+            return;
+        }
+        
+        for i in byte_start..self.data.len() {
+            remaining_bits = bit_length - bit;
+
+            if remaining_bits == 0 {
+                return;
+            } else if remaining_bits <= 8 {
+                self.data[i] = bits.get_bits((bit as u8)..(bit+remaining_bits) as u8) as u8;
+                self.bit_index += remaining_bits;
+                return;
+            } else {
+                self.data[i] = bits.get_bits((bit as u8)..(bit+8) as u8) as u8;
+                self.bit_index += 8;
+                bit += 8;
+            }
+        }
+
+        
+
     }
     
 }
