@@ -187,6 +187,8 @@ macro_rules! uavcan_frame_impls{
         impl UavcanFrame for $name {
             type Header = $header_type;
             type Body = $body_type;
+
+            const DATA_TYPE_SIGNATURE: u64 = $dts;
             
             fn from_parts(header: $header_type, body: $body_type) -> Self {
                 Self{header: header, body: body}
@@ -203,8 +205,6 @@ macro_rules! uavcan_frame_impls{
             fn body(&self) -> & $body_type {
                 &self.body
             }
-
-            fn data_type_signature(&self) -> u64 { $dts }
         }
         
     );

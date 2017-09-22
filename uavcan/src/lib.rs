@@ -217,12 +217,13 @@ pub trait UavcanPrimitiveType {
 pub trait UavcanFrame {
     type Header : UavcanHeader;
     type Body : UavcanStruct;
+
+    const DATA_TYPE_SIGNATURE: u64;
     
     fn from_parts(header: Self::Header, body: Self::Body) -> Self;
     fn to_parts(self) -> (Self::Header, Self::Body);
     fn header(&self) -> &Self::Header;
     fn body(&self) -> &Self::Body;
-    fn data_type_signature(&self) -> u64;
 }
 
 

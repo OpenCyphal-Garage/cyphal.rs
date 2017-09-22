@@ -14,7 +14,6 @@ use serializer::*;
 
 pub struct FrameGenerator<F: UavcanFrame> {
     serializer: Serializer<F::Body>,
-    data_type_signature: u64,
     started: bool,
     finished: bool,
     id: u32,
@@ -24,13 +23,11 @@ pub struct FrameGenerator<F: UavcanFrame> {
 
 impl<F: UavcanFrame> FrameGenerator<F> {
     pub fn from_uavcan_frame(frame: F, transfer_id: u8) -> Self {
-        let dts = frame.data_type_signature();
         let (header, body) = frame.to_parts();
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
             finished: false,
-            data_type_signature: dts,
             id: header.id(),
             toggle: false,
             transfer_id: transfer_id,
@@ -47,7 +44,7 @@ impl<F: UavcanFrame> FrameGenerator<F> {
         if self.finished {
             return None;
         } else if first_of_multi_frame {
-            let crc = self.serializer.crc(self.data_type_signature);
+            let crc = self.serializer.crc(F::DATA_TYPE_SIGNATURE);
             transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
             transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             {
