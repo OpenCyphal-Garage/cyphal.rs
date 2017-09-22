@@ -1,10 +1,5 @@
-use types::*;
-
 use {
     Struct,
-    PrimitiveType,
-    DynamicArray,
-    DynamicArrayLength,
 };
 
 use crc;
@@ -186,8 +181,8 @@ mod tests {
     use uavcan;
 
     use {
-        Struct,
         PrimitiveType,
+        DynamicArray,
     };
 
     use serializer::*;

@@ -2,7 +2,6 @@ use bit_field::BitField;
 
 use {
     Frame,
-    Struct,
     TransferFrame,
     Header,
 };
@@ -116,41 +115,15 @@ mod tests {
 
     use uavcan;
     
-    use{
-        Struct,
-        Header,
-        MessageFrameHeader,
-        Frame,
-        TailByte,
-        DynamicArray,
-        SerializationBuffer,
-        PrimitiveType,
-    };
-    
-    use types::{
-        Uint2,
-        Uint3,
-        Uint8,
-        Uint16,
-        Uint32,
-        DynamicArray31,
-        DynamicArray90,
-    };
-    
     use tests::{
         CanFrame,
         CanID,
     };
+    
+    use *;    
+    use types::*;
 
-    use frame_assembler::{
-        FrameAssembler,
-    };
-
-    use frame_disassembler::{
-        FrameDisassembler,
-    };
-
-    use serializer::*;
+    use frame_assembler::*;
     
     #[test]
     fn parse_from_can_frames_simple() {

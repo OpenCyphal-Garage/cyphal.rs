@@ -5,7 +5,6 @@ use {
     TransferFrame,
     Frame,
     Header,
-    Struct,
 };
 
 use serializer::*;
@@ -81,32 +80,17 @@ mod tests {
 
     use uavcan;
     
-    use{
-        Struct,
-        Header,
-        MessageFrameHeader,
-        Frame,
-        TailByte,
-        DynamicArray,
-        SerializationBuffer,
-        PrimitiveType,
-    };
-
     use bit_field::BitField;
     
-    use types::*;
-
     use tests::{
         CanFrame,
         CanID,
     };
-
     
-    use frame_disassembler::{
-        FrameDisassembler,
-    };
+    use *;
+    use types::*;
+    use frame_disassembler::*;
 
-    use serializer::*;
     
     #[test]
     fn serialize_node_status_frame() {

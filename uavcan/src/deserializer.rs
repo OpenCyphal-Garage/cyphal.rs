@@ -1,19 +1,9 @@
 use lib::core::mem;
 
-use bit_field::{
-    BitField,
-    BitArray,
-};
-
-use types::*;
-
 pub use serializer::SerializationBuffer as DeserializationBuffer;
 
 use {
     Struct,
-    PrimitiveType,
-    DynamicArrayLength,
-    DynamicArray,
 };
 
 #[derive(Debug, PartialEq)]
@@ -72,21 +62,9 @@ mod tests {
     
     use bit_field::BitField;
     
-    use {
-        SerializationBuffer,
-        SerializationResult,
-        Struct,
-        DynamicArray,
-        PrimitiveType,
-    };
-
-    use deserializer::{
-        Deserializer,
-    };
-    
+    use *;
+    use deserializer::*;
     use types::*;
-
-    use serializer::*;
     
     #[test]
     fn uavcan_parse_test_byte_aligned() {

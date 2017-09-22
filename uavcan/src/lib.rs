@@ -245,13 +245,8 @@ pub trait Frame {
 #[cfg(test)]
 mod tests {
 
-    use {
-        TransferFrame,
-        Struct,
-    };
+    use *;
     
-    use types::*;
-
     // Implementing some types common for several tests
     
     #[derive(Debug, PartialEq)]
