@@ -214,11 +214,14 @@ pub trait UavcanPrimitiveType {
 
 
 
-pub trait UavcanFrame<H: UavcanHeader, B: UavcanStruct> {
-    fn from_parts(header: H, body: B) -> Self;
-    fn to_parts(self) -> (H, B);
-    fn header(&self) -> &H;
-    fn body(&self) -> &B;
+pub trait UavcanFrame {
+    type Header : UavcanHeader;
+    type Body : UavcanStruct;
+    
+    fn from_parts(header: Self::Header, body: Self::Body) -> Self;
+    fn to_parts(self) -> (Self::Header, Self::Body);
+    fn header(&self) -> &Self::Header;
+    fn body(&self) -> &Self::Body;
     fn data_type_signature(&self) -> u64;
 }
 

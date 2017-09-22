@@ -184,7 +184,10 @@ macro_rules! uavcan_frame{
 macro_rules! uavcan_frame_impls{
     ($name:ident, $header_type:ident, $body_type:ident, $dts:expr) => (
         
-        impl UavcanFrame<$header_type, $body_type> for $name {
+        impl UavcanFrame for $name {
+            type Header = $header_type;
+            type Body = $body_type;
+            
             fn from_parts(header: $header_type, body: $body_type) -> Self {
                 Self{header: header, body: body}
             }

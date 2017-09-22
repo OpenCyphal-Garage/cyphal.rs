@@ -24,8 +24,8 @@ pub enum BuilderError {
     NotFinishedParsing,
 }
 
-pub struct MessageBuilder<B: UavcanStruct> {
-    deserializer: Deserializer<B>,
+pub struct MessageBuilder<F: UavcanFrame> {
+    deserializer: Deserializer<F::Body>,
     started: bool,
     id: u32,
     crc: u16,
@@ -34,7 +34,7 @@ pub struct MessageBuilder<B: UavcanStruct> {
     transfer_id: u8,    
 }
 
-impl<B: UavcanStruct> MessageBuilder<B> {
+impl<F: UavcanFrame> MessageBuilder<F> {
     pub fn new() -> Self {
         MessageBuilder{
             deserializer: Deserializer::new(),
@@ -47,7 +47,7 @@ impl<B: UavcanStruct> MessageBuilder<B> {
         }
     }
     
-    pub fn add_frame<F: TransportFrame>(&mut self, mut frame: F) -> Result<(), BuilderError> {
+    pub fn add_frame<LLF: TransportFrame>(&mut self, mut frame: LLF) -> Result<(), BuilderError> {
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);
@@ -75,8 +75,8 @@ impl<B: UavcanStruct> MessageBuilder<B> {
         return Ok(());
     }
 
-    pub fn build<H: UavcanHeader, F: UavcanFrame<H, B>>(self) -> Result<F, BuilderError> {
-        let header = if let Ok(id) = H::from_id(self.id) {
+    pub fn build(self) -> Result<F, BuilderError> {
+        let header = if let Ok(id) = F::Header::from_id(self.id) {
             id
         } else {
             return Err(BuilderError::IdError)
