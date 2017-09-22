@@ -14,7 +14,7 @@ use deserializer::{
 use crc::calc;
 
 #[derive(Debug)]
-pub enum BuilderError {
+pub enum AssemblerError {
     FirstFrameNotStartFrame,
     BlockAddedAfterEndFrame,
     ToggleError,
@@ -24,7 +24,7 @@ pub enum BuilderError {
     NotFinishedParsing,
 }
 
-pub struct MessageBuilder<F: UavcanFrame> {
+pub struct FrameAssembler<F: UavcanFrame> {
     deserializer: Deserializer<F::Body>,
     started: bool,
     id: u32,
@@ -34,9 +34,9 @@ pub struct MessageBuilder<F: UavcanFrame> {
     transfer_id: u8,    
 }
 
-impl<F: UavcanFrame> MessageBuilder<F> {
+impl<F: UavcanFrame> FrameAssembler<F> {
     pub fn new() -> Self {
-        MessageBuilder{
+        Self{
             deserializer: Deserializer::new(),
             started: false,
             id: 0x00,
@@ -47,13 +47,13 @@ impl<F: UavcanFrame> MessageBuilder<F> {
         }
     }
     
-    pub fn add_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<(), BuilderError> {
+    pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<(), AssemblerError> {
         if !self.started {
             if !frame.is_start_frame() {
-                return Err(BuilderError::FirstFrameNotStartFrame);
+                return Err(AssemblerError::FirstFrameNotStartFrame);
             }
             if frame.tail_byte().toggle {
-                return Err(BuilderError::ToggleError);
+                return Err(AssemblerError::ToggleError);
             }
             self.toggle = false;
             self.crc.set_bits(0..8, frame.data()[0] as u16)
@@ -75,17 +75,17 @@ impl<F: UavcanFrame> MessageBuilder<F> {
         return Ok(());
     }
 
-    pub fn build(self) -> Result<F, BuilderError> {
+    pub fn build(self) -> Result<F, AssemblerError> {
         let header = if let Ok(id) = F::Header::from_id(self.id) {
             id
         } else {
-            return Err(BuilderError::IdError)
+            return Err(AssemblerError::IdError)
         };
 
         let body = if let Ok(body) = self.deserializer.into_structure() {
             body
         } else {
-            return Err(BuilderError::NotFinishedParsing)
+            return Err(AssemblerError::NotFinishedParsing)
         };
 
         Ok(F::from_parts(header, body))
@@ -127,8 +127,8 @@ mod tests {
         CanID,
     };
 
-    use message_builder::{
-        MessageBuilder,
+    use frame_assembler::{
+        FrameAssembler,
     };
 
     use frame_generator::{
@@ -156,8 +156,8 @@ mod tests {
         
         let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
-        let mut message_builder = MessageBuilder::new();
-        message_builder.add_frame(can_frame);
+        let mut message_builder = FrameAssembler::new();
+        message_builder.add_transfer_frame(can_frame);
         let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
         
         assert_eq!(parsed_message.body.uptime_sec, 1.into());
@@ -198,27 +198,27 @@ mod tests {
         };
 
         let crc = 0;
-        let mut message_builder = MessageBuilder::new();
+        let mut message_builder = FrameAssembler::new();
         
-        message_builder.add_frame(CanFrame{
+        message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..3, 0).set_bits(3..8, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
         });
         
-        message_builder.add_frame(CanFrame{
+        message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0}.into()],
         });
         
-        message_builder.add_frame(CanFrame{
+        message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
         });
         
-        message_builder.add_frame(CanFrame{
+        message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 3,
             data: [b'x', b't', TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0}.into(), 0, 0, 0, 0, 0],

@@ -38,7 +38,7 @@ mod header_macros;
 pub mod types;
 mod crc;
 mod deserializer;
-pub mod message_builder;
+pub mod frame_assembler;
 mod serializer;
 pub mod frame_generator;
 
