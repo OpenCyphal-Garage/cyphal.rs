@@ -25,13 +25,6 @@ pub struct SerializationBuffer<'a> {
     pub bit_index: usize,
 }
 
-impl<'a> SerializationBuffer<'a> {
-    pub fn full(&self) -> bool {
-        if self.bit_index == self.data.len()*8 {true}
-        else {false}
-    }
-}
-    
 
 
 pub struct Serializer<T: UavcanStruct> {
