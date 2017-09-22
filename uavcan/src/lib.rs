@@ -63,7 +63,7 @@ use deserializer::{
 /// This will in >99% of situations be a CAN2.0B frame
 /// But in theory both CAN-FD and other protocols which gives
 /// similar guarantees as CAN can also be used
-pub trait TransportFrame {
+pub trait TransferFrame {
     fn tail_byte(&self) -> TailByte {
         TailByte::from(*self.data().last().unwrap())
     }
@@ -248,7 +248,7 @@ pub trait UavcanFrame {
 mod tests {
 
     use {
-        TransportFrame,
+        TransferFrame,
         UavcanStruct,
     };
     
@@ -266,7 +266,7 @@ mod tests {
         pub data: [u8; 8],
     }
 
-    impl TransportFrame for CanFrame {
+    impl TransferFrame for CanFrame {
         fn with_data(id: u32, data: &[u8]) -> CanFrame {
             let mut can_data = [0; 8];
             can_data[0..data.len()].clone_from_slice(data);

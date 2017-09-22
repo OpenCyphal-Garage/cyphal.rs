@@ -3,7 +3,7 @@ use bit_field::BitField;
 use {
     UavcanFrame,
     UavcanStruct,
-    TransportFrame,
+    TransferFrame,
     UavcanHeader,
 };
 
@@ -47,7 +47,7 @@ impl<F: UavcanFrame> MessageBuilder<F> {
         }
     }
     
-    pub fn add_frame<LLF: TransportFrame>(&mut self, mut frame: LLF) -> Result<(), BuilderError> {
+    pub fn add_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<(), BuilderError> {
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(BuilderError::FirstFrameNotStartFrame);

@@ -2,7 +2,7 @@ use bit_field::BitField;
 
 use {
     TailByte,
-    TransportFrame,
+    TransferFrame,
     UavcanFrame,
     UavcanHeader,
     UavcanStruct,
@@ -34,7 +34,7 @@ impl<F: UavcanFrame> FrameGenerator<F> {
         }
     }
     
-    pub fn next_transport_frame<T: TransportFrame>(&mut self) -> Option<T> {
+    pub fn next_transport_frame<T: TransferFrame>(&mut self) -> Option<T> {
         let max_data_length = T::max_data_length();
         let max_payload_length = max_data_length - 1;
         let mut transport_frame = T::with_length(self.id, max_data_length);
