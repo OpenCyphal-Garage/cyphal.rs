@@ -8,19 +8,17 @@ macro_rules! message_frame_header{
         }        
         
         impl UavcanHeader for $t {
-            fn type_id() -> u16 { $n }
-            
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
-                id.set_bits(8..24, Self::type_id() as u32);
+                id.set_bits(8..24, Self::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
                 return id;
             }
             
             fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != Self::type_id() as u32 {
+                if id.get_bits(8..24) != Self::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
@@ -38,6 +36,8 @@ macro_rules! message_frame_header{
         }
         
         impl MessageFrameHeader for $t {
+            const TYPE_ID: u16 = $n;
+            
             fn new(priority: u8, source_node: u8) -> Self {
                 Self{
                     priority: priority,
@@ -59,8 +59,6 @@ macro_rules! anonymous_frame_header{
         }
 
         impl UavcanHeader for $t {
-            fn type_id() -> u16 { $n }
-
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, 0);
@@ -91,6 +89,8 @@ macro_rules! anonymous_frame_header{
         }
         
         impl AnonymousFrameHeader for $t {
+            const TYPE_ID: u8 = $n;
+            
             fn new(priority: u8, discriminator: u16) -> Self {
                 Self{
                     priority: priority,
@@ -115,8 +115,6 @@ macro_rules! service_frame_header{
         }
 
         impl UavcanHeader for $t {
-            fn type_id() -> u16 { $n }
-            
             fn id(&self) -> u32 {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
@@ -147,6 +145,8 @@ macro_rules! service_frame_header{
         }
                 
         impl ServiceFrameHeader for $t {
+            const TYPE_ID: u8 = $n;
+            
             fn new(priority: u8, request_not_response: bool, source_node: u8, destination_node: u8) -> Self {
                 Self{
                     priority: priority,

@@ -115,22 +115,26 @@ impl From<u8> for TailByte {
 pub trait UavcanHeader {
     fn from_id(u32) -> Result<Self, ()> where Self: Sized;
     
-    fn type_id() -> u16;
-    
     fn id(&self) -> u32;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
 }
 
 pub trait MessageFrameHeader : UavcanHeader {
+    const TYPE_ID: u16;
+    
     fn new(priority: u8, source_node: u8) -> Self;
 }
 
 pub trait AnonymousFrameHeader : UavcanHeader {
+    const TYPE_ID: u8;
+    
     fn new(priority: u8, discriminator: u16) -> Self;
 }
 
 pub trait ServiceFrameHeader : UavcanHeader {
+    const TYPE_ID: u8;
+    
     fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
 }
 
