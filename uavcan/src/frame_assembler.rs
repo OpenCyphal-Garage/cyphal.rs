@@ -14,12 +14,21 @@ use deserializer::{
 use crc::calc;
 
 #[derive(Debug)]
+pub enum AssemblerResult {
+    Ok,
+    Finished,
+}
+
+#[derive(Debug)]
 pub enum AssemblerError {
     FirstFrameNotStartFrame,
     BlockAddedAfterEndFrame,
     ToggleError,
+}
+
+#[derive(Debug)]
+pub enum BuildError {
     CRCError,
-    FormatError,
     IdError,
     NotFinishedParsing,
 }
@@ -47,7 +56,9 @@ impl<F: Frame> FrameAssembler<F> {
         }
     }
     
-    pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<(), AssemblerError> {
+    pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<AssemblerResult, AssemblerError> {
+        let end_frame = frame.is_end_frame();
+        
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(AssemblerError::FirstFrameNotStartFrame);
@@ -72,20 +83,24 @@ impl<F: Frame> FrameAssembler<F> {
 
         self.deserializer.deserialize(payload);            
 
-        return Ok(());
+        if end_frame {
+            Ok(AssemblerResult::Finished)
+        } else {
+            Ok(AssemblerResult::Ok)
+        }
     }
 
-    pub fn build(self) -> Result<F, AssemblerError> {
+    pub fn build(self) -> Result<F, BuildError> {
         let header = if let Ok(id) = F::Header::from_id(self.id) {
             id
         } else {
-            return Err(AssemblerError::IdError)
+            return Err(BuildError::IdError)
         };
 
         let body = if let Ok(body) = self.deserializer.into_structure() {
             body
         } else {
-            return Err(AssemblerError::NotFinishedParsing)
+            return Err(BuildError::NotFinishedParsing)
         };
 
         Ok(F::from_parts(header, body))
