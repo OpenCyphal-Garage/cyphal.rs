@@ -261,7 +261,6 @@ macro_rules! dynamic_array_def {
             fn max_size() -> usize {$n}
             
             fn length_bit_length() -> usize {$log_bits}
-            fn element_bit_length() -> usize {T::bit_length()}
             
             fn length(&self) -> DynamicArrayLength {DynamicArrayLength{bit_length: $log_bits, current_length: self.current_size}}
             fn set_length(&mut self, length: usize) {self.current_size = length;}
@@ -278,8 +277,8 @@ macro_rules! dynamic_array_def {
                     }
                 }
                 
-                let mut start_element = (*bit - Self::length_bit_length()) / Self::element_bit_length();
-                let start_element_bit = (*bit - Self::length_bit_length()) % Self::element_bit_length();
+                let mut start_element = (*bit - Self::length_bit_length()) / T::bit_length();
+                let start_element_bit = (*bit - Self::length_bit_length()) % T::bit_length();
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
@@ -327,8 +326,8 @@ macro_rules! dynamic_array_def {
                     }
                 }
                 
-                let mut start_element = (*bit - Self::length_bit_length()) / Self::element_bit_length();
-                let start_element_bit = (*bit - Self::length_bit_length()) % Self::element_bit_length();
+                let mut start_element = (*bit - Self::length_bit_length()) / T::bit_length();
+                let start_element_bit = (*bit - Self::length_bit_length()) % T::bit_length();
                 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {

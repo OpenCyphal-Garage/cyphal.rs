@@ -153,7 +153,6 @@ pub trait DynamicArray {
     fn max_size() -> usize where Self: Sized;
     
     fn length_bit_length() -> usize where Self: Sized;
-    fn element_bit_length() -> usize where Self: Sized;
     
     fn length(&self) -> DynamicArrayLength;
     fn set_length(&mut self, length: usize);
