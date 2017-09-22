@@ -101,7 +101,7 @@ impl<T: UavcanStruct> Deserializer<T> {
     }
 
     pub fn into_structure(mut self) -> Result<T, ()> {
-        let number_of_fields = self.structure.flattened_fields_len();
+        let number_of_fields = T::FLATTENED_FIELDS_NUMBER;
 
         let finished = if number_of_fields == self.field_index {
             true

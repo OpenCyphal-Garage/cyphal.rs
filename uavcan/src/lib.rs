@@ -133,8 +133,7 @@ pub trait ServiceFrameHeader : UavcanHeader {
 
 pub trait UavcanStruct {
     const TAIL_ARRAY_OPTIMIZABLE: bool;
-    
-    fn flattened_fields_len(&self) -> usize;
+    const FLATTENED_FIELDS_NUMBER: usize;
 
     fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;

@@ -175,7 +175,7 @@ mod tests {
             },
         };
 
-        assert_eq!(uavcan_frame.body.flattened_fields_len(), 3);
+        assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
         
         let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
 
