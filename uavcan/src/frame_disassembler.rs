@@ -12,7 +12,7 @@ use serializer::*;
 
 
 
-pub struct FrameGenerator<F: UavcanFrame> {
+pub struct FrameDisassembler<F: UavcanFrame> {
     serializer: Serializer<F::Body>,
     started: bool,
     finished: bool,
@@ -21,7 +21,7 @@ pub struct FrameGenerator<F: UavcanFrame> {
     transfer_id: u8,
 }
 
-impl<F: UavcanFrame> FrameGenerator<F> {
+impl<F: UavcanFrame> FrameDisassembler<F> {
     pub fn from_uavcan_frame(frame: F, transfer_id: u8) -> Self {
         let (header, body) = frame.to_parts();
         Self{
@@ -34,7 +34,7 @@ impl<F: UavcanFrame> FrameGenerator<F> {
         }
     }
     
-    pub fn next_transport_frame<T: TransferFrame>(&mut self) -> Option<T> {
+    pub fn next_transfer_frame<T: TransferFrame>(&mut self) -> Option<T> {
         let max_data_length = T::max_data_length();
         let max_payload_length = max_data_length - 1;
         let mut transport_frame = T::with_length(self.id, max_data_length);
@@ -102,8 +102,8 @@ mod tests {
     };
 
     
-    use frame_generator::{
-        FrameGenerator,
+    use frame_disassembler::{
+        FrameDisassembler,
     };
 
     use serializer::*;
@@ -137,10 +137,10 @@ mod tests {
             },
         };
 
-        let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
+        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, 0);
 
-        assert_eq!(frame_generator.next_transport_frame(), Some(can_frame));
-        assert_eq!(frame_generator.next_transport_frame::<CanFrame>(), None);
+        assert_eq!(frame_generator.next_transfer_frame(), Some(can_frame));
+        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
         
     }
     
@@ -174,13 +174,13 @@ mod tests {
 
         assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
         
-        let mut frame_generator = FrameGenerator::from_uavcan_frame(uavcan_frame, 0);
+        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, 0);
 
         let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
 
         
         assert_eq!(
-            frame_generator.next_transport_frame(),
+            frame_generator.next_transfer_frame(),
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
@@ -189,7 +189,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transport_frame(),
+            frame_generator.next_transfer_frame(),
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
@@ -198,7 +198,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transport_frame(),
+            frame_generator.next_transfer_frame(),
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
@@ -207,7 +207,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transport_frame(),
+            frame_generator.next_transfer_frame(),
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 3,
@@ -215,7 +215,7 @@ mod tests {
             })
         );
 
-        assert_eq!(frame_generator.next_transport_frame::<CanFrame>(), None);
+        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
        
     }
 

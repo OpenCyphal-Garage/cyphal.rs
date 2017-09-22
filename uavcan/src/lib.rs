@@ -40,7 +40,7 @@ mod crc;
 mod deserializer;
 pub mod frame_assembler;
 mod serializer;
-pub mod frame_generator;
+pub mod frame_disassembler;
 
 use bit_field::BitField;
 

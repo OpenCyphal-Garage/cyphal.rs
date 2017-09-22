@@ -131,8 +131,8 @@ mod tests {
         FrameAssembler,
     };
 
-    use frame_generator::{
-        FrameGenerator,
+    use frame_disassembler::{
+        FrameDisassembler,
     };
 
     use serializer::*;
