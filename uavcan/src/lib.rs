@@ -107,10 +107,17 @@ impl From<u8> for TailByte {
     }
 }
 
-pub trait UavcanHeader : Sized {
+
+
+
+
+
+pub trait UavcanHeader {
+    fn from_id(u32) -> Result<Self, ()> where Self: Sized;
+    
     fn type_id() -> u16;
+    
     fn id(&self) -> u32;
-    fn from_id(u32) -> Result<Self, ()>;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
 }
