@@ -58,4 +58,10 @@ mod tests {
         crc.add(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
         assert_eq!(u16::from(crc), 0x3b0a);
     }
+
+    #[test]
+    fn test_from_signature() {
+        let mut crc = TransferCRC::from_signature(0xd654a48e0c049d75);
+        assert_eq!(u16::from(crc), 0x4570);
+    }
 }
