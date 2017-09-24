@@ -150,11 +150,11 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             
             if is_primitive_type(field_type) {
                 deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if self.#field_ident.deserialize(bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                    if self.#field_ident.deserialize(bit, buffer) == uavcan::DeserializationResult::Finished {
                         *flattened_field += 1;
                         *bit = 0;
                     } else {
-                        return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                        return uavcan::DeserializationResult::BufferInsufficient;
                     }
                 }});                
                 field_index.append(quote!{ +1});
@@ -178,16 +178,16 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         self.#field_ident.set_length( ( #element_type::bit_length()-1 + *bit + buffer.bit_length()) / #element_type::bit_length() );
                         self.#field_ident.deserialize(&mut skewed_bit, buffer);
                         *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
-                        return uavcan::deserializer::DeserializationResult::Finished;                         
+                        return uavcan::DeserializationResult::Finished;                         
                     }});
                     field_index.append(quote!{ +1});
                 } else {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                        if self.#field_ident.deserialize(bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                        if self.#field_ident.deserialize(bit, buffer) == uavcan::DeserializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
-                            return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                            return uavcan::DeserializationResult::BufferInsufficient;
                         }
                     }});
                     field_index.append(quote!{ +1});
@@ -195,12 +195,12 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             } else {                
                 deserialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
                     let mut current_field = *flattened_field - #field_index;
-                    if self.#field_ident.deserialize(&mut current_field, bit, buffer) == uavcan::deserializer::DeserializationResult::Finished {
+                    if self.#field_ident.deserialize(&mut current_field, bit, buffer) == uavcan::DeserializationResult::Finished {
                         *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
                         *bit = 0;
                     } else {
                         *flattened_field = #field_index + current_field;
-                        return uavcan::deserializer::DeserializationResult::BufferInsufficient;
+                        return uavcan::DeserializationResult::BufferInsufficient;
                     }
                 }});
                 field_index.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER});
@@ -258,7 +258,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 #bit_length_body
             }
 
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::serializer::SerializationBuffer) -> uavcan::serializer::SerializationResult {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::SerializationBuffer) -> uavcan::SerializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
                     #serialize_body
@@ -266,7 +266,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 uavcan::SerializationResult::Finished
             }
 
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::deserializer::DeserializationBuffer) -> uavcan::deserializer::DeserializationResult {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut uavcan::DeserializationBuffer) -> uavcan::DeserializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
                     #deserialize_body

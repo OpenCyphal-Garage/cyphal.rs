@@ -52,7 +52,7 @@ pub use serializer::{
     SerializationBuffer,        
 };
 
-use deserializer::{
+pub use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
 };
