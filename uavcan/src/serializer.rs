@@ -2,7 +2,7 @@ use {
     Struct,
 };
 
-use crc;
+use crc::TransferCRC;
 
 use bit_field::{
     BitField,
@@ -142,26 +142,25 @@ impl<T: Struct> Serializer<T> {
     }
 
     pub fn crc(&mut self, data_type_signature: u64) -> u16 {
-        let mut crc = 0xffff;
+        let mut crc = TransferCRC::from_signature(data_type_signature);
 
         let field_index = self.field_index;
         let bit_index = self.bit_index;
-        
-        for i in 0..4 {
-            crc = crc::add_byte(crc, &(data_type_signature.get_bits(8*i..8*(i+1)) as u8));;
-        }
 
+        self.field_index = 0;
+        self.bit_index = 0;
+        
         loop {
             let mut buffer = [0u8; 8];
             
             let mut serialization_buffer = SerializationBuffer{data: &mut buffer, bit_index: 0};
             if let SerializationResult::Finished = self.serialize(&mut serialization_buffer) {
-                crc = crc::add(crc, &serialization_buffer.data);
+                crc.add(&serialization_buffer.data);//[0..(serialization_buffer.bit_index+7)/8]);
                 self.field_index = field_index;
                 self.bit_index = bit_index;
-                return crc;
+                return crc.into();
             } else {
-                crc = crc::add(crc, &serialization_buffer.data);
+                crc.add(&serialization_buffer.data);
             }
             
         }

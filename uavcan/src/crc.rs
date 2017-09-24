@@ -1,34 +1,61 @@
-pub fn add_byte(mut crc: u16, data: &u8) -> u16{
-    crc ^= (*data as u16) << 8;
+pub struct TransferCRC(u16);
 
-    for _bit in 8..1 {
-        if crc & 0x8000 != 0 {
-            crc = (crc << 1) ^ 0x1021;
-        } else {
-            crc = crc << 1;
+impl TransferCRC {
+    pub fn from_signature(data_type_signature: u64) -> TransferCRC {
+        let mut crc = TransferCRC(0xffff);
+        for i in 0..8 {
+            crc.add_byte(&((data_type_signature >> 8*i) as u8));
         }
-    }
-
-    return crc;
-}
-
-pub fn add(mut crc: u16, data: &[u8]) -> u16 {
-    for b in data {
-        crc = add_byte(crc, b);
-    }
-    return crc;
-}
-
-pub fn calc(data: &[u8], data_type_signature: u64) -> u16 {
-    let mut crc: u16 = 0xffff;
-
-    for i in 0..4 {
-        crc = add_byte(crc, &( (data_type_signature >> 8*i) as u8) );
+        crc
     }
     
-    for d in data {
-        crc = add_byte(crc, d);
+    fn add_byte(&mut self, data: &u8) {
+        match self {
+            &mut TransferCRC(ref mut value) => {
+        
+                *value ^= (*data as u16) << 8;
+                
+                for _bit in 0..8 {
+                    if (*value & 0x8000) != 0 {
+                        *value = (*value << 1) ^ 0x1021;
+                    } else {
+                        *value = *value << 1;
+                    }
+                }
+            },
+        }
+    }
+    
+    pub fn add(&mut self, data: &[u8]) {
+        for b in data {
+            self.add_byte(b);
+        }
+    }
+}
+
+impl From<TransferCRC> for u16 {
+    fn from(crc: TransferCRC) -> Self {
+        let TransferCRC(value) = crc;
+        value
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use crc::TransferCRC;
+    
+    #[test]
+    fn test_add_byte() {
+        let mut crc = TransferCRC(0xffff);
+        crc.add_byte(&1);
+        assert_eq!(u16::from(crc), 0xf1d1);
     }
 
-    return crc;
+    #[test]
+    fn test_add_bytes() {
+        let mut crc = TransferCRC(0xffff);
+        crc.add(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        assert_eq!(u16::from(crc), 0x3b0a);
+    }
 }

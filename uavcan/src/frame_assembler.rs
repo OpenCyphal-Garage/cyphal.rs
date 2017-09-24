@@ -10,8 +10,6 @@ use deserializer::{
     Deserializer,
 };
 
-use crc::calc;
-
 #[derive(Debug)]
 pub enum AssemblerResult {
     Ok,
