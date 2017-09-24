@@ -157,7 +157,7 @@ pub trait Struct {
 
 pub struct DynamicArrayLength {
     bit_length: usize,
-    current_length: usize,
+    pub current_length: usize,
 }
 
 pub trait DynamicArray {
