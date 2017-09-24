@@ -155,7 +155,7 @@ impl<T: Struct> Serializer<T> {
             
             let mut serialization_buffer = SerializationBuffer{data: &mut buffer, bit_index: 0};
             if let SerializationResult::Finished = self.serialize(&mut serialization_buffer) {
-                crc.add(&serialization_buffer.data);//[0..(serialization_buffer.bit_index+7)/8]);
+                crc.add(&serialization_buffer.data[0..(serialization_buffer.bit_index+7)/8]);
                 self.field_index = field_index;
                 self.bit_index = bit_index;
                 return crc.into();
