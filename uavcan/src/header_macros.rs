@@ -209,3 +209,42 @@ macro_rules! uavcan_frame_impls{
         
     );
 }
+
+
+#[cfg(test)]
+mod tests {
+
+    use types::*;
+
+    use uavcan;
+
+    use {
+        DynamicArray,
+        PrimitiveType,
+        Frame,
+        MessageFrameHeader,
+    };
+
+    use bit_field::BitField;
+    
+    #[test]
+    fn test_uavcan_frame() {
+        
+        #[derive(UavcanStruct)]
+        struct LogLevel {
+            value: Uint3,
+        }
+
+        #[derive(UavcanStruct)]
+        struct LogMessage {
+            level: LogLevel,
+            source: DynamicArray31<Uint8>,
+            text: DynamicArray90<Uint8>,
+        }
+        
+        message_frame_header!(LogMessageHeader, 16383);
+        uavcan_frame!(LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
+        
+        assert_eq!(LogMessageMessage::DATA_TYPE_SIGNATURE, 0xd654a48e0c049d75);
+    }
+}
