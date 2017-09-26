@@ -109,7 +109,7 @@ mod tests {
         
         let mut deserializer: Deserializer<NodeStatus> = Deserializer::new();
 
-        deserializer.deserialize(&mut [1, 0, 0, 0, 0b10001110, 5, 0]);
+        deserializer.deserialize(&mut [1, 0, 0, 0, 0b10011100, 5, 0]);
 
         let parsed_message = deserializer.into_structure().unwrap();
         
@@ -135,7 +135,7 @@ mod tests {
 
         let mut deserializer: Deserializer<TestMessage> = Deserializer::new();
 
-        deserializer.deserialize(&mut [0u8.set_bits(5..8, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
+        deserializer.deserialize(&mut [0u8.set_bits(0..3, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
         
         let parsed_message = deserializer.into_structure().unwrap();
 
