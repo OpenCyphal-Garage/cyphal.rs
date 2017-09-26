@@ -18,21 +18,26 @@ pub enum SerializationResult {
 #[derive(Debug, PartialEq)]
 pub struct SerializationBuffer<'a> {
     pub data: &'a mut [u8],
-    pub bit_index: usize,
+    start_bit_index: usize,
+    stop_bit_index: usize,
 }
 
 impl<'a> SerializationBuffer<'a> {
-    pub fn with_buffer(buffer: &'a mut [u8]) -> Self {
-        let buffer_len = buffer.len();
-        Self{data: buffer, bit_index: buffer_len*8}
+    pub fn with_empty_buffer(buffer: &'a mut [u8]) -> Self {
+        Self{data: buffer, start_bit_index: 0, stop_bit_index: 0}
     }
         
-    pub fn bit_length(&self) -> usize { self.bit_index }
-    pub fn bits_remaining(&self) -> usize { self.data.len()*8 - self.bit_index }
-    
+    pub fn with_full_buffer(buffer: &'a mut [u8]) -> Self {
+        let data_len = buffer.len()*8;
+        Self{data: buffer, start_bit_index: 0, stop_bit_index: data_len}
+    }
+        
+    pub fn bit_length(&self) -> usize { self.stop_bit_index - self.start_bit_index }
+    pub fn bits_remaining(&self) -> usize { self.data.len()*8 - self.bit_length() }
+
     pub fn pop_bits(&mut self, bit_length: usize) -> u64 {
         assert!(bit_length <= 64);
-        assert!(bit_length <= self.bit_index);
+        assert!(bit_length <= self.bit_length());
         
         let mut bits = 0u64;
         let mut current_bit: usize = 0;
@@ -65,23 +70,23 @@ impl<'a> SerializationBuffer<'a> {
 
     pub fn push_bits(&mut self, bit_length: usize, bits: u64) {
         assert!(bit_length <= 64);
-        assert!(self.bit_index + bit_length <= self.data.len()*8);
+        assert!(self.stop_bit_index + bit_length <= self.data.len()*8);
 
         let mut bit = 0;
         let mut remaining_bits = bit_length;
         
-        let mut byte_start = self.bit_index / 8;
-        let odd_bits_start = self.bit_index % 8;
+        let mut byte_start = self.stop_bit_index / 8;
+        let odd_bits_start = self.stop_bit_index % 8;
         
         // first get rid of the odd bits
         if odd_bits_start != 0 && 8-odd_bits_start <= remaining_bits {
             self.data[byte_start].set_bits(0..(8-odd_bits_start as u8), bits.get_bits((bit as u8)..(bit+8-odd_bits_start) as u8) as u8);
-            self.bit_index += 8-odd_bits_start;
+            self.stop_bit_index += 8-odd_bits_start;
             bit += 8-odd_bits_start;
             byte_start += 1;
         } else if odd_bits_start != 0 && 8-odd_bits_start > remaining_bits {
             self.data[byte_start].set_bits(((8-odd_bits_start-remaining_bits) as u8)..(8-odd_bits_start as u8), bits.get_bits((bit as u8)..(bit + (bit_length - bit) ) as u8) as u8);
-            self.bit_index += remaining_bits;
+            self.stop_bit_index += remaining_bits;
             return;
         }
         
@@ -92,18 +97,18 @@ impl<'a> SerializationBuffer<'a> {
                 return;
             } else if remaining_bits <= 8 {
                 self.data[i].set_bits((8-remaining_bits as u8)..8 ,bits.get_bits((bit as u8)..(bit+remaining_bits) as u8) as u8);
-                self.bit_index += remaining_bits;
+                self.stop_bit_index += remaining_bits;
                 return;
             } else {
                 self.data[i] = bits.get_bits((bit as u8)..(bit+8) as u8) as u8;
-                self.bit_index += 8;
+                self.stop_bit_index += 8;
                 bit += 8;
             }
         }
-
         
-
     }
+
+
     
 }
 
@@ -153,9 +158,9 @@ impl<T: Struct> Serializer<T> {
         loop {
             let mut buffer = [0u8; 8];
             
-            let mut serialization_buffer = SerializationBuffer{data: &mut buffer, bit_index: 0};
+            let mut serialization_buffer = SerializationBuffer::with_empty_buffer(&mut buffer);
             if let SerializationResult::Finished = self.serialize(&mut serialization_buffer) {
-                crc.add(&serialization_buffer.data[0..(serialization_buffer.bit_index+7)/8]);
+                crc.add(&serialization_buffer.data[0..(serialization_buffer.stop_bit_index+7)/8]);
                 self.field_index = field_index;
                 self.bit_index = bit_index;
                 return crc.into();
@@ -195,20 +200,20 @@ mod tests {
         let uint16: Uint16 = 257.into();
 
         let mut data = [0u8; 4];
-        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         let mut bits_serialized = 0;
         assert_eq!(uint2.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 2);
         assert_eq!(buffer.data, [0b01000000, 0, 0, 0]);
 
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         bits_serialized = 0;
         assert_eq!(uint8.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 8);
         assert_eq!(buffer.data, [128, 0, 0, 0]);
             
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         bits_serialized = 0;
         assert_eq!(uint16.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 16);
@@ -230,18 +235,18 @@ mod tests {
         let a3: DynamicArray4<Uint7> = DynamicArray4::with_data(&[1.into(), 2.into(), 4.into(), 8.into()]);
 
         let mut data = [0u8; 4];
-        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         let mut bits_serialized = 0;
         assert_eq!(a1.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 11);
         assert_eq!(buffer.data, [0b10001001, 0, 0, 0]);
 
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         a2.serialize(&mut 0, &mut buffer);
         assert_eq!(buffer.data, [0b11001001, 0b00001000, 0, 0]);
             
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         a3.serialize(&mut 0, &mut buffer);
         assert_eq!(buffer.data, [0b10000001, 0b00000010, 0b00000100, 0b00010000]);
 
@@ -252,22 +257,22 @@ mod tests {
         let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 1.into(), 1.into(), 1.into()]);
 
         let mut data = [0u8; 1];
-        let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         a.serialize(&mut 3, &mut buffer);
         assert_eq!(buffer.data, [0b00000011]);
         
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         a.serialize(&mut 11, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         a.serialize(&mut 19, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
-        buffer.bit_index = 0;
+        buffer.stop_bit_index = 0;
         a.serialize(&mut 27, &mut buffer);
-        assert_eq!(buffer.data[0].get_bits((8 - buffer.bit_index as u8)..8), 0b00000000);
+        assert_eq!(buffer.data[0].get_bits((8 - buffer.stop_bit_index as u8)..8), 0b00000000);
 
     }
 
@@ -294,7 +299,7 @@ mod tests {
         let mut array: [u8; 8] = [0; 8];
 
         
-        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
         serializer.serialize(&mut buffer);
 
         assert_eq!(buffer.data, [17, 19, 0, 0, 0, 21, 0, 23]);
@@ -326,7 +331,7 @@ mod tests {
         let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
         let mut array: [u8; 7] = [0; 7];
 
-        let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
         serializer.serialize(&mut buffer);
 
         assert_eq!(buffer.data, [1, 0, 0, 0, 0b10011100, 5, 0]);      

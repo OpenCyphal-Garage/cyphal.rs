@@ -47,16 +47,16 @@ impl<F: Frame> FrameDisassembler<F> {
             transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
             transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             {
-                let mut buffer = SerializationBuffer{data: &mut transport_frame.data_as_mut()[2..max_data_length-1], bit_index: 0};
+                let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[2..max_data_length-1]);
                 self.serializer.serialize(&mut buffer);
             }
             transport_frame.data_as_mut()[max_data_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: false, toggle: self.toggle, transfer_id: self.transfer_id}.into();
         } else {
             let (frame_length, end_of_transfer) = {
-                let mut buffer = SerializationBuffer{data: &mut transport_frame.data_as_mut()[0..max_data_length-1], bit_index: 0};
+                let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
                 if SerializationResult::Finished == self.serializer.serialize(&mut buffer){
                     self.finished = true;
-                    ((buffer.bit_index+7)/8 + 1, true)
+                    ((buffer.bit_length()+7)/8 + 1, true)
                 } else {
                     (max_data_length, false)
                 }
