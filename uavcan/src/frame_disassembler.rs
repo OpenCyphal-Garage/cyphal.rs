@@ -108,7 +108,7 @@ mod tests {
         
         uavcan_frame!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
             
-        let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10001110, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
 
         let uavcan_frame = NodeStatusMessage{
             header: NodeStatusHeader::new(0, 32),
@@ -168,7 +168,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
-                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..3, 0).set_bits(3..8, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..5, 11).set_bits(5..8, 0).get_bits(0..8), b't', b'e', b's', b't', TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
             })
         );
         

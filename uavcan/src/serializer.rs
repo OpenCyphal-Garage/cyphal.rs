@@ -75,12 +75,12 @@ impl<'a> SerializationBuffer<'a> {
         
         // first get rid of the odd bits
         if odd_bits_start != 0 && 8-odd_bits_start <= remaining_bits {
-            self.data[byte_start].set_bits((odd_bits_start as u8)..8, bits.get_bits((bit as u8)..(bit+8-odd_bits_start) as u8) as u8);
+            self.data[byte_start].set_bits(0..(8-odd_bits_start as u8), bits.get_bits((bit as u8)..(bit+8-odd_bits_start) as u8) as u8);
             self.bit_index += 8-odd_bits_start;
             bit += 8-odd_bits_start;
             byte_start += 1;
         } else if odd_bits_start != 0 && 8-odd_bits_start > remaining_bits {
-            self.data[byte_start].set_bits((odd_bits_start as u8)..8, bits.get_bits((bit as u8)..(bit + (bit_length - bit) ) as u8) as u8);
+            self.data[byte_start].set_bits(((8-odd_bits_start-remaining_bits) as u8)..(8-odd_bits_start as u8), bits.get_bits((bit as u8)..(bit + (bit_length - bit) ) as u8) as u8);
             self.bit_index += remaining_bits;
             return;
         }
@@ -91,7 +91,7 @@ impl<'a> SerializationBuffer<'a> {
             if remaining_bits == 0 {
                 return;
             } else if remaining_bits <= 8 {
-                self.data[i] = bits.get_bits((bit as u8)..(bit+remaining_bits) as u8) as u8;
+                self.data[i].set_bits((8-remaining_bits as u8)..8 ,bits.get_bits((bit as u8)..(bit+remaining_bits) as u8) as u8);
                 self.bit_index += remaining_bits;
                 return;
             } else {
@@ -200,7 +200,7 @@ mod tests {
         let mut bits_serialized = 0;
         assert_eq!(uint2.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 2);
-        assert_eq!(buffer.data, [1, 0, 0, 0]);
+        assert_eq!(buffer.data, [0b01000000, 0, 0, 0]);
 
         buffer.bit_index = 0;
         bits_serialized = 0;
@@ -215,10 +215,10 @@ mod tests {
         assert_eq!(buffer.data, [1, 1, 0, 0]);
             
         uint2.serialize(&mut 0, &mut buffer);
-        assert_eq!(buffer.data, [1, 1, 1, 0]);
+        assert_eq!(buffer.data, [1, 1, 0b01000000, 0]);
             
         uint8.serialize(&mut 0, &mut buffer);
-        assert_eq!(buffer.data, [1, 1, 1, 2]);
+        assert_eq!(buffer.data, [1, 1, 0b01000000, 0b10000000]);
             
 
     }
@@ -235,39 +235,39 @@ mod tests {
         let mut bits_serialized = 0;
         assert_eq!(a1.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 11);
-        assert_eq!(buffer.data, [0b10001100, 0, 0, 0]);
+        assert_eq!(buffer.data, [0b10001001, 0, 0, 0]);
 
         buffer.bit_index = 0;
         a2.serialize(&mut 0, &mut buffer);
-        assert_eq!(buffer.data, [0b10001110, 0b0001000, 0, 0]);
+        assert_eq!(buffer.data, [0b11001001, 0b00001000, 0, 0]);
             
         buffer.bit_index = 0;
         a3.serialize(&mut 0, &mut buffer);
-        assert_eq!(buffer.data, [12, 8, 8, 8]);            
+        assert_eq!(buffer.data, [0b10000001, 0b00000010, 0b00000100, 0b00010000]);
 
     }
 
     #[test]
     fn uavcan_serialize_dynamic_array_without_length() {
-        let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 4.into(), 16.into(), 64.into()]);
+        let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 1.into(), 1.into(), 1.into()]);
 
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer{data: &mut data, bit_index: 0};
 
         a.serialize(&mut 3, &mut buffer);
-        assert_eq!(buffer.data, [1]);
+        assert_eq!(buffer.data, [0b00000011]);
         
         buffer.bit_index = 0;
         a.serialize(&mut 11, &mut buffer);
-        assert_eq!(buffer.data, [2]);
+        assert_eq!(buffer.data, [0b00000001]);
 
         buffer.bit_index = 0;
         a.serialize(&mut 19, &mut buffer);
-        assert_eq!(buffer.data, [4]);
+        assert_eq!(buffer.data, [0b00000001]);
 
         buffer.bit_index = 0;
         a.serialize(&mut 27, &mut buffer);
-        assert_eq!(buffer.data, [8]);
+        assert_eq!(buffer.data[0].get_bits((8 - buffer.bit_index as u8)..8), 0b00000000);
 
     }
 
@@ -329,7 +329,7 @@ mod tests {
         let mut buffer = SerializationBuffer{bit_index: 0, data: &mut array};
         serializer.serialize(&mut buffer);
 
-        assert_eq!(buffer.data, [1, 0, 0, 0, 0b10001110, 5, 0]);      
+        assert_eq!(buffer.data, [1, 0, 0, 0, 0b10011100, 5, 0]);      
 
         
     }
