@@ -203,6 +203,49 @@ mod tests {
     use types::*;
 
     #[test]
+    fn buffer_test() {
+        let mut data = [0u8; 8];
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
+
+        buffer.push_bits(10, 0x1aa);
+        assert_eq!(buffer.start_bit_index, 0);
+        assert_eq!(buffer.stop_bit_index, 10);
+        assert_eq!(buffer.pop_bits(10), 0x1aa);
+        assert_eq!(buffer.start_bit_index, 10);
+        assert_eq!(buffer.stop_bit_index, 10);
+        
+        buffer.push_bits(8, 0xaa);
+        assert_eq!(buffer.start_bit_index, 10);
+        assert_eq!(buffer.stop_bit_index, 18);
+        assert_eq!(buffer.pop_bits(8), 0xaa);
+        assert_eq!(buffer.start_bit_index, 18);
+        assert_eq!(buffer.stop_bit_index, 18);
+        
+        buffer.push_bits(2, 0b11);
+        assert_eq!(buffer.pop_bits(2), 0b11);
+        
+      
+        buffer.push_bits(8, 0xaa);
+        buffer.push_bits(2, 0b11);
+        assert_eq!(buffer.pop_bits(8), 0xaa);
+        assert_eq!(buffer.pop_bits(2), 0b11);
+
+        
+        buffer.push_bits(7, 0);
+        buffer.push_bits(3, 0b111);
+        assert_eq!(buffer.pop_bits(7), 0);
+        assert_eq!(buffer.pop_bits(3), 0b111);
+        
+        
+        buffer.push_bits(5, 0b10101);
+        buffer.push_bits(4, 0b1111);
+        buffer.push_bits(15, 0b100000000000001);
+        assert_eq!(buffer.pop_bits(5), 0b10101);
+        assert_eq!(buffer.pop_bits(4), 0b1111);
+        assert_eq!(buffer.pop_bits(15), 0b100000000000001);
+    }
+    
+    #[test]
     fn uavcan_serialize_primitive_types() {
         let uint2: Uint2 = 1.into();
         let uint8: Uint8 = 128.into();
