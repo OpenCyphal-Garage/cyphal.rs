@@ -40,34 +40,43 @@ impl<'a> SerializationBuffer<'a> {
         assert!(bit_length <= self.bit_length());
         
         let mut bits = 0u64;
-        let mut current_bit: usize = 0;
-        while current_bit < bit_length {
-            if current_bit + 8 < bit_length {
-                bits.set_bits(current_bit as u8..current_bit as u8 + 8, self.data.get_bits(current_bit..current_bit+8) as u64);
-                current_bit = current_bit + 8;
-            } else {
-                bits.set_bits(current_bit as u8..bit_length as u8, self.data.get_bits(current_bit..bit_length) as u64);
-                current_bit = bit_length;
-            }
+        let mut bit = 0;
+        
+        let mut remaining_bits = bit_length - bit;
+
+        let byte_start = self.start_bit_index / 8;
+        let bit_start = self.start_bit_index % 8;
+
+        // first get rid of the odd bits
+        if bit_start != 0 && remaining_bits >= (8-bit_start) {
+            bits.set_bits(0..(8-bit_start as u8), self.data[byte_start].get_bits(0..(8-bit_start as u8)) as u64);
+            self.start_bit_index += 8-bit_start;
+            bit += 8-bit_start;
+        } else if bit_start != 0 && remaining_bits < (8-bit_start) {
+            bits.set_bits(0..(remaining_bits as u8), self.data[byte_start].get_bits(((8 - bit_start - remaining_bits) as u8)..(8 - bit_start as u8)) as u64);
+            self.start_bit_index += remaining_bits;
+            bit += remaining_bits;
         }
 
-        current_bit = 0;
-        while current_bit < self.bit_index-bit_length {
-            if current_bit + 8 < self.bit_index-bit_length {
-                let bitmap = self.data.get_bits(current_bit+bit_length..current_bit+bit_length+8);
-                self.data.set_bits(current_bit..current_bit+8, bitmap);
-                current_bit = current_bit + 8;
+        remaining_bits = bit_length - bit;
+        
+        while remaining_bits != 0 {
+            if remaining_bits >= 8 {
+                bits.set_bits((bit as u8)..(bit as u8 + 8), self.data[self.start_bit_index/8] as u64);
+                bit += 8;
+                self.start_bit_index += 8;
             } else {
-                let bitmap = self.data.get_bits(current_bit+bit_length..self.bit_index);
-                self.data.set_bits(current_bit..self.bit_index-bit_length, bitmap);
-                current_bit = self.bit_index-bit_length;
+                bits.set_bits((bit as u8)..(bit_length as u8), self.data[self.start_bit_index/8].get_bits((8 - remaining_bits as u8)..8) as u64);
+                bit += remaining_bits;
+                self.start_bit_index += remaining_bits;
             }
+            remaining_bits = bit_length - bit;
         }
         
-        self.bit_index -= bit_length;
-        return bits;
+        bits
     }
 
+    
     pub fn push_bits(&mut self, bit_length: usize, bits: u64) {
         assert!(bit_length <= 64);
         assert!(self.stop_bit_index + bit_length <= self.data.len()*8);
