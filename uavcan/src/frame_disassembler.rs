@@ -32,6 +32,8 @@ impl<F: Frame> FrameDisassembler<F> {
             transfer_id: transfer_id,
         }
     }
+
+    pub fn finished(&self) -> bool { self.finished }
     
     pub fn next_transfer_frame<T: TransferFrame>(&mut self) -> Option<T> {
         let max_data_length = T::max_data_length();
