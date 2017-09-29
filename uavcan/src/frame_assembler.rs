@@ -143,7 +143,7 @@ mod tests {
         let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
         
         let mut message_builder = FrameAssembler::new();
-        message_builder.add_transfer_frame(can_frame);
+        message_builder.add_transfer_frame(can_frame).unwrap();
         let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
         
         assert_eq!(parsed_message.body.uptime_sec, 1.into());
@@ -190,25 +190,25 @@ mod tests {
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(5..8, 0).set_bits(0..5, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
-        });
+        }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0}.into()],
-        });
+        }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
             data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
-        });
+        }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: CanID(LogMessageHeader::new(0, 32).id()),
             dlc: 3,
             data: [b'x', b't', TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0}.into(), 0, 0, 0, 0, 0],
-        });
+        }).unwrap();
 
         assert_eq!(uavcan_frame.body.source.length().current_length, 11);
         assert_eq!(uavcan_frame, message_builder.build().unwrap());
