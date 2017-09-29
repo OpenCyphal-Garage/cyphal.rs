@@ -207,14 +207,8 @@ mod tests {
     impl transfer::TransferFrame for CanFrame {
         const MAX_DATA_LENGTH: usize = 8;
         
-        fn with_data(id: TransferFrameID, data: &[u8]) -> CanFrame {
-            let mut can_data = [0; 8];
-            can_data[0..data.len()].clone_from_slice(data);
-            CanFrame{id: id, dlc: data.len(), data: can_data}
-        }
-
-        fn with_length(id: TransferFrameID, length: usize) -> CanFrame {
-            CanFrame{id: id, dlc: length, data: [0; 8]}
+        fn new(id: TransferFrameID) -> CanFrame {
+            CanFrame{id: id, dlc: 0, data: [0; 8]}
         }
         
         fn set_data_length(&mut self, length: usize) {

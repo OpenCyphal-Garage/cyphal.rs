@@ -26,6 +26,9 @@ pub struct FullTransferID {
 /// similar guarantees as CAN can also be used
 pub trait TransferFrame {
     const MAX_DATA_LENGTH: usize;
+
+    /// Create a new TransferFrame with id: id, and length 0.
+    fn new(id: TransferFrameID) -> Self;
     
     fn tail_byte(&self) -> TailByte {
         TailByte::from(*self.data().last().unwrap())
@@ -40,10 +43,6 @@ pub trait TransferFrame {
         self.is_end_frame() && self.is_start_frame()
     }
 
-    /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
-    /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
-    fn with_data(id: TransferFrameID,  data: &[u8]) -> Self;
-    fn with_length(id: TransferFrameID, length: usize) -> Self;
     fn set_data_length(&mut self, length: usize);
     fn data(&self) -> &[u8];
     fn data_as_mut(&mut self) -> &mut[u8];
