@@ -5,11 +5,32 @@ pub enum TransmitError {
     BufferFull,
 }
 
-
+/// TransferInterface is an interface to a hardware unit which can communicate over a CAN like transfer protocol
+///
+/// It's associated with a `TransferFrame` and must be able to receive and transmit this type of frames.
+/// The interface must also do ordering of incoming frames after priority defined by the transfer frame ID to avoid priority inversion,
+/// while making sure that transfer frames with the same ID is transmitted in the same order as they was added in the transmit buffer.
+///
+/// Receiving frames must be returned in the same order they were received by the interface.
 pub trait TransferInterface {
+    /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
+
+    /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or report an error.
+    ///
+    /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
+    /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
+    /// 
     fn transmit(&self, frame: &Self::Frame) -> Result<(), TransmitError>;
+
+    /// Receive the oldest transfer frame optionally matching an identifier.
+    ///
+    /// if no identifier is specified, return the oldest frame matching any identifier.
     fn receive(&self, identifier: Option<&FullTransferID>) -> Option<Self::Frame>;
+
+    /// Returns a slice with transfer IDs to all transfer frames where `frame.is_end_frame()` is asserted
+    ///
+    /// This means that the ID should not be removed from the list until the last frame of a transfer is received
     fn received_completely(&self) -> &[FullTransferID];
 }
 
