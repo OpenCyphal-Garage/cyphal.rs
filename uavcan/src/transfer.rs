@@ -31,9 +31,8 @@ pub trait TransferFrame {
 pub struct TailByte(u8);
 
 impl TailByte {
-    pub fn new(start_of_transfer: bool, end_of_transfer: bool, toggle: bool, transfer_id: u8) -> Self {
-        assert_eq!(transfer_id & 0x1f, 0x00);
-        TailByte( ((start_of_transfer as u8)<<7) | ((end_of_transfer as u8)<<6) | ((toggle as u8)<<5) | (transfer_id<<0) )
+    pub fn new(start_of_transfer: bool, end_of_transfer: bool, toggle: bool, transfer_id: TransferID) -> Self {
+        TailByte( ((start_of_transfer as u8)<<7) | ((end_of_transfer as u8)<<6) | ((toggle as u8)<<5) | (u8::from(transfer_id)) )
     }
     
     pub fn start_of_transfer(&self) -> bool {
@@ -60,5 +59,20 @@ impl From<u8> for TailByte {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TransferID(u8);
 
+impl From<TransferID> for u8 {
+    fn from(tid: TransferID) -> u8 {
+        let TransferID(value) = tid;
+        value
+    }
+}
+
+impl From<u8> for TransferID {
+    fn from(value: u8) -> TransferID {
+        assert_eq!(value & 0x1f, 0);
+        TransferID(value)
+    }
+}
 

@@ -47,11 +47,6 @@ use bit_field::BitField;
 
 use lib::core::ops::Range;
 
-use transfer::{
-    TransferFrame,
-    TailByte,
-};
-
 pub use serializer::{
     SerializationResult,
     SerializationBuffer,        

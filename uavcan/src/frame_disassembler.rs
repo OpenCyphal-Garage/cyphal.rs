@@ -1,10 +1,14 @@
 use bit_field::BitField;
 
 use {
-    TailByte,
-    TransferFrame,
     Frame,
     Header,
+};
+
+use transfer::{
+    TransferFrame,
+    TailByte,
+    TransferID,
 };
 
 use serializer::*;
@@ -17,11 +21,11 @@ pub struct FrameDisassembler<F: Frame> {
     finished: bool,
     id: u32,
     toggle: bool,
-    transfer_id: u8,
+    transfer_id: TransferID,
 }
 
 impl<F: Frame> FrameDisassembler<F> {
-    pub fn from_uavcan_frame(frame: F, transfer_id: u8) -> Self {
+    pub fn from_uavcan_frame(frame: F, transfer_id: TransferID) -> Self {
         let (header, body) = frame.to_parts();
         Self{
             serializer: Serializer::from_structure(body),
