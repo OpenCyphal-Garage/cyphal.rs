@@ -1,6 +1,18 @@
 use lib::core::convert::{From};
 
 
+pub enum TransmitError {
+    BufferFull,
+}
+
+
+pub trait TransferInterface {
+    type Frame: TransferFrame;
+    fn transmit(&self, frame: &Self::Frame) -> Result<(), TransmitError>;
+    fn receive(&self, identifier: Option<&FullTransferID>) -> Option<Self::Frame>;
+    fn received_completely(&self) -> &[FullTransferID];
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FullTransferID {
     pub frame_id: TransferFrameID,
