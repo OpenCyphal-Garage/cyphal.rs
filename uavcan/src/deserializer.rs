@@ -34,7 +34,7 @@ impl<T: Struct> Deserializer<T> {
         self.structure.deserialize(&mut self.field_index, &mut self.bit_index, &mut buffer)
     }
 
-    pub fn into_structure(mut self) -> Result<T, ()> {
+    pub fn into_structure(self) -> Result<T, ()> {
         let number_of_fields = T::FLATTENED_FIELDS_NUMBER;
 
         let finished = if number_of_fields == self.field_index {
