@@ -6,7 +6,6 @@ use crc::TransferCRC;
 
 use bit_field::{
     BitField,
-    BitArray,
 };
 
 #[derive(Debug, PartialEq)]
