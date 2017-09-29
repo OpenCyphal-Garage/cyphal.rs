@@ -9,7 +9,7 @@ pub enum TransmitError {
     BufferFull,
 }
 
-/// TransferInterface is an interface to a hardware unit which can communicate over a CAN like transfer protocol
+/// `TransferInterface` is an interface to a hardware unit which can communicate over a CAN like transfer protocol
 ///
 /// It's associated with a `TransferFrame` and must be able to receive and transmit this type of frames.
 /// The interface must also do ordering of incoming frames after priority defined by the transfer frame ID to avoid priority inversion,
@@ -44,7 +44,7 @@ pub struct FullTransferID {
     pub transfer_id: TransferID,
 }
 
-/// The TransferFrame is a CAN like frame that can be sent over a network
+/// `TransferFrame` is a CAN like frame that can be sent over a network
 ///
 /// For a frame to work it need to have a 28 bit ID, and a payload of
 /// at least 4 bytes. Guarantee that frames are delivered in order
@@ -116,7 +116,7 @@ impl From<TransferFrameID> for u32 {
 
 impl From<u32> for TransferFrameID {
     fn from(value: u32) -> TransferFrameID {
-        assert_eq!(value & !0x1fffffff, 0);
+        assert_eq!(value & !0x1fff_ffff, 0);
         TransferFrameID(value)
     }
 }
