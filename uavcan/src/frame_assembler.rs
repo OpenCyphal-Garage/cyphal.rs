@@ -1,8 +1,11 @@
 use bit_field::BitField;
 
+use transfer::{
+    TransferFrame,
+};
+
 use {
     Frame,
-    TransferFrame,
     Header,
 };
 
