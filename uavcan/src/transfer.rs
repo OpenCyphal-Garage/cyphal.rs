@@ -25,6 +25,8 @@ pub struct FullTransferID {
 /// But in theory both CAN-FD and other protocols which gives
 /// similar guarantees as CAN can also be used
 pub trait TransferFrame {
+    const MAX_DATA_LENGTH: usize;
+    
     fn tail_byte(&self) -> TailByte {
         TailByte::from(*self.data().last().unwrap())
     }
@@ -43,7 +45,6 @@ pub trait TransferFrame {
     fn with_data(id: TransferFrameID,  data: &[u8]) -> Self;
     fn with_length(id: TransferFrameID, length: usize) -> Self;
     fn set_data_length(&mut self, length: usize);
-    fn max_data_length() -> usize;
     fn data(&self) -> &[u8];
     fn data_as_mut(&mut self) -> &mut[u8];
     fn id(&self) -> TransferFrameID;

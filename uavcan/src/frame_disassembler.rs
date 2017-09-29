@@ -41,7 +41,7 @@ impl<F: Frame> FrameDisassembler<F> {
     pub fn finished(&self) -> bool { self.finished }
     
     pub fn next_transfer_frame<T: TransferFrame>(&mut self) -> Option<T> {
-        let max_data_length = T::max_data_length();
+        let max_data_length = T::MAX_DATA_LENGTH;
         let mut transport_frame = T::with_length(self.id, max_data_length);
         
         let first_of_multi_frame = !self.started && !self.serializer.single_frame_transfer();
