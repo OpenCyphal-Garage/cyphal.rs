@@ -2,6 +2,7 @@ use bit_field::BitField;
 
 use transfer::{
     TransferFrame,
+    TransferID,
 };
 
 use {
@@ -40,7 +41,7 @@ pub struct FrameAssembler<F: Frame> {
     crc: u16,
     crc_calculated: u16,
     toggle: bool,
-    transfer_id: u8,    
+    transfer_id: TransferID,    
 }
 
 impl<F: Frame> FrameAssembler<F> {
@@ -52,7 +53,7 @@ impl<F: Frame> FrameAssembler<F> {
             crc: 0x00,
             crc_calculated: 0xffff,
             toggle: false,
-            transfer_id: 0x00,
+            transfer_id: 0x00.into(),
         }
     }
     

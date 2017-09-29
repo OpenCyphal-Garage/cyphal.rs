@@ -43,9 +43,20 @@ impl TailByte {
         value & (1<<7) != 0
     }
 
-    pub fn end_of_transfer(&self) -> bool {unimplemented!()}
-    pub fn toggle(&self) -> bool {unimplemented!()}
-    pub fn transfer_id(&self) -> u8 {unimplemented!()}
+    pub fn end_of_transfer(&self) -> bool {
+        let TailByte(value) = *self;
+        value & (1<<6) != 0
+    }
+    
+    pub fn toggle(&self) -> bool {
+        let TailByte(value) = *self;
+        value & (1<<5) != 0
+    }
+    
+    pub fn transfer_id(&self) -> TransferID {
+        let TailByte(value) = *self;
+        TransferID(value)
+    }
 }
 
 
