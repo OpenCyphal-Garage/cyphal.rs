@@ -205,7 +205,7 @@ mod tests {
         pub data: [u8; 8],
     }
 
-    impl TransferFrame for CanFrame {
+    impl transfer::TransferFrame for CanFrame {
         fn with_data(id: u32, data: &[u8]) -> CanFrame {
             let mut can_data = [0; 8];
             can_data[0..data.len()].clone_from_slice(data);

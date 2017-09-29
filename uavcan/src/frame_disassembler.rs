@@ -113,7 +113,7 @@ mod tests {
         
         uavcan_frame!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
             
-        let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte{start_of_transfer: true, end_of_transfer: true, toggle: false, transfer_id: 0}.into()]};
+        let can_frame = CanFrame{id: CanID(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::from(0)).into()]};
 
         let uavcan_frame = NodeStatusMessage{
             header: NodeStatusHeader::new(0, 32),
@@ -126,7 +126,7 @@ mod tests {
             },
         };
 
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, 0);
+        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::from(0));
 
         assert_eq!(frame_generator.next_transfer_frame(), Some(can_frame));
         assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
@@ -163,7 +163,7 @@ mod tests {
 
         assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
         
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, 0);
+        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::from(0));
 
         let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
 
@@ -173,7 +173,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
-                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..5, 11).set_bits(5..8, 0).get_bits(0..8), b't', b'e', b's', b't', TailByte{start_of_transfer: true, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+                data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..5, 11).set_bits(5..8, 0).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::from(0)).into()],
             })
         );
         
@@ -182,7 +182,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
-                data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: true, transfer_id: 0}.into()],
+                data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, true, TransferID::from(0)).into()],
             })
         );
         
@@ -191,7 +191,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 8,
-                data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte{start_of_transfer: false, end_of_transfer: false, toggle: false, transfer_id: 0}.into()],
+                data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::from(0)).into()],
             })
         );
         
@@ -200,7 +200,7 @@ mod tests {
             Some(CanFrame{
                 id: CanID(LogMessageHeader::new(0, 32).id()),
                 dlc: 3,
-                data: [b'x', b't', TailByte{start_of_transfer: false, end_of_transfer: true, toggle: true, transfer_id: 0}.into(), 0, 0, 0, 0, 0],
+                data: [b'x', b't', TailByte::new(false, true, true, TransferID::from(0)).into(), 0, 0, 0, 0, 0],
             })
         );
 
