@@ -1,3 +1,7 @@
+//! This module contains everything related to the transfer protocol that will be used to transmit the uavcan frame
+//!
+//! The only transfer protocol that is currently supported by the uavcan protocol is CAN2.0B.
+
 use lib::core::convert::{From};
 
 
