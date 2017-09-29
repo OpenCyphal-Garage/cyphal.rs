@@ -1,6 +1,12 @@
 use lib::core::convert::{From};
 
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct FullTransferID {
+    pub frame_id: TransferFrameID,
+    pub transfer_id: TransferID,
+}
+
 /// The TransportFrame is uavcan cores main interface to the outside world
 ///
 /// This will in >99% of situations be a CAN2.0B frame
