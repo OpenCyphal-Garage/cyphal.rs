@@ -103,7 +103,7 @@ impl From<TransferID> for u8 {
 
 impl From<u8> for TransferID {
     fn from(value: u8) -> TransferID {
-        assert_eq!(value & 0x1f, 0);
+        assert_eq!(value & !0x1f, 0);
         TransferID(value)
     }
 }
