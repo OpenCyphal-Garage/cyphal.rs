@@ -33,8 +33,8 @@ mod uavcan {
 
 pub use uavcan_derive::*;
 
-#[macro_use]
 pub mod transfer;
+#[macro_use]
 mod header_macros;
 pub mod types;
 mod crc;
