@@ -8,10 +8,10 @@ pub trait TransferFrame {
         TailByte::from(*self.data().last().unwrap())
     }
     fn is_start_frame(&self) -> bool {
-        self.tail_byte().start_of_transfer
+        self.tail_byte().start_of_transfer()
     }
     fn is_end_frame(&self) -> bool {
-        self.tail_byte().end_of_transfer
+        self.tail_byte().end_of_transfer()
     }
     fn is_single_frame(&self) -> bool {
         self.is_end_frame() && self.is_start_frame()
@@ -28,22 +28,35 @@ pub trait TransferFrame {
     fn id(&self) -> u32;
 }
 
-pub struct TailByte {
-    start_of_transfer: bool,
-    end_of_transfer: bool,
-    toggle: bool,
-    transfer_id: u8,
+pub struct TailByte(u8);
+
+impl TailByte {
+    pub fn new(start_of_transfer: bool, end_of_transfer: bool, toggle: bool, transfer_id: u8) -> Self {
+        assert_eq!(transfer_id & 0x1f, 0x00);
+        TailByte( ((start_of_transfer as u8)<<7) | ((end_of_transfer as u8)<<6) | ((toggle as u8)<<5) | (transfer_id<<0) )
+    }
+    
+    pub fn start_of_transfer(&self) -> bool {
+        let TailByte(value) = *self;
+        value & (1<<7) != 0
+    }
+
+    pub fn end_of_transfer(&self) -> bool {unimplemented!()}
+    pub fn toggle(&self) -> bool {unimplemented!()}
+    pub fn transfer_id(&self) -> u8 {unimplemented!()}
 }
+
 
 impl From<TailByte> for u8 {
     fn from(tb: TailByte) -> u8 {
-        ((tb.start_of_transfer as u8) << 7) | ((tb.end_of_transfer as u8) << 6) | ((tb.toggle as u8) << 5) | (tb.transfer_id&0x1f)
+        let TailByte(value) = tb;
+        value
     }
 }
 
 impl From<u8> for TailByte {
-    fn from(u: u8) -> TailByte {
-        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<5)) != 0, transfer_id: u&0x1f}
+    fn from(value: u8) -> TailByte {
+        TailByte(value)
     }
 }
 

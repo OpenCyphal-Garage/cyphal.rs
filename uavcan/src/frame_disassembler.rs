@@ -51,7 +51,7 @@ impl<F: Frame> FrameDisassembler<F> {
                 let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[2..max_data_length-1]);
                 self.serializer.serialize(&mut buffer);
             }
-            transport_frame.data_as_mut()[max_data_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: false, toggle: self.toggle, transfer_id: self.transfer_id}.into();
+            transport_frame.data_as_mut()[max_data_length-1] = TailByte::new(!self.started, false, self.toggle, self.transfer_id).into();
         } else {
             let (frame_length, end_of_transfer) = {
                 let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
@@ -63,7 +63,7 @@ impl<F: Frame> FrameDisassembler<F> {
                 }
             };
             transport_frame.set_data_length(frame_length);
-            transport_frame.data_as_mut()[frame_length-1] = TailByte{start_of_transfer: !self.started, end_of_transfer: end_of_transfer, toggle: self.toggle, transfer_id: self.transfer_id}.into();
+            transport_frame.data_as_mut()[frame_length-1] = TailByte::new(!self.started, end_of_transfer, self.toggle, self.transfer_id).into();
         }
         
         self.started = true;

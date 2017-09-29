@@ -63,13 +63,13 @@ impl<F: Frame> FrameAssembler<F> {
             if !frame.is_start_frame() {
                 return Err(AssemblerError::FirstFrameNotStartFrame);
             }
-            if frame.tail_byte().toggle {
+            if frame.tail_byte().toggle() {
                 return Err(AssemblerError::ToggleError);
             }
             self.toggle = false;
             self.crc.set_bits(0..8, frame.data()[0] as u16)
                 .set_bits(8..16, frame.data()[1] as u16); 
-            self.transfer_id = frame.tail_byte().transfer_id;
+            self.transfer_id = frame.tail_byte().transfer_id();
             self.id = frame.id();
             self.started = true;
         }
