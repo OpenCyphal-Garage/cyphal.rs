@@ -47,6 +47,8 @@ use bit_field::BitField;
 
 use lib::core::ops::Range;
 
+use transfer::TransferFrameID;
+
 pub use serializer::{
     SerializationResult,
     SerializationBuffer,        
@@ -59,9 +61,9 @@ pub use deserializer::{
 
 
 pub trait Header {
-    fn from_id(u32) -> Result<Self, ()> where Self: Sized;
+    fn from_id(TransferFrameID) -> Result<Self, ()> where Self: Sized;
     
-    fn id(&self) -> u32;
+    fn id(&self) -> TransferFrameID;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
 }
@@ -192,28 +194,25 @@ pub trait Frame {
 mod tests {
 
     use *;
-    
+
     // Implementing some types common for several tests
     
     #[derive(Debug, PartialEq)]
-    pub struct CanID(pub u32);
-
-    #[derive(Debug, PartialEq)]
     pub struct CanFrame {
-        pub id: CanID,
+        pub id: TransferFrameID,
         pub dlc: usize,
         pub data: [u8; 8],
     }
 
     impl transfer::TransferFrame for CanFrame {
-        fn with_data(id: u32, data: &[u8]) -> CanFrame {
+        fn with_data(id: TransferFrameID, data: &[u8]) -> CanFrame {
             let mut can_data = [0; 8];
             can_data[0..data.len()].clone_from_slice(data);
-            CanFrame{id: CanID(id), dlc: data.len(), data: can_data}
+            CanFrame{id: id, dlc: data.len(), data: can_data}
         }
 
-        fn with_length(id: u32, length: usize) -> CanFrame {
-            CanFrame{id: CanID(id), dlc: length, data: [0; 8]}
+        fn with_length(id: TransferFrameID, length: usize) -> CanFrame {
+            CanFrame{id: id, dlc: length, data: [0; 8]}
         }
         
         fn max_data_length() -> usize {
@@ -233,10 +232,8 @@ mod tests {
             &mut self.data[0..self.dlc]
         }
         
-        fn id(&self) -> u32 {
-            match self.id {
-                CanID(x) => x,
-            }
+        fn id(&self) -> TransferFrameID {
+            self.id 
         }
     }
 

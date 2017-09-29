@@ -8,22 +8,22 @@ macro_rules! message_frame_header{
         }        
         
         impl uavcan::Header for $t {
-            fn id(&self) -> u32 {
+            fn id(&self) -> uavcan::transfer::TransferFrameID {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
                 id.set_bits(8..24, <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
-                return id;
+                uavcan::transfer::TransferFrameID::from(id)
             }
             
-            fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32 {
+            fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {
+                if u32::from(id).get_bits(8..24) != <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
-                        priority: id.get_bits(24..29) as u8,
-                        source_node: id.get_bits(0..7) as u8,
+                        priority: u32::from(id).get_bits(24..29) as u8,
+                        source_node: u32::from(id).get_bits(0..7) as u8,
                     })
                 }
             }
@@ -58,23 +58,23 @@ macro_rules! anonymous_frame_header{
         }
 
         impl uavcan::Header for $t {
-            fn id(&self) -> u32 {
+            fn id(&self) -> uavcan::transfer::TransferFrameID {
                 let mut id = 0;
                 id.set_bits(0..7, 0);
                 id.set_bit(7, false);
                 id.set_bits(8..10, <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32);
                 id.set_bits(10..24, self.discriminator as u32);
                 id.set_bits(24..29, self.priority as u32);
-                return id;
+                uavcan::transfer::TransferFrameID::from(id)
             }
    
-            fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32 {
+            fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {
+                if u32::from(id).get_bits(8..24) != <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
-                        priority: id.get_bits(24..29) as u8,
-                        discriminator: id.get_bits(10..24) as u16,
+                        priority: u32::from(id).get_bits(24..29) as u8,
+                        discriminator: u32::from(id).get_bits(10..24) as u16,
                     })
                 }
             }
@@ -113,23 +113,24 @@ macro_rules! service_frame_header{
         }
 
         impl uavcan::Header for $t {
-            fn id(&self) -> u32 {
+            fn id(&self) -> uavcan::transfer::TransferFrameID {
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
                 id.set_bits(8..24, <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
-                return id;
+                uavcan::transfer::TransferFrameID::from(id)
             }
-            fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32 {
+            
+            fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {
+                if u32::from(id).get_bits(8..24) != <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
-                        priority: id.get_bits(24..29) as u8,
-                        request_not_response: id.get_bit(15),
-                        destination_node: id.get_bits(8..14) as u8,
-                        source_node: id.get_bits(0..7) as u8,
+                        priority: u32::from(id).get_bits(24..29) as u8,
+                        request_not_response: u32::from(id).get_bit(15),
+                        destination_node: u32::from(id).get_bits(8..14) as u8,
+                        source_node: u32::from(id).get_bits(0..7) as u8,
                     })
                 }
             }

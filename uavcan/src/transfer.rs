@@ -22,14 +22,32 @@ pub trait TransferFrame {
 
     /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
     /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
-    fn with_data(id: u32,  data: &[u8]) -> Self;
-    fn with_length(id: u32, length: usize) -> Self;
+    fn with_data(id: TransferFrameID,  data: &[u8]) -> Self;
+    fn with_length(id: TransferFrameID, length: usize) -> Self;
     fn set_data_length(&mut self, length: usize);
     fn max_data_length() -> usize;
     fn data(&self) -> &[u8];
     fn data_as_mut(&mut self) -> &mut[u8];
-    fn id(&self) -> u32;
+    fn id(&self) -> TransferFrameID;
 }
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct TransferFrameID(u32);
+
+impl From<TransferFrameID> for u32 {
+    fn from(id: TransferFrameID) -> u32 {
+        let TransferFrameID(value) = id;
+        value
+    }
+}
+
+impl From<u32> for TransferFrameID {
+    fn from(value: u32) -> TransferFrameID {
+        assert_eq!(value & !0x1fffffff, 0);
+        TransferFrameID(value)
+    }
+}
+
 
 pub struct TailByte(u8);
 
