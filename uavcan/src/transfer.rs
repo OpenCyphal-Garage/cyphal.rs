@@ -5,6 +5,7 @@
 use lib::core::convert::{From};
 
 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransmitError {
     BufferFull,
 }
