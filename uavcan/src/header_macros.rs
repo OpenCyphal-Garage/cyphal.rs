@@ -12,13 +12,13 @@ macro_rules! message_frame_header{
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
-                id.set_bits(8..24, Self::TYPE_ID as u32);
+                id.set_bits(8..24, <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
                 return id;
             }
             
             fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != Self::TYPE_ID as u32 {
+                if id.get_bits(8..24) != <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
@@ -55,7 +55,6 @@ macro_rules! anonymous_frame_header{
         struct $t {
             priority: u8,
             discriminator: u16,
-            type_id: u8,
         }
 
         impl uavcan::Header for $t {
@@ -63,19 +62,18 @@ macro_rules! anonymous_frame_header{
                 let mut id = 0;
                 id.set_bits(0..7, 0);
                 id.set_bit(7, false);
-                id.set_bits(8..10, Self::type_id() as u32);
+                id.set_bits(8..10, <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32);
                 id.set_bits(10..24, self.discriminator as u32);
                 id.set_bits(24..29, self.priority as u32);
                 return id;
             }
    
             fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != Self::type_id() as u32 {
+                if id.get_bits(8..24) != <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
                         priority: id.get_bits(24..29) as u8,
-                        type_id: Self::type_id(),
                         discriminator: id.get_bits(10..24) as u16,
                     })
                 }
@@ -119,17 +117,16 @@ macro_rules! service_frame_header{
                 let mut id = 0;
                 id.set_bits(0..7, self.source_node as u32);
                 id.set_bit(7, false);
-                id.set_bits(8..24, Self::type_id() as u32);
+                id.set_bits(8..24, <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
                 return id;
             }
             fn from_id(id: u32) -> Result<Self, ()> {
-                if id.get_bits(8..24) != Self::type_id() as u32 {
+                if id.get_bits(8..24) != <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32 {
                     Err(())
                 } else {
                     Ok(Self{
                         priority: id.get_bits(24..29) as u8,
-                        type_id: Self::type_id(),
                         request_not_response: id.get_bit(15),
                         destination_node: id.get_bits(8..14) as u8,
                         source_node: id.get_bits(0..7) as u8,
@@ -150,9 +147,9 @@ macro_rules! service_frame_header{
             fn new(priority: u8, request_not_response: bool, source_node: u8, destination_node: u8) -> Self {
                 Self{
                     priority: priority,
-                    request_not_response: request,
+                    request_not_response: request_not_response,
+                    source_node: source_node,   
                     destination_node: destination_node,
-                    source_node: source_node,                    
                 }
             }
         }
@@ -222,13 +219,12 @@ mod tests {
         DynamicArray,
         PrimitiveType,
         Frame,
-        MessageFrameHeader,
     };
 
     use bit_field::BitField;
     
     #[test]
-    fn test_uavcan_frame() {
+    fn test_message_frame() {
         
         #[derive(UavcanStruct)]
         struct LogLevel {
@@ -246,5 +242,16 @@ mod tests {
         uavcan_frame!(LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
         
         assert_eq!(LogMessageMessage::DATA_TYPE_SIGNATURE, 0xd654a48e0c049d75);
+    }
+
+    #[test]
+    fn test_anon_frame() {
+        anonymous_frame_header!(GetNodeInfoHeader, 1);
+    }
+
+
+    #[test]
+    fn test_service_frame() {
+        service_frame_header!(ReadHeader, 48);
     }
 }
