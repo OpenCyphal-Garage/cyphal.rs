@@ -39,7 +39,8 @@ pub trait TransferInterface {
     fn received_completely(&self) -> &[FullTransferID];
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
+#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
 pub struct FullTransferID {
     pub frame_id: TransferFrameID,
     pub transfer_id: TransferID,
@@ -110,7 +111,9 @@ pub trait TransferFrame {
 
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+
+#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
+#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
 pub struct TransferFrameID(u32);
 
 impl From<TransferFrameID> for u32 {
@@ -170,7 +173,9 @@ impl From<u8> for TailByte {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+
+#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
+#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
 pub struct TransferID(u8);
 
 impl From<TransferID> for u8 {
