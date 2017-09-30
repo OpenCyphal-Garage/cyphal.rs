@@ -103,6 +103,11 @@ pub trait TransferFrame {
         self.is_end_frame() && self.is_start_frame()
     }
 
+    /// Returns the full ID of the frame (both Frame ID and transfer ID)
+    fn full_id(&self) -> FullTransferID {
+        FullTransferID{frame_id: self.id(), transfer_id: self.tail_byte().transfer_id()} 
+    }
+
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
