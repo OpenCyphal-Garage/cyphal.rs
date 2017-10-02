@@ -48,22 +48,6 @@ pub trait TransferInterface
     fn completed_receives(&self, identifier: FullTransferID, mask: FullTransferID) -> Self::IDContainer;
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct FullTransferID {
-    pub frame_id: TransferFrameID,
-    pub transfer_id: TransferID,
-}
-
-impl FullTransferID {
-    pub fn mask(self, mask: Self) -> Self {
-        FullTransferID{
-            frame_id: self.frame_id.mask(mask.frame_id),
-            transfer_id: self.transfer_id.mask(mask.transfer_id),
-        }
-    }
-}
-
-
 /// `TransferFrame` is a CAN like frame that can be sent over a network
 ///
 /// For a frame to work it need to have a 28 bit ID, and a payload of
@@ -131,6 +115,21 @@ pub trait TransferFrame {
 
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct FullTransferID {
+    pub frame_id: TransferFrameID,
+    pub transfer_id: TransferID,
+}
+
+impl FullTransferID {
+    pub fn mask(self, mask: Self) -> Self {
+        FullTransferID{
+            frame_id: self.frame_id.mask(mask.frame_id),
+            transfer_id: self.transfer_id.mask(mask.transfer_id),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferFrameID(u32);
 
 impl TransferFrameID {
@@ -152,6 +151,31 @@ impl From<u32> for TransferFrameID {
     fn from(value: u32) -> TransferFrameID {
         assert_eq!(value & !0x1fff_ffff, 0);
         TransferFrameID(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct TransferID(u8);
+
+impl TransferID {
+    pub fn mask(self, mask: Self) -> Self {
+        let TransferID(mut value) = self;
+        value = value & u8::from(mask);
+        TransferID(value)        
+    }
+}
+
+impl From<TransferID> for u8 {
+    fn from(tid: TransferID) -> u8 {
+        let TransferID(value) = tid;
+        value
+    }
+}
+
+impl From<u8> for TransferID {
+    fn from(value: u8) -> TransferID {
+        assert_eq!(value & !0x1f, 0);
+        TransferID(value)
     }
 }
 
@@ -195,32 +219,6 @@ impl From<TailByte> for u8 {
 impl From<u8> for TailByte {
     fn from(value: u8) -> TailByte {
         TailByte(value)
-    }
-}
-
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
-pub struct TransferID(u8);
-
-impl TransferID {
-    pub fn mask(self, mask: Self) -> Self {
-        let TransferID(mut value) = self;
-        value = value & u8::from(mask);
-        TransferID(value)        
-    }
-}
-
-impl From<TransferID> for u8 {
-    fn from(tid: TransferID) -> u8 {
-        let TransferID(value) = tid;
-        value
-    }
-}
-
-impl From<u8> for TransferID {
-    fn from(value: u8) -> TransferID {
-        assert_eq!(value & !0x1f, 0);
-        TransferID(value)
     }
 }
 
