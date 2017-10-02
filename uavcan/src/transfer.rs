@@ -46,6 +46,16 @@ pub struct FullTransferID {
     pub transfer_id: TransferID,
 }
 
+impl FullTransferID {
+    pub fn mask(self, mask: Self) -> Self {
+        FullTransferID{
+            frame_id: self.frame_id.mask(mask.frame_id),
+            transfer_id: self.transfer_id.mask(mask.transfer_id),
+        }
+    }
+}
+
+
 /// `TransferFrame` is a CAN like frame that can be sent over a network
 ///
 /// For a frame to work it need to have a 28 bit ID, and a payload of
@@ -116,6 +126,14 @@ pub trait TransferFrame {
 #[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
 pub struct TransferFrameID(u32);
 
+impl TransferFrameID {
+    pub fn mask(self, mask: Self) -> Self {
+        let TransferFrameID(mut value) = self;
+        value = value & u32::from(mask);
+        TransferFrameID(value)        
+    }
+}
+
 impl From<TransferFrameID> for u32 {
     fn from(id: TransferFrameID) -> u32 {
         let TransferFrameID(value) = id;
@@ -177,6 +195,14 @@ impl From<u8> for TailByte {
 #[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
 #[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
 pub struct TransferID(u8);
+
+impl TransferID {
+    pub fn mask(self, mask: Self) -> Self {
+        let TransferID(mut value) = self;
+        value = value & u8::from(mask);
+        TransferID(value)        
+    }
+}
 
 impl From<TransferID> for u8 {
     fn from(tid: TransferID) -> u8 {
