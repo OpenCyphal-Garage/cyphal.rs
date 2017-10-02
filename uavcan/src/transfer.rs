@@ -3,6 +3,7 @@
 //! The only transfer protocol that is currently supported by the uavcan protocol is CAN2.0B.
 
 use lib::core::convert::{From};
+use lib::core::ops::Index;
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -17,26 +18,34 @@ pub enum TransmitError {
 /// while making sure that transfer frames with the same ID is transmitted in the same order as they was added in the transmit buffer.
 ///
 /// Receiving frames must be returned in the same order they were received by the interface.
-pub trait TransferInterface {
+pub trait TransferInterface
+    where <<Self as TransferInterface>::IDContainer as IntoIterator>::IntoIter : ExactSizeIterator
+{
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
+
+    /// A container for `FullTransferID`s that is indexable and iterable.
+    ///
+    /// Suitable types are `&[FullTransferID]` or `Vec<FullTransferID` (if using the std library)
+    type IDContainer: IntoIterator<Item=FullTransferID> + Index<usize, Output=FullTransferID>;
 
     /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or report an error.
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
-    /// 
     fn transmit(&self, frame: &Self::Frame) -> Result<(), TransmitError>;
 
-    /// Receive the oldest transfer frame optionally matching an identifier.
+    /// Receive a transfer frame matching `identifier`.
     ///
-    /// if no identifier is specified, return the oldest frame matching any identifier.
+    /// It's important that `receive` returns frames in the same order they were received from the bus.
     fn receive(&self, identifier: &FullTransferID) -> Option<Self::Frame>;
 
-    /// Returns a slice with transfer IDs to all transfer frames where `frame.is_end_frame()` is asserted
+    /// Returns an indexable type containing all `FullTransferID`s that:
     ///
-    /// This means that the ID should not be removed from the list until the last frame of a transfer is received
-    fn received_completely(&self) -> &[FullTransferID];
+    /// 1. Matches `identifier` when masked.
+    ///
+    /// 2. There exists an end_frame (`TransferFrame::is_end_frame(&self)`is asserted) with this `FullTransferID` in the receive buffer
+    fn completed_receives(&self, identifier: FullTransferID, mask: FullTransferID) -> Self::IDContainer;
 }
 
 #[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
