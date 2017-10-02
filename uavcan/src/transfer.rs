@@ -180,6 +180,7 @@ impl From<u8> for TransferID {
 }
 
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TailByte(u8);
 
 impl TailByte {
