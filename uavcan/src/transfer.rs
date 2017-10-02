@@ -48,8 +48,7 @@ pub trait TransferInterface
     fn completed_receives(&self, identifier: FullTransferID, mask: FullTransferID) -> Self::IDContainer;
 }
 
-#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
-#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct FullTransferID {
     pub frame_id: TransferFrameID,
     pub transfer_id: TransferID,
@@ -131,8 +130,7 @@ pub trait TransferFrame {
 }
 
 
-#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
-#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferFrameID(u32);
 
 impl TransferFrameID {
@@ -201,8 +199,7 @@ impl From<u8> for TailByte {
 }
 
 
-#[cfg_attr(feature="std", derive(Clone, Copy, Debug, Eq, PartialEq, Hash))]
-#[cfg_attr(not(feature="std"), derive(Clone, Copy, Debug, Eq, PartialEq))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferID(u8);
 
 impl TransferID {
