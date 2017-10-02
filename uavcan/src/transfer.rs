@@ -31,7 +31,7 @@ pub trait TransferInterface {
     /// Receive the oldest transfer frame optionally matching an identifier.
     ///
     /// if no identifier is specified, return the oldest frame matching any identifier.
-    fn receive(&self, identifier: Option<&FullTransferID>) -> Option<Self::Frame>;
+    fn receive(&self, identifier: &FullTransferID) -> Option<Self::Frame>;
 
     /// Returns a slice with transfer IDs to all transfer frames where `frame.is_end_frame()` is asserted
     ///
