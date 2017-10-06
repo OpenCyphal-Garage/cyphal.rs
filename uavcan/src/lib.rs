@@ -15,6 +15,7 @@
 extern crate uavcan_derive;
 
 extern crate bit_field;
+extern crate embedded_types;
 extern crate half;
 
 mod lib {

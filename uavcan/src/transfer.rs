@@ -5,6 +5,7 @@
 use lib::core::convert::{From};
 use lib::core::ops::Index;
 
+use embedded_types;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TransmitError {
@@ -223,3 +224,35 @@ impl From<u8> for TailByte {
     }
 }
 
+
+
+
+
+
+impl From<TransferFrameID> for embedded_types::can::ExtendedID {
+    fn from(id: TransferFrameID) -> Self {
+        embedded_types::can::ExtendedID::new(u32::from(id))
+    }
+}
+
+impl From<TransferFrameID> for embedded_types::can::ID {
+    fn from(id: TransferFrameID) -> Self {
+        embedded_types::can::ID::ExtendedID(embedded_types::can::ExtendedID::from(id))
+    }
+}
+
+impl From<embedded_types::can::ExtendedID> for TransferFrameID {
+    fn from(id: embedded_types::can::ExtendedID) -> Self {
+        TransferFrameID::from(u32::from(id))
+    }
+}
+
+impl TransferFrame for embedded_types::can::ExtendedDataFrame {
+    const MAX_DATA_LENGTH: usize = 8;
+
+    fn new(id: TransferFrameID) -> Self { embedded_types::can::ExtendedDataFrame::new(id.into()) }
+    fn set_data_length(&mut self, length: usize) {self.set_data_length(length);}
+    fn data(&self) -> &[u8] {&self.data()}
+    fn data_as_mut(&mut self) -> &mut [u8] {self.data_as_mut()}
+    fn id(&self) -> TransferFrameID {self.id().clone().into()}
+}
