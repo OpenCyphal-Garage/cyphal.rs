@@ -4,6 +4,7 @@
 
 use lib::core::convert::{From};
 use lib::core::ops::Index;
+use lib::core::ops::Deref;
 
 use embedded_types;
 
@@ -19,16 +20,15 @@ pub enum TransmitError {
 /// while making sure that transfer frames with the same ID is transmitted in the same order as they was added in the transmit buffer.
 ///
 /// Receiving frames must be returned in the same order they were received by the interface.
-pub trait TransferInterface
-    where <<Self as TransferInterface>::IDContainer as IntoIterator>::IntoIter : ExactSizeIterator
+pub trait TransferInterface<'a>
 {
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
 
     /// A container for `FullTransferID`s that is indexable and iterable.
     ///
-    /// Suitable types are `&[FullTransferID]` or `Vec<FullTransferID` (if using the std library)
-    type IDContainer: IntoIterator<Item=FullTransferID> + Index<usize, Output=FullTransferID>;
+    /// Suitable types are `&[FullTransferID]` or `Box<[FullTransferID]>` (which can be constructed from `Vec<FullTransferID>` by calling `into_boxed_slice`
+    type IDContainer: Deref<Target=[FullTransferID]>;
 
     /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or report an error.
     ///
