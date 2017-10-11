@@ -254,5 +254,5 @@ impl TransferFrame for embedded_types::can::ExtendedDataFrame {
     fn set_data_length(&mut self, length: usize) {self.set_data_length(length);}
     fn data(&self) -> &[u8] {&self.data()}
     fn data_as_mut(&mut self) -> &mut [u8] {self.data_as_mut()}
-    fn id(&self) -> TransferFrameID {self.id().clone().into()}
+    fn id(&self) -> TransferFrameID {self.id().into()}
 }
