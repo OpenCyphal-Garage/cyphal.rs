@@ -7,10 +7,7 @@ use lib::core::ops::Deref;
 
 use embedded_types;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum TransmitError {
-    BufferFull,
-}
+pub use embedded_types::io::Error as IOError;
 
 /// `TransferInterface` is an interface to a hardware unit which can communicate over a CAN like transfer protocol
 ///
@@ -33,7 +30,7 @@ pub trait TransferInterface<'a>
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
-    fn transmit(&self, frame: &Self::Frame) -> Result<(), TransmitError>;
+    fn transmit(&self, frame: &Self::Frame) -> Result<(), IOError>;
 
     /// Receive a transfer frame matching `identifier`.
     ///
