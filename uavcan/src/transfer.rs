@@ -21,11 +21,6 @@ pub trait TransferInterface<'a>
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
 
-    /// A container for `FullTransferID`s that is indexable and iterable.
-    ///
-    /// Suitable types are `&[FullTransferID]` or `Box<[FullTransferID]>` (which can be constructed from `Vec<FullTransferID>` by calling `into_boxed_slice`
-    type IDContainer: Deref<Target=[FullTransferID]>;
-
     /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or report an error.
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
@@ -37,12 +32,12 @@ pub trait TransferInterface<'a>
     /// It's important that `receive` returns frames in the same order they were received from the bus.
     fn receive(&self, identifier: &FullTransferID) -> Option<Self::Frame>;
 
-    /// Returns an indexable type containing all `FullTransferID`s that:
+    /// Returns a FullTransferID that satisfies the following:
     ///
     /// 1. Matches `identifier` when masked.
     ///
     /// 2. There exists an end_frame (`TransferFrame::is_end_frame(&self)`is asserted) with this `FullTransferID` in the receive buffer
-    fn completed_receives(&self, identifier: FullTransferID, mask: FullTransferID) -> Self::IDContainer;
+    fn completed_receive(&self, identifier: FullTransferID, mask: FullTransferID) -> Option<FullTransferID>;
 }
 
 /// `TransferFrame` is a CAN like frame that can be sent over a network
