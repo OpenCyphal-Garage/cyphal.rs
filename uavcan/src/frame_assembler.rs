@@ -54,7 +54,7 @@ impl<F: Frame> FrameAssembler<F> {
             crc: 0x00,
             crc_calculated: 0xffff,
             toggle: false,
-            transfer_id: 0x00.into(),
+            transfer_id: TransferID::new(0x00),
         }
     }
     
@@ -149,7 +149,7 @@ mod tests {
         uavcan_frame!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
             
         
-        let can_frame = CanFrame{id: TransferFrameID::from(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::from(0)).into()]};
+        let can_frame = CanFrame{id: TransferFrameID::from(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
         
         let mut message_builder = FrameAssembler::new();
         message_builder.add_transfer_frame(can_frame).unwrap();
@@ -198,25 +198,25 @@ mod tests {
         message_builder.add_transfer_frame(CanFrame{
             id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
-            data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(5..8, 0).set_bits(0..5, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::from(0)).into()],
+            data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(5..8, 0).set_bits(0..5, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
-            data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, false, TransferID::from(0)).into()],
+            data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
             dlc: 8,
-            data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::from(0)).into()],
+            data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
             id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
             dlc: 3,
-            data: [b'x', b't', TailByte::new(false, true, true, TransferID::from(0)).into(), 0, 0, 0, 0, 0],
+            data: [b'x', b't', TailByte::new(false, true, true, TransferID::new(0)).into(), 0, 0, 0, 0, 0],
         }).unwrap();
 
         assert_eq!(uavcan_frame.body.source.length().current_length, 11);

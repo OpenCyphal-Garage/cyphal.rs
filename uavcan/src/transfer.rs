@@ -155,6 +155,11 @@ impl From<u32> for TransferFrameID {
 pub struct TransferID(u8);
 
 impl TransferID {
+    pub fn new(value: u8) -> TransferID {
+        assert_eq!(value & !0x1f, 0);
+        TransferID(value)
+    }
+    
     pub fn mask(self, mask: Self) -> Self {
         let TransferID(mut value) = self;
         value = value & u8::from(mask);
@@ -166,13 +171,6 @@ impl From<TransferID> for u8 {
     fn from(tid: TransferID) -> u8 {
         let TransferID(value) = tid;
         value
-    }
-}
-
-impl From<u8> for TransferID {
-    fn from(value: u8) -> TransferID {
-        assert_eq!(value & !0x1f, 0);
-        TransferID(value)
     }
 }
 
@@ -202,7 +200,7 @@ impl TailByte {
     
     pub fn transfer_id(&self) -> TransferID {
         let TailByte(value) = *self;
-        TransferID(value)
+        TransferID::new(value & 0x1f)
     }
 }
 
