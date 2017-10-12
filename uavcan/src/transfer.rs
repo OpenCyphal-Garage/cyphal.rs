@@ -3,7 +3,6 @@
 //! The only transfer protocol that is currently supported by the uavcan protocol is CAN2.0B.
 
 use lib::core::convert::{From};
-use lib::core::ops::Deref;
 
 use embedded_types;
 
