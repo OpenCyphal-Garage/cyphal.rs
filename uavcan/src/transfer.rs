@@ -20,7 +20,7 @@ pub trait TransferInterface<'a>
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
 
-    /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or report an error.
+    /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or return `Err(IOError::BufferExhausted)` if buffer is full.
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
