@@ -82,8 +82,11 @@ pub trait TransferFrame {
     fn set_data_length(&mut self, length: usize);
     
     /// Returns the tail byte of the TransferFrame assuming the current length
+    ///
+    /// ## Panics
+    /// panics if `self.data().len() == 0` as no tail_byte exists
     fn tail_byte(&self) -> TailByte {
-        TailByte::from(*self.data().last().unwrap())
+        TailByte::from(*self.data().last().expect("Can't return tail byte of frame with 0 data bytes"))
     }
 
     /// Checks the tail byte if this frame is a start frame and return the result
@@ -102,6 +105,9 @@ pub trait TransferFrame {
     }
 
     /// Returns the full ID of the frame (both Frame ID and transfer ID)
+    ///
+    /// ## Panics
+    /// panics if `self.data().len() == 0` as no tail_byte exists
     fn full_id(&self) -> FullTransferID {
         FullTransferID{frame_id: self.id(), transfer_id: self.tail_byte().transfer_id()} 
     }
