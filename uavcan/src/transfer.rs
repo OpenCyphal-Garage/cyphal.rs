@@ -35,7 +35,11 @@ pub trait TransferInterface<'a>
     ///
     /// 1. Matches `identifier` when masked.
     ///
-    /// 2. There exists an end_frame (`TransferFrame::is_end_frame(&self)`is asserted) with this `FullTransferID` in the receive buffer
+    /// 2. There exists an end_frame (`TransferFrame::is_end_frame(&self)`is asserted) with this `FullTransferID` in the receive buffer.
+    ///
+    /// 3. If multiple completed transfers matches, the one with highest priority will be returned (based on arbitration off `TransferFrameID`).
+    ///
+    /// 4. If multiple transfers with the same `TransferFrameID` matches, the `FullTransferID` of the one received first will be returned.
     fn completed_receive(&self, identifier: FullTransferID, mask: FullTransferID) -> Option<FullTransferID>;
 }
 
