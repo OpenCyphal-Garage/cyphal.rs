@@ -109,6 +109,7 @@ pub trait TransferFrame {
 }
 
 
+/// Cotains both the `TransferFrameID` and `TransferID` to uniquely distinguish a transfer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct FullTransferID {
     pub frame_id: TransferFrameID,
@@ -116,6 +117,7 @@ pub struct FullTransferID {
 }
 
 impl FullTransferID {
+    /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
         FullTransferID{
             frame_id: self.frame_id.mask(mask.frame_id),
@@ -124,15 +126,20 @@ impl FullTransferID {
     }
 }
 
+/// The 29-bit ID of a TransferFrame
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferFrameID(u32);
 
 impl TransferFrameID {
+    /// Constructs a new `TransferFrameID`
+    /// ## Panic
+    /// Panics if `value` is something not representable with 29-bits
     pub fn new(value: u32) -> TransferFrameID {
         assert_eq!(value & !0x1fff_ffff, 0);
         TransferFrameID(value)
     }
-
+    
+    /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
         let TransferFrameID(mut value) = self;
         value = value & u32::from(mask);
@@ -147,15 +154,20 @@ impl From<TransferFrameID> for u32 {
     }
 }
 
+/// The 5-bit ID used to distinguish consecutive transfers
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferID(u8);
 
 impl TransferID {
+    /// Constructs a new `TransferID`
+    /// ## Panic
+    /// Panics if `value` is something not representable with 29-bits
     pub fn new(value: u8) -> TransferID {
         assert_eq!(value & !0x1f, 0);
         TransferID(value)
     }
     
+    /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
         let TransferID(mut value) = self;
         value = value & u8::from(mask);
@@ -170,7 +182,31 @@ impl From<TransferID> for u8 {
     }
 }
 
-
+/// The last byte of the transfer frame data field, which contains auxiliary transport layer fields.
+///
+/// | SOT | EOT | Toggle | TID | TID | TID | TID | TID |
+/// |-----|-----|--------|-----|-----|-----|-----|-----|
+/// | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+///
+/// ### Start of transfer (SOT)
+/// For single-frame transfers, the value of this field is always 1.
+///
+/// For multi-frame transfers, the value of this field is 1 if the current frame is the first frame of the transfer, and 0 otherwise.
+///
+/// ### End of transfer (EOT)
+/// For single-frame transfers, the value of this field is always 1.
+///
+/// For multi-frame transfers, the value of this field is 1 if the current frame is the last frame of the transfer, and 0 otherwise.
+///
+/// ### Toggle
+/// For single-frame transfers, the value of this field is always 0.
+///
+/// For multi-frame transfers, this field contains the value of the toggle bit. As specified above this will alternate value between frames, starting at 0 for the first frame.
+///
+/// ### Transfer ID (TID)
+/// This field contains the transfer ID value of the current transfer (for all types of transfers).
+///
+/// The value is 5 bits wide, therefore the allowed values range from 0 to 31, inclusively.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct TailByte(u8);
 
@@ -178,22 +214,26 @@ impl TailByte {
     pub fn new(start_of_transfer: bool, end_of_transfer: bool, toggle: bool, transfer_id: TransferID) -> Self {
         TailByte( ((start_of_transfer as u8)<<7) | ((end_of_transfer as u8)<<6) | ((toggle as u8)<<5) | (u8::from(transfer_id)) )
     }
-    
+
+    /// Checks if the SOT bit is asserted
     pub fn start_of_transfer(&self) -> bool {
         let TailByte(value) = *self;
         value & (1<<7) != 0
     }
 
+    /// Checks if the EOT bit is asserted
     pub fn end_of_transfer(&self) -> bool {
         let TailByte(value) = *self;
         value & (1<<6) != 0
     }
     
+    /// Checks if the toggle bit is asserted
     pub fn toggle(&self) -> bool {
         let TailByte(value) = *self;
         value & (1<<5) != 0
     }
     
+    /// Returns the `TransferID`
     pub fn transfer_id(&self) -> TransferID {
         let TailByte(value) = *self;
         TransferID::new(value & 0x1f)
