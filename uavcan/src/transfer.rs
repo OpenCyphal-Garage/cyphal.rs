@@ -141,8 +141,11 @@ impl FullTransferID {
     }
 }
 
-/// The 29-bit ID of a TransferFrame
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+/// The 29-bit ID of a `TransferFrame`
+///
+/// Frames that will win arbitration can be found by the help of ordering.
+/// If `frame1 < frame2`, then `frame1` will win arbitration over `frame2`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct TransferFrameID(u32);
 
 impl TransferFrameID {
