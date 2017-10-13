@@ -2,7 +2,7 @@
 //!
 //! The only transfer protocol that is currently supported by the uavcan protocol is CAN2.0B.
 
-use lib::core::convert::{From};
+use lib::core::convert::From;
 
 use embedded_types;
 
@@ -15,8 +15,7 @@ pub use embedded_types::io::Error as IOError;
 /// while making sure that transfer frames with the same ID is transmitted in the same order as they was added in the transmit buffer.
 ///
 /// Receiving frames must be returned in the same order they were received by the interface.
-pub trait TransferInterface<'a>
-{
+pub trait TransferInterface<'a> {
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
 
@@ -40,7 +39,11 @@ pub trait TransferInterface<'a>
     /// 3. If multiple completed transfers matches, the one with highest priority will be returned (based on arbitration off `TransferFrameID`).
     ///
     /// 4. If multiple transfers with the same `TransferFrameID` matches, the `FullTransferID` of the one received first will be returned.
-    fn completed_receive(&self, identifier: FullTransferID, mask: FullTransferID) -> Option<FullTransferID>;
+    fn completed_receive(
+        &self,
+        identifier: FullTransferID,
+        mask: FullTransferID,
+    ) -> Option<FullTransferID>;
 }
 
 /// `TransferFrame` is a CAN like frame that can be sent over a network
@@ -73,7 +76,7 @@ pub trait TransferFrame {
 
     /// Returns a mutable slice with the data in this TransferFrame
     /// use this method to set/change the data inside this TransferFrame
-    fn data_as_mut(&mut self) -> &mut[u8];
+    fn data_as_mut(&mut self) -> &mut [u8];
 
     /// Set the data length of this TransferFrame
     ///
@@ -86,7 +89,11 @@ pub trait TransferFrame {
     /// ## Panics
     /// panics if `self.data().len() == 0` as no tail_byte exists
     fn tail_byte(&self) -> TailByte {
-        TailByte::from(*self.data().last().expect("Can't return tail byte of frame with 0 data bytes"))
+        TailByte::from(
+            *self.data()
+                .last()
+                .expect("Can't return tail byte of frame with 0 data bytes"),
+        )
     }
 
     /// Checks the tail byte if this frame is a start frame and return the result
@@ -109,9 +116,11 @@ pub trait TransferFrame {
     /// ## Panics
     /// panics if `self.data().len() == 0` as no tail_byte exists
     fn full_id(&self) -> FullTransferID {
-        FullTransferID{frame_id: self.id(), transfer_id: self.tail_byte().transfer_id()} 
+        FullTransferID {
+            frame_id: self.id(),
+            transfer_id: self.tail_byte().transfer_id(),
+        }
     }
-
 }
 
 
@@ -125,7 +134,7 @@ pub struct FullTransferID {
 impl FullTransferID {
     /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
-        FullTransferID{
+        FullTransferID {
             frame_id: self.frame_id.mask(mask.frame_id),
             transfer_id: self.transfer_id.mask(mask.transfer_id),
         }
@@ -217,26 +226,36 @@ impl From<TransferID> for u8 {
 pub struct TailByte(u8);
 
 impl TailByte {
-    pub fn new(start_of_transfer: bool, end_of_transfer: bool, toggle: bool, transfer_id: TransferID) -> Self {
-        TailByte( ((start_of_transfer as u8)<<7) | ((end_of_transfer as u8)<<6) | ((toggle as u8)<<5) | (u8::from(transfer_id)) )
+    pub fn new(
+        start_of_transfer: bool,
+        end_of_transfer: bool,
+        toggle: bool,
+        transfer_id: TransferID,
+    ) -> Self {
+        TailByte(
+            ((start_of_transfer as u8) << 7) |
+            ((end_of_transfer as u8) << 6) |
+            ((toggle as u8) << 5) |
+            (u8::from(transfer_id))
+        )
     }
 
     /// Checks if the SOT bit is asserted
     pub fn start_of_transfer(&self) -> bool {
         let TailByte(value) = *self;
-        value & (1<<7) != 0
+        value & (1 << 7) != 0
     }
 
     /// Checks if the EOT bit is asserted
     pub fn end_of_transfer(&self) -> bool {
         let TailByte(value) = *self;
-        value & (1<<6) != 0
+        value & (1 << 6) != 0
     }
     
     /// Checks if the toggle bit is asserted
     pub fn toggle(&self) -> bool {
         let TailByte(value) = *self;
-        value & (1<<5) != 0
+        value & (1 << 5) != 0
     }
     
     /// Returns the `TransferID`
@@ -286,12 +305,23 @@ impl From<embedded_types::can::ExtendedID> for TransferFrameID {
 impl TransferFrame for embedded_types::can::ExtendedDataFrame {
     const MAX_DATA_LENGTH: usize = 8;
 
-    fn new(id: TransferFrameID) -> Self { embedded_types::can::ExtendedDataFrame::new(id.into()) }
+    fn new(id: TransferFrameID) -> Self {
+        embedded_types::can::ExtendedDataFrame::new(id.into())
+    }
     fn set_data_length(&mut self, length: usize) {
-        assert!(length <= Self::MAX_DATA_LENGTH, "ExtendedDataFrame::set_data_length() needs the length to be less than 8");
+        assert!(
+            length <= Self::MAX_DATA_LENGTH,
+            "ExtendedDataFrame::set_data_length() needs the length to be less than 8"
+        );
         self.set_data_length(length);
     }
-    fn data(&self) -> &[u8] {&self.data()}
-    fn data_as_mut(&mut self) -> &mut [u8] {self.data_as_mut()}
-    fn id(&self) -> TransferFrameID {self.id().into()}
+    fn data(&self) -> &[u8] {
+        &self.data()
+    }
+    fn data_as_mut(&mut self) -> &mut [u8] {
+        self.data_as_mut()
+    }
+    fn id(&self) -> TransferFrameID {
+        self.id().into()
+    }
 }
