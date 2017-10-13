@@ -50,7 +50,7 @@ impl<F: Frame> FrameAssembler<F> {
         Self{
             deserializer: Deserializer::new(),
             started: false,
-            id: 0x00.into(),
+            id: TransferFrameID::new(0x00),
             crc: 0x00,
             crc_calculated: 0xffff,
             toggle: false,

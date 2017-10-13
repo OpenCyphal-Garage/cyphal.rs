@@ -14,7 +14,7 @@ macro_rules! message_frame_header{
                 id.set_bit(7, false);
                 id.set_bits(8..24, <Self as uavcan::MessageFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
-                uavcan::transfer::TransferFrameID::from(id)
+                uavcan::transfer::TransferFrameID::new(id)
             }
             
             fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {
@@ -65,7 +65,7 @@ macro_rules! anonymous_frame_header{
                 id.set_bits(8..10, <Self as uavcan::AnonymousFrameHeader>::TYPE_ID as u32);
                 id.set_bits(10..24, self.discriminator as u32);
                 id.set_bits(24..29, self.priority as u32);
-                uavcan::transfer::TransferFrameID::from(id)
+                uavcan::transfer::TransferFrameID::new(id)
             }
    
             fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {
@@ -119,7 +119,7 @@ macro_rules! service_frame_header{
                 id.set_bit(7, false);
                 id.set_bits(8..24, <Self as uavcan::ServiceFrameHeader>::TYPE_ID as u32);
                 id.set_bits(24..29, self.priority as u32);
-                uavcan::transfer::TransferFrameID::from(id)
+                uavcan::transfer::TransferFrameID::new(id)
             }
             
             fn from_id(id: uavcan::transfer::TransferFrameID) -> Result<Self, ()> {

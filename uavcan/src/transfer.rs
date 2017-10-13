@@ -128,6 +128,11 @@ impl FullTransferID {
 pub struct TransferFrameID(u32);
 
 impl TransferFrameID {
+    pub fn new(value: u32) -> TransferFrameID {
+        assert_eq!(value & !0x1fff_ffff, 0);
+        TransferFrameID(value)
+    }
+
     pub fn mask(self, mask: Self) -> Self {
         let TransferFrameID(mut value) = self;
         value = value & u32::from(mask);
@@ -139,13 +144,6 @@ impl From<TransferFrameID> for u32 {
     fn from(id: TransferFrameID) -> u32 {
         let TransferFrameID(value) = id;
         value
-    }
-}
-
-impl From<u32> for TransferFrameID {
-    fn from(value: u32) -> TransferFrameID {
-        assert_eq!(value & !0x1fff_ffff, 0);
-        TransferFrameID(value)
     }
 }
 
@@ -235,7 +233,7 @@ impl From<TransferFrameID> for embedded_types::can::ID {
 
 impl From<embedded_types::can::ExtendedID> for TransferFrameID {
     fn from(id: embedded_types::can::ExtendedID) -> Self {
-        TransferFrameID::from(u32::from(id))
+        TransferFrameID::new(u32::from(id))
     }
 }
 
