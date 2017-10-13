@@ -15,6 +15,7 @@
 extern crate uavcan_derive;
 
 extern crate bit_field;
+extern crate embedded_types;
 extern crate half;
 
 mod lib {
@@ -33,6 +34,7 @@ mod uavcan {
 
 pub use uavcan_derive::*;
 
+pub mod transfer;
 #[macro_use]
 mod header_macros;
 pub mod types;
@@ -44,8 +46,9 @@ pub mod frame_disassembler;
 
 use bit_field::BitField;
 
-use lib::core::convert::{From};
 use lib::core::ops::Range;
+
+use transfer::TransferFrameID;
 
 pub use serializer::{
     SerializationResult,
@@ -58,64 +61,10 @@ pub use deserializer::{
 };
 
 
-/// The TransportFrame is uavcan cores main interface to the outside world
-///
-/// This will in >99% of situations be a CAN2.0B frame
-/// But in theory both CAN-FD and other protocols which gives
-/// similar guarantees as CAN can also be used
-pub trait TransferFrame {
-    fn tail_byte(&self) -> TailByte {
-        TailByte::from(*self.data().last().unwrap())
-    }
-    fn is_start_frame(&self) -> bool {
-        self.tail_byte().start_of_transfer
-    }
-    fn is_end_frame(&self) -> bool {
-        self.tail_byte().end_of_transfer
-    }
-    fn is_single_frame(&self) -> bool {
-        self.is_end_frame() && self.is_start_frame()
-    }
-
-    /// with_data(id: u32, data: &[u]) -> TransportFrame creates a TransportFrame
-    /// with an 28 bits ID and data between 0 and the return value ofget_max_data_length()
-    fn with_data(id: u32,  data: &[u8]) -> Self;
-    fn with_length(id: u32, length: usize) -> Self;
-    fn set_data_length(&mut self, length: usize);
-    fn max_data_length() -> usize;
-    fn data(&self) -> &[u8];
-    fn data_as_mut(&mut self) -> &mut[u8];
-    fn id(&self) -> u32;
-}
-
-pub struct TailByte {
-    start_of_transfer: bool,
-    end_of_transfer: bool,
-    toggle: bool,
-    transfer_id: u8,
-}
-
-impl From<TailByte> for u8 {
-    fn from(tb: TailByte) -> u8 {
-        ((tb.start_of_transfer as u8) << 7) | ((tb.end_of_transfer as u8) << 6) | ((tb.toggle as u8) << 5) | (tb.transfer_id&0x1f)
-    }
-}
-
-impl From<u8> for TailByte {
-    fn from(u: u8) -> TailByte {
-        TailByte{start_of_transfer: (u&(1<<7)) != 0, end_of_transfer: (u&(1<<6)) != 0, toggle: (u&(1<<5)) != 0, transfer_id: u&0x1f}
-    }
-}
-
-
-
-
-
-
 pub trait Header {
-    fn from_id(u32) -> Result<Self, ()> where Self: Sized;
+    fn from_id(TransferFrameID) -> Result<Self, ()> where Self: Sized;
     
-    fn id(&self) -> u32;
+    fn id(&self) -> TransferFrameID;
     fn set_priority(&mut self, priority: u8);
     fn get_priority(&self) -> u8;
 }
@@ -246,34 +195,23 @@ pub trait Frame {
 mod tests {
 
     use *;
-    
+
     // Implementing some types common for several tests
     
     #[derive(Debug, PartialEq)]
-    pub struct CanID(pub u32);
-
-    #[derive(Debug, PartialEq)]
     pub struct CanFrame {
-        pub id: CanID,
+        pub id: TransferFrameID,
         pub dlc: usize,
         pub data: [u8; 8],
     }
 
-    impl TransferFrame for CanFrame {
-        fn with_data(id: u32, data: &[u8]) -> CanFrame {
-            let mut can_data = [0; 8];
-            can_data[0..data.len()].clone_from_slice(data);
-            CanFrame{id: CanID(id), dlc: data.len(), data: can_data}
-        }
-
-        fn with_length(id: u32, length: usize) -> CanFrame {
-            CanFrame{id: CanID(id), dlc: length, data: [0; 8]}
+    impl transfer::TransferFrame for CanFrame {
+        const MAX_DATA_LENGTH: usize = 8;
+        
+        fn new(id: TransferFrameID) -> CanFrame {
+            CanFrame{id: id, dlc: 0, data: [0; 8]}
         }
         
-        fn max_data_length() -> usize {
-            8
-        }
-
         fn set_data_length(&mut self, length: usize) {
             assert!(length <= 8);
             self.dlc = length;
@@ -287,10 +225,8 @@ mod tests {
             &mut self.data[0..self.dlc]
         }
         
-        fn id(&self) -> u32 {
-            match self.id {
-                CanID(x) => x,
-            }
+        fn id(&self) -> TransferFrameID {
+            self.id 
         }
     }
 
