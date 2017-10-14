@@ -3,6 +3,7 @@ use std::str;
 use {
     Comment,
     Ident,
+    PrimitiveType,
 };
 
 use nom::{
@@ -15,6 +16,17 @@ named!(field_name<Ident>, map!(map_res!(
     verify!(take_while!(is_allowed_in_field_name), |x:&[u8]| is_lowercase(x[0])),
     str::from_utf8), Ident::from)
 );
+
+named!(primitive_type<PrimitiveType>, map!(map_res!(
+    alt!(
+        complete!(tag!("uint32")) |
+        complete!(tag!("uint16")) |
+        complete!(tag!("uint3")) |
+        complete!(tag!("uint2"))
+    ), str::from_utf8), PrimitiveType::new)
+);
+
+
 
 fn is_lowercase(chr: u8) -> bool {
     chr >= b'a' && chr <= b'z'
@@ -54,5 +66,15 @@ mod tests {
         assert_eq!(field_name(&b"variable23"[..]), IResult::Done(&b""[..], Ident(String::from("variable23"))));
         assert_eq!(field_name(&b"var_iable23"[..]), IResult::Done(&b""[..], Ident(String::from("var_iable23"))));
         assert!(field_name(&b"2variable23"[..]).is_err());
+    }
+
+    #[test]
+    fn parse_primitive_type() {
+        assert_eq!(primitive_type(&b"uint2"[..]), IResult::Done(&b""[..], PrimitiveType::Uint2));
+        assert_eq!(primitive_type(&b"uint3"[..]), IResult::Done(&b""[..], PrimitiveType::Uint3));
+        assert_eq!(primitive_type(&b"uint16"[..]), IResult::Done(&b""[..], PrimitiveType::Uint16));
+        assert_eq!(primitive_type(&b"uint32"[..]), IResult::Done(&b""[..], PrimitiveType::Uint32));
+        
+        assert!(primitive_type(&b"2variable23"[..]).is_err());
     }
 }
