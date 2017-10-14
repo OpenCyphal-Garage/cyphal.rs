@@ -48,9 +48,11 @@ pub enum ArrayInfo {
     Static(u32),
 }
 
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct FieldType {
-    pub cast_mode: CastMode,
+    pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
     pub array: ArrayInfo,
     pub name: Ident,

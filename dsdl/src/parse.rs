@@ -8,6 +8,7 @@ use {
     CastMode,
     Ty,
     ArrayInfo,
+    FieldType,
 };
 
 use nom::{
@@ -60,6 +61,18 @@ named!(array_info<ArrayInfo>, alt!(
     complete!(do_parse!(empty: tag!("") >> (ArrayInfo::Single)))
 ));
 
+
+
+
+
+named!(field_type<FieldType>, ws!(do_parse!(
+    cast_mode: opt!(cast_mode) >>
+        field_type: type_name >>
+        array: array_info >>
+        name: field_name >>
+        (FieldType{cast_mode: cast_mode, field_type: field_type, array: array, name: name})
+)));
+      
 
 
 
@@ -165,6 +178,7 @@ mod tests {
         assert_eq!(cast_mode(&b"truncated"[..]), IResult::Done(&b""[..], CastMode::Truncated));
         
         assert!(cast_mode(&b"2variable23"[..]).is_err());
+        assert!(cast_mode(&b""[..]).is_err());
     }
 
     #[test]
@@ -180,6 +194,28 @@ mod tests {
         assert_eq!(array_info(&b"[5]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(5)));
         assert_eq!(array_info(&b"[128]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(128)));
         assert_eq!(array_info(&b"[129]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(129)));
+        
+    }
+
+
+
+
+
+
+
+
+    #[test]
+    fn parse_field_type() {
+        assert_eq!(
+            field_type(&b"uint32 uptime_sec"[..]),
+            IResult::Done(&b""[..], FieldType{
+                cast_mode: None,
+                field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                array: ArrayInfo::Single,
+                name: Ident(String::from("uptime_sec")),
+            })
+        );
+
         
     }
 }
