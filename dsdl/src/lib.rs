@@ -44,8 +44,8 @@ impl FromStr for CastMode {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     Single,
-    Dynamic(usize),
-    Static(usize),
+    Dynamic(u32),
+    Static(u32),
 }
 
 #[derive(Debug, PartialEq, Eq)]
