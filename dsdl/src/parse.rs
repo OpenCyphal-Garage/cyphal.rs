@@ -6,6 +6,7 @@ use {
     Ident,
     PrimitiveType,
     CastMode,
+    Ty,
 };
 
 use nom::{
@@ -28,6 +29,11 @@ named!(field_name<Ident>, map!(map_res!(
 
 named!(const_name<Ident>, map!(map_res!(
     verify!(take_while!(is_allowed_in_const_name), |x:&[u8]| is_uppercase_char(x[0])),
+    str::from_utf8), Ident::from)
+);
+
+named!(composite_type_name<Ident>, map!(map_res!(
+    verify!(take_while!(is_allowed_in_composite_type_name), |x:&[u8]| is_uppercase_char(x[0])),
     str::from_utf8), Ident::from)
 );
 
@@ -61,6 +67,10 @@ fn is_allowed_in_field_name(chr: u8) -> bool {
     
 fn is_allowed_in_const_name(chr: u8) -> bool {
     is_uppercase_char(chr) || is_numeric(chr) || chr == b'_'
+}
+    
+fn is_allowed_in_composite_type_name(chr: u8) -> bool {
+    is_uppercase_char(chr) || is_lowercase_char(chr) || is_numeric(chr)
 }
     
         
@@ -98,6 +108,14 @@ mod tests {
         assert_eq!(const_name(&b"CON_ST"[..]), IResult::Done(&b""[..], Ident(String::from("CON_ST"))));
         assert_eq!(const_name(&b"CON_ST1_2345"[..]), IResult::Done(&b""[..], Ident(String::from("CON_ST1_2345"))));
         assert!(const_name(&b"2CON"[..]).is_err());
+    }
+
+    #[test]
+    fn parse_composite_type_name() {
+        assert_eq!(composite_type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ident(String::from("TypeName"))));
+        assert_eq!(composite_type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ident(String::from("TypeName1234"))));
+        assert!(composite_type_name(&b"typeName"[..]).is_err());
+        assert!(composite_type_name(&b"2typeName"[..]).is_err());
     }
 
     #[test]
