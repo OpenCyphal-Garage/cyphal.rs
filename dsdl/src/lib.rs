@@ -68,6 +68,18 @@ pub enum Ty{
     Path(Ident),
 }
 
+impl From<Ident> for Ty {
+    fn from(t: Ident) -> Ty {
+        Ty::Path(t)
+    }
+}
+
+impl From<PrimitiveType> for Ty {
+    fn from(t: PrimitiveType) -> Ty {
+        Ty::PrimitiveType(t)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum PrimitiveType {
     Bool,

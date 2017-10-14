@@ -46,6 +46,12 @@ named!(primitive_type<PrimitiveType>, map!(map_res!(
     ), str::from_utf8), PrimitiveType::new)
 );
 
+named!(type_name<Ty>, alt!(
+    map!(primitive_type, Ty::from) |
+    map!(composite_type_name, Ty::from)
+));
+
+
 
 
 fn is_lowercase_char(chr: u8) -> bool {
@@ -126,6 +132,21 @@ mod tests {
         assert_eq!(primitive_type(&b"uint32"[..]), IResult::Done(&b""[..], PrimitiveType::Uint32));
         
         assert!(primitive_type(&b"2variable23"[..]).is_err());
+    }
+
+    #[test]
+    fn parse_type_name() {
+        assert_eq!(type_name(&b"uint2"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint2)));
+        assert_eq!(type_name(&b"uint3"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint3)));
+        assert_eq!(type_name(&b"uint16"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint16)));
+        assert_eq!(type_name(&b"uint32"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint32)));
+
+        assert_eq!(type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ty::Path(Ident(String::from("TypeName")))));
+        assert_eq!(type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ty::Path(Ident(String::from("TypeName1234")))));
+        assert!(type_name(&b"typeName"[..]).is_err());
+        assert!(type_name(&b"2typeName"[..]).is_err());
+        
+        assert!(type_name(&b"2variable23"[..]).is_err());
     }
 
     #[test]
