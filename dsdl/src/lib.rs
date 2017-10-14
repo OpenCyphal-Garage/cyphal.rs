@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate nom;
+
+use std::str::FromStr;
+
 pub mod parse;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -24,6 +27,18 @@ impl<'a> From<&'a str> for Ident {
 pub enum CastMode {
     Saturated,
     Truncated,
+}
+
+impl FromStr for CastMode {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "saturated" => Ok(CastMode::Saturated),
+            "truncated" => Ok(CastMode::Truncated),
+            _ => Err(()),
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]

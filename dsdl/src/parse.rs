@@ -1,9 +1,11 @@
 use std::str;
+use std::str::FromStr;
 
 use {
     Comment,
     Ident,
     PrimitiveType,
+    CastMode,
 };
 
 use nom::{
@@ -11,6 +13,13 @@ use nom::{
 };
 
 named!(comment<Comment>, map!(map_res!(preceded!(tag!("#"), not_line_ending), str::from_utf8), Comment::from));
+
+named!(cast_mode<CastMode>, map_res!(map_res!(
+    alt!(
+        complete!(tag!("saturated")) |
+        complete!(tag!("truncated")) 
+    ), str::from_utf8), CastMode::from_str)
+);
 
 named!(field_name<Ident>, map!(map_res!(
     verify!(take_while!(is_allowed_in_field_name), |x:&[u8]| is_lowercase_char(x[0])),
@@ -99,5 +108,13 @@ mod tests {
         assert_eq!(primitive_type(&b"uint32"[..]), IResult::Done(&b""[..], PrimitiveType::Uint32));
         
         assert!(primitive_type(&b"2variable23"[..]).is_err());
+    }
+
+    #[test]
+    fn parse_cast_mode() {
+        assert_eq!(cast_mode(&b"saturated"[..]), IResult::Done(&b""[..], CastMode::Saturated));
+        assert_eq!(cast_mode(&b"truncated"[..]), IResult::Done(&b""[..], CastMode::Truncated));
+        
+        assert!(cast_mode(&b"2variable23"[..]).is_err());
     }
 }
