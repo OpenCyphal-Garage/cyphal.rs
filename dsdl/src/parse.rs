@@ -4,6 +4,7 @@ use std::str::FromStr;
 use {
     Comment,
     Ident,
+    Num,
     PrimitiveType,
     CastMode,
     Ty,
@@ -55,9 +56,9 @@ named!(type_name<Ty>, alt!(
 ));
 
 named!(array_info<ArrayInfo>, alt!(
-    complete!(do_parse!(intro: tag!("[<=") >> num: map_res!(map_res!(take_while!(is_digit), str::from_utf8), u32::from_str) >> exit: tag!("]") >> (ArrayInfo::Dynamic(num)))) |
-    complete!(do_parse!(intro: tag!("[<") >> num: map_res!(map_res!(take_while!(is_digit), str::from_utf8), u32::from_str) >> exit: tag!("]") >> (ArrayInfo::Dynamic(num-1)))) |
-    complete!(do_parse!(intro: tag!("[") >> num: map_res!(map_res!(take_while!(is_digit), str::from_utf8), u32::from_str) >> exit: tag!("]") >> (ArrayInfo::Static(num)))) |
+    complete!(do_parse!(intro: tag!("[<=") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::Dynamic(Num::from_str(num).unwrap())))) |
+    complete!(do_parse!(intro: tag!("[<") >> num: map_res!(map_res!(take_while!(is_digit), str::from_utf8), u32::from_str) >> exit: tag!("]") >> (ArrayInfo::Dynamic(Num(format!("{}", num-1)))))) |
+    complete!(do_parse!(intro: tag!("[") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::Static(Num::from_str(num).unwrap())))) |
     complete!(do_parse!(empty: tag!("") >> (ArrayInfo::Single)))
 ));
 
@@ -184,16 +185,16 @@ mod tests {
     #[test]
     fn parse_array_info() {
         assert_eq!(array_info(&b""[..]), IResult::Done(&b""[..], ArrayInfo::Single));
-        assert_eq!(array_info(&b"[<=4]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(4)));
-        assert_eq!(array_info(&b"[<5]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(4)));
+        assert_eq!(array_info(&b"[<=4]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(Num::from_str("4").unwrap())));
+        assert_eq!(array_info(&b"[<5]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(Num::from_str("4").unwrap())));
         
-        assert_eq!(array_info(&b"[<=128]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(128)));
-        assert_eq!(array_info(&b"[<129]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(128)));
+        assert_eq!(array_info(&b"[<=128]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(Num::from_str("128").unwrap())));
+        assert_eq!(array_info(&b"[<129]"[..]), IResult::Done(&b""[..], ArrayInfo::Dynamic(Num::from_str("128").unwrap())));
 
-        assert_eq!(array_info(&b"[4]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(4)));
-        assert_eq!(array_info(&b"[5]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(5)));
-        assert_eq!(array_info(&b"[128]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(128)));
-        assert_eq!(array_info(&b"[129]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(129)));
+        assert_eq!(array_info(&b"[4]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(Num::from_str("4").unwrap())));
+        assert_eq!(array_info(&b"[5]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(Num::from_str("5").unwrap())));
+        assert_eq!(array_info(&b"[128]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(Num::from_str("128").unwrap())));
+        assert_eq!(array_info(&b"[129]"[..]), IResult::Done(&b""[..], ArrayInfo::Static(Num::from_str("129").unwrap())));
         
     }
 

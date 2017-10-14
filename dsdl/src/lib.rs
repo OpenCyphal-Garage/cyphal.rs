@@ -24,6 +24,18 @@ impl<'a> From<&'a str> for Ident {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct Num(String);
+
+impl FromStr for Num {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        // TODO: fix sanitizing
+        Ok(Num(String::from(s)))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum CastMode {
     Saturated,
     Truncated,
@@ -44,8 +56,8 @@ impl FromStr for CastMode {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     Single,
-    Dynamic(u32),
-    Static(u32),
+    Dynamic(Num),
+    Static(Num),
 }
 
 
