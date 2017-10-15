@@ -1,17 +1,59 @@
 #[macro_use]
 extern crate nom;
 
+use std::io::Read;
+
+use std::fs;
+
+use std::path::Path;
+
 use std::str::FromStr;
 
-pub mod parse;
+use std::collections::HashMap;
+
+mod parse;
 
 
 
+#[derive(Debug, PartialEq, Eq)]
+pub struct DSDL {
+    files: HashMap<String, File>,
+}
 
+impl DSDL {
+    pub fn open<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
+        let mut dsdl = DSDL{files: HashMap::new()};
+
+        DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+
+        Ok(dsdl)
+    }
+
+    fn read_uavcan_files(path: &Path, namespace: String, files: &mut HashMap<String, File>) -> std::io::Result<()> {
+        if path.is_dir() {
+            for entry in fs::read_dir(path)? {
+                DSDL::read_uavcan_files(&entry?.path(), namespace.clone() + "/" + path.file_name().unwrap().to_str().unwrap(), files)?;
+            }
+        } else {
+            let mut file = fs::File::open(path)?;
+            let file_name = path.file_name().unwrap().to_str().unwrap();
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)?;
+            let bytes_slice = bytes.into_boxed_slice();
+            let (_i, lines) = parse::lines(&bytes_slice).unwrap();
+            
+            files.insert(namespace.clone() + "/" + file_name, File{id: None, namespace: namespace.clone(), name: String::from(file_name), lines: lines}); 
+        }
+    
+        Ok(())
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct File {
-    path: QualifiedPath,
+    id: Option<String>,
+    namespace: String,
+    name: String,
     lines: Vec<Line>,
 }
 

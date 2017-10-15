@@ -116,7 +116,7 @@ named!(line<Line>, sep!(whitespace, do_parse!(
         (Line(attribute_definition, comment))
 )));                        
 
-named!(lines<Vec<Line>>, many0!(ws!(line)));
+named!(pub lines<Vec<Line>>, many0!(ws!(line)));
 
 
 
