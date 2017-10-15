@@ -96,25 +96,21 @@ fn is_uppercase_char(chr: u8) -> bool {
     chr >= b'A' && chr <= b'Z'
 }
 
-fn is_numeric(chr: u8) -> bool {
-    chr >= b'0' && chr <= b'9'
-}
-
 fn is_bin_digit(chr: u8) -> bool {
     chr == b'0' || chr == b'1'
 }
 
 
 fn is_allowed_in_field_name(chr: u8) -> bool {
-    is_lowercase_char(chr) || is_numeric(chr) || chr == b'_'
+    is_lowercase_char(chr) || is_digit(chr) || chr == b'_'
 }
     
 fn is_allowed_in_const_name(chr: u8) -> bool {
-    is_uppercase_char(chr) || is_numeric(chr) || chr == b'_'
+    is_uppercase_char(chr) || is_digit(chr) || chr == b'_'
 }
     
 fn is_allowed_in_composite_type_name(chr: u8) -> bool {
-    is_uppercase_char(chr) || is_lowercase_char(chr) || is_numeric(chr)
+    is_uppercase_char(chr) || is_lowercase_char(chr) || is_digit(chr)
 }
     
         
