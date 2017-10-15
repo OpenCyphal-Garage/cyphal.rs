@@ -7,6 +7,7 @@ use std::fs;
 
 use std::path::Path;
 
+use std::str;
 use std::str::FromStr;
 
 use std::collections::HashMap;
@@ -46,7 +47,10 @@ impl DSDL {
             let mut bytes = Vec::new();
             file.read_to_end(&mut bytes)?;
             let bytes_slice = bytes.into_boxed_slice();
-            let (_i, lines) = parse::lines(&bytes_slice).unwrap();
+            let (remaining, lines) = parse::lines(&bytes_slice).unwrap();
+            
+            assert_eq!(remaining, &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
+            
             let mut partial_name = file_name.rsplit('.');
             if partial_name.next() == Some("uavcan") {
                 let type_name = String::from(partial_name.next().unwrap());
