@@ -42,15 +42,15 @@ named!(const_name<Ident>, map!(map_res!(
 );
 
 named!(composite_type_name<CompositeType>, map_res!(map_res!(
-    verify!(take_while!(is_allowed_in_composite_type_name), |x:&[u8]| x.len() >= 1 && is_uppercase_char(x[0])),
+    take_while!(is_allowed_in_composite_type_name),
     str::from_utf8), CompositeType::from_str)
 );
 
 named!(primitive_type<PrimitiveType>, map_res!(map_res!(take_while!(is_allowed_in_primitive_type_name), str::from_utf8), PrimitiveType::from_str));
 
 named!(type_name<Ty>, alt!(
-    map!(primitive_type, Ty::from) |
-    map!(composite_type_name, Ty::from)
+    map!(complete!(primitive_type), Ty::from) |
+    map!(complete!(composite_type_name), Ty::from)
 ));
 
 named!(array_info<ArrayInfo>, alt!(
@@ -156,7 +156,7 @@ fn is_allowed_in_const_name(chr: u8) -> bool {
 }
     
 fn is_allowed_in_composite_type_name(chr: u8) -> bool {
-    is_uppercase_char(chr) || is_lowercase_char(chr) || is_digit(chr)
+    is_uppercase_char(chr) || is_lowercase_char(chr) || is_digit(chr) || chr == b'.'
 }
     
         
@@ -210,8 +210,9 @@ mod tests {
     fn parse_composite_type_name() {
         assert_eq!(composite_type_name(&b"TypeName"[..]), IResult::Done(&b""[..], CompositeType{namespace: None, name: Ident(String::from("TypeName")) } ));
         assert_eq!(composite_type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], CompositeType{namespace: None, name: Ident(String::from("TypeName1234")) } ));
-        assert!(composite_type_name(&b"typeName"[..]).is_err());
-        assert!(composite_type_name(&b"2typeName"[..]).is_err());
+
+        assert_eq!(composite_type_name(&b"uavcan.protocol.TypeName"[..]), IResult::Done(&b""[..], CompositeType{namespace: Some(Ident(String::from("uavcan.protocol"))), name: Ident(String::from("TypeName"))}));
+        assert_eq!(composite_type_name(&b"uavcan.protocol.TypeName1234"[..]), IResult::Done(&b""[..], CompositeType{namespace: Some(Ident(String::from("uavcan.protocol"))), name: Ident(String::from("TypeName1234"))}));
     }
 
     #[test]
@@ -233,10 +234,10 @@ mod tests {
 
         assert_eq!(type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: None, name: Ident(String::from("TypeName"))})));
         assert_eq!(type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: None, name: Ident(String::from("TypeName1234"))})));
-        assert!(type_name(&b"typeName"[..]).is_err());
-        assert!(type_name(&b"2typeName"[..]).is_err());
+
+        assert_eq!(type_name(&b"uavcan.protocol.TypeName"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: Some(Ident(String::from("uavcan.protocol"))), name: Ident(String::from("TypeName"))})));
+        assert_eq!(type_name(&b"uavcan.protocol.TypeName1234"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: Some(Ident(String::from("uavcan.protocol"))), name: Ident(String::from("TypeName1234"))})));
         
-        assert!(type_name(&b"2variable23"[..]).is_err());
     }
 
     #[test]

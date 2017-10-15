@@ -121,7 +121,7 @@ impl FromStr for CompositeType {
     
     fn from_str(s: &str) -> Result<CompositeType, Self::Err> {
         if s.contains('.') {
-            let mut split = s.rsplitn(1, '.');
+            let mut split = s.rsplitn(2, '.');
             let name = Ident(String::from(split.next().unwrap()));
             let namespace = match split.next() {
                 Some(x) => Some(Ident(String::from(x))),
