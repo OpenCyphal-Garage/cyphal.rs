@@ -341,15 +341,23 @@ mod tests {
     #[test]
     fn parse_line() {
         assert_eq!(
+            line(&b"# Test comment"[..]),
+            IResult::Done(&b""[..], Line(
+                None,
+                Some(Comment(String::from(" Test comment"))),
+            ))
+        );
+        
+        assert_eq!(
             line(&b"void2\n"[..]),
             IResult::Done(&b"\n"[..], Line(
-                Some(AttributeDefinition::Void(VoidDefinition{
-                    field_type: PrimitiveType::Void2,
-                })),
+            Some(AttributeDefinition::Void(VoidDefinition{
+                field_type: PrimitiveType::Void2,
+            })),
                 None
             ))
         );
-
+        
         assert_eq!(
             line(&b"void3"[..]),
             IResult::Done(&b""[..], Line(
@@ -370,10 +378,32 @@ mod tests {
             ))
         );
 
-
+        assert_eq!(
+            line(&b"uint32 uptime_sec"[..]),
+            IResult::Done(&b""[..], Line(
+                Some(AttributeDefinition::Field(FieldDefinition{
+                    cast_mode: None,
+                    field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                    array: ArrayInfo::Single,
+                    name: Ident(String::from("uptime_sec")),
+                })),
+                None,
+            ))
+        );
+        
+        assert_eq!(
+            line(&b"uint2 HEALTH_OK              = 0"[..]),
+            IResult::Done(&b""[..], Line(
+                Some(AttributeDefinition::Const(ConstDefinition{
+                    cast_mode: None,
+                    field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                    name: Ident(String::from("HEALTH_OK")),
+                    constant: Value::Dec(String::from("0")),
+                })),
+                None,
+            ))
+        );
         
     }
-
-
     
 }
