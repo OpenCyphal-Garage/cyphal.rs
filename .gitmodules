@@ -1,3 +1,3 @@
-[submodule "dsdl_compiler/tests/dsdl"]
-	path = dsdl_compiler/tests/dsdl
+[submodule "dsdl_parser/tests/dsdl"]
+	path = dsdl_parser/tests/dsdl
 	url = https://github.com/UAVCAN/dsdl.git
