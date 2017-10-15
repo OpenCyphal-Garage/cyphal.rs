@@ -39,17 +39,17 @@ named!(cast_mode<CastMode>, map_res!(map_res!(
 );
 
 named!(field_name<Ident>, map!(map_res!(
-    verify!(take_while!(is_allowed_in_field_name), |x:&[u8]| is_lowercase_char(x[0])),
+    verify!(take_while!(is_allowed_in_field_name), |x:&[u8]| x.len() >= 1 && is_lowercase_char(x[0])),
     str::from_utf8), Ident::from)
 );
 
 named!(const_name<Ident>, map!(map_res!(
-    verify!(take_while!(is_allowed_in_const_name), |x:&[u8]| is_uppercase_char(x[0])),
+    verify!(take_while!(is_allowed_in_const_name), |x:&[u8]| x.len() >= 1 && is_uppercase_char(x[0])),
     str::from_utf8), Ident::from)
 );
 
 named!(composite_type_name<Ident>, map!(map_res!(
-    verify!(take_while!(is_allowed_in_composite_type_name), |x:&[u8]| is_uppercase_char(x[0])),
+    verify!(take_while!(is_allowed_in_composite_type_name), |x:&[u8]| x.len() >= 1 && is_uppercase_char(x[0])),
     str::from_utf8), Ident::from)
 );
 
