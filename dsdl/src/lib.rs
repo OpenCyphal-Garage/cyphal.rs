@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 pub mod parse;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Comment(String);
 
 impl<'a> From<&'a str> for Comment {
@@ -14,7 +14,7 @@ impl<'a> From<&'a str> for Comment {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ident(String);
 
 impl<'a> From<&'a str> for Ident {
@@ -23,7 +23,7 @@ impl<'a> From<&'a str> for Ident {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Num(String);
 
 impl FromStr for Num {
@@ -35,7 +35,7 @@ impl FromStr for Num {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Value {
     Dec(String),
     Hex(String),
@@ -45,7 +45,7 @@ pub enum Value {
 // TODO: consider using this instead of Num for array lengths
 
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastMode {
     Saturated,
     Truncated,
@@ -63,7 +63,7 @@ impl FromStr for CastMode {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     Single,
     Dynamic(Num),
@@ -72,7 +72,7 @@ pub enum ArrayInfo {
 
 
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FieldDefinition {
     pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
@@ -80,7 +80,7 @@ pub struct FieldDefinition {
     pub name: Ident,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConstDefinition {
     pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
@@ -88,7 +88,7 @@ pub struct ConstDefinition {
     pub constant: Value,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ty{
     PrimitiveType(PrimitiveType),
     Path(Ident),
@@ -106,7 +106,7 @@ impl From<PrimitiveType> for Ty {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PrimitiveType {
     Bool,
     
