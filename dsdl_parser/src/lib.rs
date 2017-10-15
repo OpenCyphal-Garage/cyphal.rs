@@ -32,7 +32,12 @@ impl DSDL {
     fn read_uavcan_files(path: &Path, namespace: String, files: &mut HashMap<String, File>) -> std::io::Result<()> {
         if path.is_dir() {
             for entry in fs::read_dir(path)? {
-                DSDL::read_uavcan_files(&entry?.path(), namespace.clone() + "/" + path.file_name().unwrap().to_str().unwrap(), files)?;
+                let current_path = entry?.path();
+                if namespace == "" {
+                    DSDL::read_uavcan_files(&current_path, String::from(current_path.file_name().unwrap().to_str().unwrap()), files)?;
+                } else {
+                    DSDL::read_uavcan_files(&current_path, namespace.clone() + "." + current_path.file_name().unwrap().to_str().unwrap(), files)?;
+                }
             }
         } else {
             let mut file = fs::File::open(path)?;
