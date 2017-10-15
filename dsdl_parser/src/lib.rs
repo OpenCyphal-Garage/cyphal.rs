@@ -464,6 +464,8 @@ impl FromStr for PrimitiveType {
     
     fn from_str(s: &str) -> Result<PrimitiveType, Self::Err> {    
         match s {
+            "bool" => Ok(PrimitiveType::Bool),
+            
             "uint2" => Ok(PrimitiveType::Uint2),
             "uint3" => Ok(PrimitiveType::Uint3),
             "uint4" => Ok(PrimitiveType::Uint4),
@@ -473,9 +475,14 @@ impl FromStr for PrimitiveType {
             "uint8" => Ok(PrimitiveType::Uint8),
             "uint16" => Ok(PrimitiveType::Uint16),
             "uint32" => Ok(PrimitiveType::Uint32),
+            "uint40" => Ok(PrimitiveType::Uint40),
+            "uint48" => Ok(PrimitiveType::Uint48),
+            "uint56" => Ok(PrimitiveType::Uint56),
+            "uint64" => Ok(PrimitiveType::Uint64),
             
             "void2" => Ok(PrimitiveType::Void2),
             "void3" => Ok(PrimitiveType::Void3),
+            "void6" => Ok(PrimitiveType::Void6),
             "void22" => Ok(PrimitiveType::Void22),
             "void32" => Ok(PrimitiveType::Void32),
             _ => Err(()),
