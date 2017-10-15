@@ -13,6 +13,7 @@ use {
     FieldDefinition,
     ConstDefinition,
     VoidDefinition,
+    AttributeDefinition,
 };
 
 use nom::{
@@ -81,6 +82,7 @@ named!(array_info<ArrayInfo>, alt!(
 
 
 
+
 named!(void_definition<VoidDefinition>, ws!(
     do_parse!(type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >> (VoidDefinition{field_type: type_name}))
 ));
@@ -102,6 +104,16 @@ named!(const_definition<ConstDefinition>, ws!(do_parse!(
         _eq: tag!("=") >>
         constant: constant >>
         (ConstDefinition{cast_mode: cast_mode, field_type: field_type, name: name, constant: constant})
+)));
+
+
+
+
+
+named!(attribute_definition<AttributeDefinition>, ws!(alt!(
+    map!(const_definition, AttributeDefinition::from) |
+    map!(field_definition, AttributeDefinition::from) |
+    map!(void_definition, AttributeDefinition::from)
 )));
 
 
@@ -283,4 +295,43 @@ mod tests {
 
         
     }
+
+
+
+
+
+    #[test]
+    fn parse_attribute_definition() {
+        assert_eq!(
+            attribute_definition(&b"void2"[..]),
+            IResult::Done(&b""[..], AttributeDefinition::Void(VoidDefinition{
+                field_type: PrimitiveType::Void2,
+            }))
+        );
+
+        assert_eq!(
+            attribute_definition(&b"uint32 uptime_sec"[..]),
+            IResult::Done(&b""[..], AttributeDefinition::Field(FieldDefinition{
+                cast_mode: None,
+                field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                array: ArrayInfo::Single,
+                name: Ident(String::from("uptime_sec")),
+            }))
+        );
+        
+        assert_eq!(
+            attribute_definition(&b"uint2 HEALTH_OK              = 0"[..]),
+            IResult::Done(&b""[..], AttributeDefinition::Const(ConstDefinition{
+                cast_mode: None,
+                field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                name: Ident(String::from("HEALTH_OK")),
+                constant: Value::Dec(String::from("0")),
+            }))
+        );
+
+        
+    }
+
+
+    
 }

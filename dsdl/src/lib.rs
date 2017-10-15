@@ -92,6 +92,31 @@ pub struct ConstDefinition {
     pub constant: Value,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum AttributeDefinition {
+    Field(FieldDefinition),
+    Const(ConstDefinition),
+    Void(VoidDefinition), 
+}
+
+impl From<FieldDefinition> for AttributeDefinition {
+    fn from(d: FieldDefinition) -> Self {
+        AttributeDefinition::Field(d)
+    }
+}
+
+impl From<ConstDefinition> for AttributeDefinition {
+    fn from(d: ConstDefinition) -> Self {
+        AttributeDefinition::Const(d)
+    }
+}
+
+impl From<VoidDefinition> for AttributeDefinition {
+    fn from(d: VoidDefinition) -> Self {
+        AttributeDefinition::Void(d)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ty{
     PrimitiveType(PrimitiveType),
