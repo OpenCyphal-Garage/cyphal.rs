@@ -63,7 +63,7 @@ pub enum ArrayInfo {
 
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct FieldType {
+pub struct FieldDefinition {
     pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
     pub array: ArrayInfo,

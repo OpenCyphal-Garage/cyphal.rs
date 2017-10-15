@@ -9,7 +9,7 @@ use {
     CastMode,
     Ty,
     ArrayInfo,
-    FieldType,
+    FieldDefinition,
 };
 
 use nom::{
@@ -66,12 +66,12 @@ named!(array_info<ArrayInfo>, alt!(
 
 
 
-named!(field_type<FieldType>, ws!(do_parse!(
+named!(field_definition<FieldDefinition>, ws!(do_parse!(
     cast_mode: opt!(cast_mode) >>
         field_type: type_name >>
         array: array_info >>
         name: field_name >>
-        (FieldType{cast_mode: cast_mode, field_type: field_type, array: array, name: name})
+        (FieldDefinition{cast_mode: cast_mode, field_type: field_type, array: array, name: name})
 )));
       
 
@@ -208,8 +208,8 @@ mod tests {
     #[test]
     fn parse_field_type() {
         assert_eq!(
-            field_type(&b"uint32 uptime_sec"[..]),
-            IResult::Done(&b""[..], FieldType{
+            field_definition(&b"uint32 uptime_sec"[..]),
+            IResult::Done(&b""[..], FieldDefinition{
                 cast_mode: None,
                 field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
