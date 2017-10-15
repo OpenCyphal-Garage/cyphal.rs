@@ -14,6 +14,8 @@ named!(whitespace, take_while!(is_whitespace));
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
 
+named!(directive<Directive>, map_res!(map_res!(do_parse!(_tag: tag!("@") >> name: take_while!(is_allowed_in_directive_name) >> (name)), str::from_utf8), Directive::from_str));
+
 named!(service_response_marker<ServiceResponseMarker>, do_parse!(_srm: tag!("---") >> (ServiceResponseMarker{})));
 
 named!(constant<Value>, alt!(
@@ -160,6 +162,10 @@ fn is_allowed_in_composite_type_name(chr: u8) -> bool {
     is_uppercase_char(chr) || is_lowercase_char(chr) || is_digit(chr) || chr == b'.'
 }
     
+fn is_allowed_in_directive_name(chr: u8) -> bool {
+    is_lowercase_char(chr)
+}
+    
         
 
 
@@ -170,6 +176,11 @@ mod tests {
     use nom::{
         IResult,
     };
+
+    #[test]
+    fn parse_directive() {
+        assert_eq!(directive(&b"@union"[..]), IResult::Done(&b""[..], Directive::Union));
+    }
     
     #[test]
     fn parse_comment() {

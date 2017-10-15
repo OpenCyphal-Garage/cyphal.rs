@@ -150,6 +150,24 @@ impl<'a> From<&'a str> for Comment {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Directive {
+    Union,
+}
+
+impl FromStr for Directive {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Directive, Self::Err> {
+        match s {
+            "@union" => Ok(Directive::Union),
+            "union" => Ok(Directive::Union),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceResponseMarker {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
