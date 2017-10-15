@@ -47,8 +47,15 @@ impl DSDL {
             file.read_to_end(&mut bytes)?;
             let bytes_slice = bytes.into_boxed_slice();
             let (_i, lines) = parse::lines(&bytes_slice).unwrap();
-            
-            files.insert(uavcan_path.clone(), File{id: None, namespace: namespace.clone(), name: String::from(file_name), lines: lines}); 
+            let mut partial_name = file_name.rsplit('.');
+            if partial_name.next() == Some("uavcan") {
+                let type_name = String::from(partial_name.next().unwrap());
+                let id = match partial_name.next() {
+                    Some(s) => Some(String::from(s)),
+                    None => None,
+                };
+                files.insert(uavcan_path.clone(), File{id: id, namespace: namespace.clone(), name: type_name, lines: lines});
+            }
         }
     
         Ok(())
