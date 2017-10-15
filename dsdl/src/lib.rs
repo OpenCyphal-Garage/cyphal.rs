@@ -88,11 +88,6 @@ pub struct ConstDefinition {
     pub constant: Value,
 }
 
-pub struct ArrayField {
-    cast_mode: CastMode,
-    
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum Ty{
     PrimitiveType(PrimitiveType),
