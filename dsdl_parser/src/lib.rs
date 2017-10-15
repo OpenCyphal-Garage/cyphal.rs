@@ -504,3 +504,81 @@ impl PrimitiveType {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    use nom::{
+        IResult,
+    };
+    
+    #[test]
+    fn read_node_status() {
+        let dsdl = DSDL::open("tests/dsdl/uavcan").unwrap();
+        
+        assert_eq!(dsdl.files.get(&String::from("uavcan.protocol.341.NodeStatus.uavcan")).unwrap(),
+                   &File {
+                       id: Some(String::from("341")),
+                       namespace: String::from("uavcan.protocol"),
+                       name: String::from("NodeStatus"),
+                       lines: vec!(
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Abstract node status information.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Any UAVCAN node is required to publish this message periodically.")))),
+                           Line(None, Some(Comment(String::new()))), Line(None, Some(Comment(String::from("")))),
+                           Line(None, Some(Comment(String::from(" Publication period may vary within these limits.")))),
+                           Line(None, Some(Comment(String::from(" It is NOT recommended to change it at run time.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), constant: Value::Dec(String::from("1000")) })), None),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), constant: Value::Dec(String::from("2")) })), None),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" If a node fails to publish this message in this amount of time, it should be considered offline.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), constant: Value::Dec(String::from("3000")) })), None),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Uptime counter should never overflow.")))),
+                           Line(None, Some(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("uptime_sec")) })), None),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Abstract node health.")))), Line(None, Some(Comment(String::from("")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), constant: Value::Dec(String::from("0")) })), Some(Comment(String::from(" The node is functioning properly.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), constant: Value::Dec(String::from("1")) })), Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), constant: Value::Dec(String::from("2")) })), Some(Comment(String::from(" The node encountered a major failure.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), constant: Value::Dec(String::from("3")) })), Some(Comment(String::from(" The node suffered a fatal malfunction.")))),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), array: ArrayInfo::Single, name: Ident(String::from("health")) })), None), Line(None, Some(Comment(String::from("")))),
+                           Line(None, Some(Comment(String::from(" Current mode.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Mode OFFLINE can be actually reported by the node to explicitly inform other network")))),
+                           Line(None, Some(Comment(String::from(" participants that the sending node is about to shutdown. In this case other nodes will not")))),
+                           Line(None, Some(Comment(String::from(" have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Reserved values can be used in future revisions of the specification.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), constant: Value::Dec(String::from("0")) })), Some(Comment(String::from(" Normal operating mode.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), constant: Value::Dec(String::from("1")) })), Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), constant: Value::Dec(String::from("2")) })), Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), constant: Value::Dec(String::from("3")) })), Some(Comment(String::from(" New software/firmware is being loaded.")))),
+                           Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), constant: Value::Dec(String::from("7")) })), Some(Comment(String::from(" The node is no longer available.")))),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("mode")) })), None),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Not used currently, keep zero when publishing, ignore when receiving.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("sub_mode")) })), None),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(None, Some(Comment(String::from(" Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.")))),
+                           Line(None, Some(Comment(String::new()))),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint16), array: ArrayInfo::Single, name: Ident(String::from("vendor_specific_status_code")) })), None),
+                       ),}
+        );
+
+
+        
+        //assert_eq!(dsdl, DSDL::open("tests/dsdl/uavcan/protocol/1.GetNodeInfo.uavcan").unwrap());
+        
+    }
+}
+
