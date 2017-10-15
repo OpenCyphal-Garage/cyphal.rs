@@ -1,20 +1,7 @@
 use std::str;
 use std::str::FromStr;
 
-use {
-    Comment,
-    Ident,
-    Num,
-    Value,
-    PrimitiveType,
-    CastMode,
-    Ty,
-    ArrayInfo,
-    FieldDefinition,
-    ConstDefinition,
-    VoidDefinition,
-    AttributeDefinition,
-};
+use *;
 
 use nom::{
     not_line_ending,
