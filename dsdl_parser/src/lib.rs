@@ -497,8 +497,11 @@ impl FromStr for PrimitiveType {
             "uint56" => Ok(PrimitiveType::Uint56),
             "uint64" => Ok(PrimitiveType::Uint64),
             
+            "void1" => Ok(PrimitiveType::Void1),
             "void2" => Ok(PrimitiveType::Void2),
             "void3" => Ok(PrimitiveType::Void3),
+            "void4" => Ok(PrimitiveType::Void4),
+            "void5" => Ok(PrimitiveType::Void5),
             "void6" => Ok(PrimitiveType::Void6),
             "void22" => Ok(PrimitiveType::Void22),
             "void32" => Ok(PrimitiveType::Void32),
