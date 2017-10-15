@@ -17,7 +17,7 @@ mod parse;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DSDL {
-    files: HashMap<String, File>,
+    pub files: HashMap<String, File>,
 }
 
 impl DSDL {
