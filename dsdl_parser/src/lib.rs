@@ -549,7 +549,7 @@ mod tests {
                            Line(None, Some(Comment(String::from(" Uptime counter should never overflow.")))),
                            Line(None, Some(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards.")))),
                            Line(None, Some(Comment(String::new()))),
-                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("uptime_sec")) })), None),
+                           Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint32), array: ArrayInfo::Single, name: Ident(String::from("uptime_sec")) })), None),
                            Line(None, Some(Comment(String::new()))),
                            Line(None, Some(Comment(String::from(" Abstract node health.")))), Line(None, Some(Comment(String::from("")))),
                            Line(Some(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), constant: Value::Dec(String::from("0")) })), Some(Comment(String::from(" The node is functioning properly.")))),
