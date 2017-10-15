@@ -24,7 +24,7 @@ named!(constant<Value>, alt!(
     complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Value::Hex(String::from(value))))) |
     complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Value::Bin(String::from(value))))) |
     complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Value::Char(String::from(achar))))) |
-    complete!(do_parse!(value: map_res!(take_while!(is_digit), str::from_utf8) >> (Value::Dec(String::from(value)))))
+    complete!(do_parse!(value: map_res!(take_while!(allowed_in_decimal_number), str::from_utf8) >> (Value::Dec(String::from(value)))))
 ));
 
 named!(cast_mode<CastMode>, map_res!(map_res!(
@@ -162,6 +162,9 @@ fn is_bin_digit(chr: u8) -> bool {
     chr == b'0' || chr == b'1'
 }
 
+fn allowed_in_decimal_number(chr: u8) -> bool {
+    is_digit(chr) || chr == b'.' || chr == b'E' || chr == b'e' || chr == b'-'
+}
 
 fn is_allowed_in_field_name(chr: u8) -> bool {
     is_lowercase_char(chr) || is_digit(chr) || chr == b'_'
