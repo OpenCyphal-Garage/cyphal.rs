@@ -46,19 +46,7 @@ named!(composite_type_name<Ident>, map!(map_res!(
     str::from_utf8), Ident::from)
 );
 
-named!(primitive_type<PrimitiveType>, map!(map_res!(
-    alt!(
-        complete!(tag!("void32")) |
-        complete!(tag!("void22")) |
-        complete!(tag!("void3")) |
-        complete!(tag!("void2")) |
-        
-        complete!(tag!("uint32")) |
-        complete!(tag!("uint16")) |
-        complete!(tag!("uint3")) |
-        complete!(tag!("uint2"))
-    ), str::from_utf8), PrimitiveType::new)
-);
+named!(primitive_type<PrimitiveType>, map_res!(map_res!(take_while!(is_allowed_in_primitive_type_name), str::from_utf8), PrimitiveType::from_str));
 
 named!(type_name<Ty>, alt!(
     map!(primitive_type, Ty::from) |
@@ -157,6 +145,10 @@ fn is_bin_digit(chr: u8) -> bool {
 
 fn is_allowed_in_field_name(chr: u8) -> bool {
     is_lowercase_char(chr) || is_digit(chr) || chr == b'_'
+}
+    
+fn is_allowed_in_primitive_type_name(chr: u8) -> bool {
+    is_lowercase_char(chr) || is_digit(chr)
 }
     
 fn is_allowed_in_const_name(chr: u8) -> bool {

@@ -458,28 +458,32 @@ pub enum PrimitiveType {
     Void63,
     Void64,
 }
-        
-impl PrimitiveType {
-    fn new<'a>(s: &'a str) -> PrimitiveType {
+
+impl FromStr for PrimitiveType {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<PrimitiveType, Self::Err> {    
         match s {
-            "uint2" => PrimitiveType::Uint2,
-            "uint3" => PrimitiveType::Uint3,
-            "uint4" => PrimitiveType::Uint4,
-            "uint5" => PrimitiveType::Uint5,
-            "uint6" => PrimitiveType::Uint6,
-            "uint7" => PrimitiveType::Uint7,
-            "uint8" => PrimitiveType::Uint8,
-            "uint16" => PrimitiveType::Uint16,
-            "uint32" => PrimitiveType::Uint32,
+            "uint2" => Ok(PrimitiveType::Uint2),
+            "uint3" => Ok(PrimitiveType::Uint3),
+            "uint4" => Ok(PrimitiveType::Uint4),
+            "uint5" => Ok(PrimitiveType::Uint5),
+            "uint6" => Ok(PrimitiveType::Uint6),
+            "uint7" => Ok(PrimitiveType::Uint7),
+            "uint8" => Ok(PrimitiveType::Uint8),
+            "uint16" => Ok(PrimitiveType::Uint16),
+            "uint32" => Ok(PrimitiveType::Uint32),
             
-            "void2" => PrimitiveType::Void2,
-            "void3" => PrimitiveType::Void3,
-            "void22" => PrimitiveType::Void22,
-            "void32" => PrimitiveType::Void32,
-            _ => panic!("{} is not a valid PrimitiveType", s),
+            "void2" => Ok(PrimitiveType::Void2),
+            "void3" => Ok(PrimitiveType::Void3),
+            "void22" => Ok(PrimitiveType::Void22),
+            "void32" => Ok(PrimitiveType::Void32),
+            _ => Err(()),
         }
     }
+}
 
+impl PrimitiveType {
     fn is_void(&self) -> bool {
         match *self {
             PrimitiveType::Void1 => true,
