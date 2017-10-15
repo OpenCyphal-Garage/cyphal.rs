@@ -179,6 +179,7 @@ pub enum Value {
     Hex(String),
     Bin(String),
     Bool(bool),
+    Char(String),
 }
 // TODO: consider using this instead of Num for array lengths
 

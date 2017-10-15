@@ -21,6 +21,7 @@ named!(constant<Value>, alt!(
     complete!(do_parse!(_value: tag!("false") >> (Value::Bool(false)) )) |
     complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Value::Hex(String::from(value))))) |
     complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Value::Bin(String::from(value))))) |
+    complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Value::Char(String::from(achar))))) |
     complete!(do_parse!(value: map_res!(take_while!(is_digit), str::from_utf8) >> (Value::Dec(String::from(value)))))
 ));
 
@@ -186,6 +187,8 @@ mod tests {
         assert_eq!(constant(&b"0xAABBCC"[..]), IResult::Done(&b""[..], Value::Hex(String::from("AABBCC"))));
         assert_eq!(constant(&b"0b000111"[..]), IResult::Done(&b""[..], Value::Bin(String::from("000111"))));
         assert_eq!(constant(&b"12354"[..]), IResult::Done(&b""[..], Value::Dec(String::from("12354"))));
+        assert_eq!(constant(&[39,92,b'n', 39]), IResult::Done(&b""[..], Value::Char(String::from("\\n"))));
+        assert_eq!(constant(&b"'b'"[..]), IResult::Done(&b""[..], Value::Char(String::from("b"))));
         assert_eq!(constant(&b"true"[..]), IResult::Done(&b""[..], Value::Bool(true)));
         assert_eq!(constant(&b"false"[..]), IResult::Done(&b""[..], Value::Bool(false)));
     }
