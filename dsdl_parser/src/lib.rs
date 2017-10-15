@@ -47,7 +47,7 @@ impl DSDL {
             let mut bytes = Vec::new();
             file.read_to_end(&mut bytes)?;
             let bytes_slice = bytes.into_boxed_slice();
-            let (remaining, lines) = parse::lines(&bytes_slice).unwrap();
+            let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
             
             assert_eq!(remaining, &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
             
@@ -63,7 +63,7 @@ impl DSDL {
                 } else {
                     namespace.clone() + "." + type_name.as_str()
                 };
-                files.insert(qualified_name, File{id: id, namespace: namespace.clone(), name: type_name, lines: lines});
+                files.insert(qualified_name, File{id: id, namespace: namespace.clone(), name: type_name, definition: definition});
             }
         }
     
@@ -76,7 +76,35 @@ pub struct File {
     id: Option<String>,
     namespace: String,
     name: String,
-    lines: Vec<Line>,
+    definition: TypeDefinition,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TypeDefinition {
+    Message(MessageDefinition),
+    Service(ServiceDefinition),
+}
+
+impl From<MessageDefinition> for TypeDefinition {
+    fn from(d: MessageDefinition) -> Self {
+        TypeDefinition::Message(d)
+    }
+}
+
+impl From<ServiceDefinition> for TypeDefinition {
+    fn from(d: ServiceDefinition) -> Self {
+        TypeDefinition::Service(d)
+    }
+}
+
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct MessageDefinition(Vec<Line>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ServiceDefinition{
+    request: MessageDefinition,
+    response: MessageDefinition,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,6 +133,8 @@ impl<'a> From<&'a str> for Comment {
         Comment(String::from(s))
     }
 }
+
+pub struct ServiceResponseMarker {}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ident(String);
@@ -539,7 +569,7 @@ mod tests {
                        id: Some(String::from("341")),
                        namespace: String::from(""),
                        name: String::from("NodeStatus"),
-                       lines: vec!(
+                       definition: TypeDefinition::Message(MessageDefinition(vec!(
                            Line(None, Some(Comment(String::new()))),
                            Line(None, Some(Comment(String::from(" Abstract node status information.")))),
                            Line(None, Some(Comment(String::new()))),
@@ -588,7 +618,7 @@ mod tests {
                            Line(None, Some(Comment(String::from(" Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.")))),
                            Line(None, Some(Comment(String::new()))),
                            Line(Some(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::PrimitiveType(PrimitiveType::Uint16), array: ArrayInfo::Single, name: Ident(String::from("vendor_specific_status_code")) })), None),
-                       ),}
+                       ))),}
         );
 
 

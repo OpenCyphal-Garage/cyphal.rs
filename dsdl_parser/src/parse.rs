@@ -14,6 +14,8 @@ named!(whitespace, take_while!(is_whitespace));
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
 
+named!(service_response_marker<ServiceResponseMarker>, do_parse!(_srm: tag!("---") >> (ServiceResponseMarker{})));
+
 named!(constant<Value>, alt!(
     complete!(do_parse!(_value: tag!("true") >> (Value::Bool(true)) )) |
     complete!(do_parse!(_value: tag!("false") >> (Value::Bool(false)) )) |
@@ -116,7 +118,21 @@ named!(line<Line>, sep!(whitespace, do_parse!(
         (Line(attribute_definition, comment))
 )));                        
 
-named!(pub lines<Vec<Line>>, many0!(ws!(line)));
+named!(lines<Vec<Line>>, many0!(ws!(line)));
+
+named!(message_definition<MessageDefinition>, do_parse!(lines: lines >> (MessageDefinition(lines))));
+
+named!(service_definition<ServiceDefinition>, ws!(do_parse!(
+    request: message_definition >>
+        _srm: service_response_marker >>
+        response: message_definition >>
+        (ServiceDefinition{request: request, response: response})
+)));
+
+named!(pub type_definition<TypeDefinition>, alt!(
+    map!(complete!(service_definition), TypeDefinition::from) |
+    map!(complete!(message_definition), TypeDefinition::from)
+));
 
 
 
