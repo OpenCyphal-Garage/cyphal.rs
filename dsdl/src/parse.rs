@@ -11,6 +11,7 @@ use {
     Ty,
     ArrayInfo,
     FieldDefinition,
+    ConstDefinition,
 };
 
 use nom::{
@@ -83,7 +84,17 @@ named!(field_definition<FieldDefinition>, ws!(do_parse!(
         name: field_name >>
         (FieldDefinition{cast_mode: cast_mode, field_type: field_type, array: array, name: name})
 )));
-      
+
+
+named!(const_definition<ConstDefinition>, ws!(do_parse!(
+    cast_mode: opt!(cast_mode) >>
+        field_type: type_name >>
+        name: const_name >>
+        _eq: tag!("=") >>
+        constant: constant >>
+        (ConstDefinition{cast_mode: cast_mode, field_type: field_type, name: name, constant: constant})
+)));
+
 
 
 
@@ -234,6 +245,21 @@ mod tests {
                 field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
                 name: Ident(String::from("uptime_sec")),
+            })
+        );
+
+        
+    }
+
+    #[test]
+    fn parse_const_definition() {
+        assert_eq!(
+            const_definition(&b"uint2 HEALTH_OK              = 0"[..]),
+            IResult::Done(&b""[..], ConstDefinition{
+                cast_mode: None,
+                field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                name: Ident(String::from("HEALTH_OK")),
+                constant: Value::Dec(String::from("0")),
             })
         );
 

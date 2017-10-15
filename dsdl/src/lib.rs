@@ -81,6 +81,13 @@ pub struct FieldDefinition {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct ConstDefinition {
+    pub cast_mode: Option<CastMode>,
+    pub field_type: Ty,
+    pub name: Ident,
+    pub constant: Value,
+}
+
 pub struct ArrayField {
     cast_mode: CastMode,
     
