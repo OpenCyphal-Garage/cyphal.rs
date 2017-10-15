@@ -116,6 +116,10 @@ named!(line<Line>, sep!(whitespace, do_parse!(
         (Line(attribute_definition, comment))
 )));                        
 
+named!(lines<Vec<Line>>, many0!(ws!(line)));
+
+
+
 
 fn is_whitespace(chr: u8) -> bool {
     chr == b' ' || chr == b'\t'
@@ -405,5 +409,26 @@ mod tests {
         );
         
     }
+
+    
+    #[test]
+    fn parse_lines() {
+        assert_eq!(
+            lines(&b"void2
+# test comment
+void3
+void2 # test comment"[..]),
+            IResult::Done(&b""[..], vec!(
+                Line(Some(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void2})), None),
+                Line(None, Some(Comment(String::from(" test comment")))),
+                Line(Some(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void3})), None),
+                Line(Some(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void2})), Some(Comment(String::from(" test comment")))),
+            ))  
+        );
+        
+        
+    }
+    
+    
     
 }
