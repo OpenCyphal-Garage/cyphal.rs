@@ -9,7 +9,10 @@ use nom::{
     is_hex_digit,
 };
 
-named!(comment<Comment>, map!(map_res!(preceded!(tag!("#"), not_line_ending), str::from_utf8), Comment::from));
+named!(whitespace, take_while!(is_whitespace));
+
+
+named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
 
 named!(constant<Value>, alt!(
     complete!(do_parse!(_value: tag!("true") >> (Value::Bool(true)) )) |
@@ -70,12 +73,12 @@ named!(array_info<ArrayInfo>, alt!(
 
 
 
-named!(void_definition<VoidDefinition>, ws!(
+named!(void_definition<VoidDefinition>, sep!(whitespace, 
     do_parse!(type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >> (VoidDefinition{field_type: type_name}))
 ));
 
 
-named!(field_definition<FieldDefinition>, ws!(do_parse!(
+named!(field_definition<FieldDefinition>, sep!(whitespace, do_parse!(
     cast_mode: opt!(cast_mode) >>
         field_type: type_name >>
         array: array_info >>
@@ -84,7 +87,7 @@ named!(field_definition<FieldDefinition>, ws!(do_parse!(
 )));
 
 
-named!(const_definition<ConstDefinition>, ws!(do_parse!(
+named!(const_definition<ConstDefinition>, sep!(whitespace, do_parse!(
     cast_mode: opt!(cast_mode) >>
         field_type: type_name >>
         name: const_name >>
@@ -97,14 +100,19 @@ named!(const_definition<ConstDefinition>, ws!(do_parse!(
 
 
 
-named!(attribute_definition<AttributeDefinition>, ws!(alt!(
+named!(attribute_definition<AttributeDefinition>, complete!(sep!(whitespace, alt!(
     map!(const_definition, AttributeDefinition::from) |
     map!(field_definition, AttributeDefinition::from) |
     map!(void_definition, AttributeDefinition::from)
-)));
+))));
 
 
 
+
+
+fn is_whitespace(chr: u8) -> bool {
+    chr == b' ' || chr == b'\t'
+}
 
 
 fn is_lowercase_char(chr: u8) -> bool {
