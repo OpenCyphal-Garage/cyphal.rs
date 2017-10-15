@@ -1,6 +1,6 @@
-extern crate dsdl_compiler;
+extern crate dsdl_parser;
 
-use dsdl_compiler::DSDL;
+use dsdl_parser::DSDL;
 
 #[test]
 fn read_dsdl() {
