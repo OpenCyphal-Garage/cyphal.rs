@@ -92,7 +92,7 @@ pub struct ConstDefinition {
     pub constant: Value,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AttributeDefinition {
     Field(FieldDefinition),
     Const(ConstDefinition),
