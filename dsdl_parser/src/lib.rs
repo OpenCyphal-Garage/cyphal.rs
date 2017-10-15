@@ -42,17 +42,18 @@ impl DSDL {
                 DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), files)?;
             }
         } else {
-            let mut file = fs::File::open(path)?;
             let file_name = path.file_name().unwrap().to_str().unwrap();
-            let mut bytes = Vec::new();
-            file.read_to_end(&mut bytes)?;
-            let bytes_slice = bytes.into_boxed_slice();
-            let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
-            
-            assert_eq!(remaining, &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
-            
             let mut partial_name = file_name.rsplit('.');
             if partial_name.next() == Some("uavcan") {
+                let mut file = fs::File::open(path)?;
+                let mut bytes = Vec::new();
+                file.read_to_end(&mut bytes)?;
+                let bytes_slice = bytes.into_boxed_slice();
+                let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
+                
+                assert_eq!(remaining, &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
+                
+                
                 let type_name = String::from(partial_name.next().unwrap());
                 let id = match partial_name.next() {
                     Some(s) => Some(String::from(s)),
