@@ -71,6 +71,10 @@ pub enum ArrayInfo {
 }
 
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct VoidDefinition {
+    pub field_type: PrimitiveType,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FieldDefinition {
@@ -320,7 +324,81 @@ impl PrimitiveType {
             "uint8" => PrimitiveType::Uint8,
             "uint16" => PrimitiveType::Uint16,
             "uint32" => PrimitiveType::Uint32,
+            
+            "void2" => PrimitiveType::Void2,
+            "void22" => PrimitiveType::Void22,
+            "void32" => PrimitiveType::Void32,
             _ => panic!("{} is not a valid PrimitiveType", s),
+        }
+    }
+
+    fn is_void(&self) -> bool {
+        match *self {
+            PrimitiveType::Void1 => true,
+            PrimitiveType::Void2 => true,
+            PrimitiveType::Void3 => true,
+            PrimitiveType::Void4 => true,
+            PrimitiveType::Void5 => true,
+            PrimitiveType::Void6 => true,
+            PrimitiveType::Void7 => true,
+            PrimitiveType::Void8 => true,
+            PrimitiveType::Void9 => true,
+            PrimitiveType::Void10 => true,
+            PrimitiveType::Void11 => true,
+            PrimitiveType::Void12 => true,
+            PrimitiveType::Void13 => true,
+            PrimitiveType::Void14 => true,
+            PrimitiveType::Void15 => true,
+            PrimitiveType::Void16 => true,
+            PrimitiveType::Void17 => true,
+            PrimitiveType::Void18 => true,
+            PrimitiveType::Void19 => true,
+            PrimitiveType::Void20 => true,
+            PrimitiveType::Void21 => true,
+            PrimitiveType::Void22 => true,
+            PrimitiveType::Void23 => true,
+            PrimitiveType::Void24 => true,
+            PrimitiveType::Void25 => true,
+            PrimitiveType::Void26 => true,
+            PrimitiveType::Void27 => true,
+            PrimitiveType::Void28 => true,
+            PrimitiveType::Void29 => true,
+            PrimitiveType::Void30 => true,
+            PrimitiveType::Void31 => true,
+            PrimitiveType::Void32 => true,
+            PrimitiveType::Void33 => true,
+            PrimitiveType::Void34 => true,
+            PrimitiveType::Void35 => true,
+            PrimitiveType::Void36 => true,
+            PrimitiveType::Void37 => true,
+            PrimitiveType::Void38 => true,
+            PrimitiveType::Void39 => true,
+            PrimitiveType::Void40 => true,
+            PrimitiveType::Void41 => true,
+            PrimitiveType::Void42 => true,
+            PrimitiveType::Void43 => true,
+            PrimitiveType::Void44 => true,
+            PrimitiveType::Void45 => true,
+            PrimitiveType::Void46 => true,
+            PrimitiveType::Void47 => true,
+            PrimitiveType::Void48 => true,
+            PrimitiveType::Void49 => true,
+            PrimitiveType::Void50 => true,
+            PrimitiveType::Void51 => true,
+            PrimitiveType::Void52 => true,
+            PrimitiveType::Void53 => true,
+            PrimitiveType::Void54 => true,
+            PrimitiveType::Void55 => true,
+            PrimitiveType::Void56 => true,
+            PrimitiveType::Void57 => true,
+            PrimitiveType::Void58 => true,
+            PrimitiveType::Void59 => true,
+            PrimitiveType::Void60 => true,
+            PrimitiveType::Void61 => true,
+            PrimitiveType::Void62 => true,
+            PrimitiveType::Void63 => true,
+            PrimitiveType::Void64 => true,
+            _ => false,
         }
     }
 }

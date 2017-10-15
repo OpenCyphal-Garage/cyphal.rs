@@ -12,6 +12,7 @@ use {
     ArrayInfo,
     FieldDefinition,
     ConstDefinition,
+    VoidDefinition,
 };
 
 use nom::{
@@ -54,6 +55,10 @@ named!(composite_type_name<Ident>, map!(map_res!(
 
 named!(primitive_type<PrimitiveType>, map!(map_res!(
     alt!(
+        complete!(tag!("void32")) |
+        complete!(tag!("void22")) |
+        complete!(tag!("void2")) |
+        
         complete!(tag!("uint32")) |
         complete!(tag!("uint16")) |
         complete!(tag!("uint3")) |
@@ -75,6 +80,10 @@ named!(array_info<ArrayInfo>, alt!(
 
 
 
+
+named!(void_definition<VoidDefinition>, ws!(
+    do_parse!(type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >> (VoidDefinition{field_type: type_name}))
+));
 
 
 named!(field_definition<FieldDefinition>, ws!(do_parse!(
@@ -235,6 +244,15 @@ mod tests {
 
 
 
+    #[test]
+    fn parse_void_definition() {
+        assert_eq!(
+            void_definition(&b"void2"[..]),
+            IResult::Done(&b""[..], VoidDefinition{
+                field_type: PrimitiveType::Void2,
+            })
+        );        
+    }
 
     #[test]
     fn parse_field_definition() {
