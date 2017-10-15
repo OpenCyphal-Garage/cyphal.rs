@@ -5,6 +5,34 @@ use std::str::FromStr;
 
 pub mod parse;
 
+
+
+
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct File {
+    path: QualifiedPath,
+    lines: Vec<Line>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Line (Option<AttributeDefinition>, Option<Comment>);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QualifiedPath {
+    namespace: Ident,
+    name: Ident,
+}
+        
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Name {
+    Short(Ident),
+    Qualified(QualifiedPath)
+}    
+
+
+
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Comment(String);
 
@@ -351,6 +379,7 @@ impl PrimitiveType {
             "uint32" => PrimitiveType::Uint32,
             
             "void2" => PrimitiveType::Void2,
+            "void3" => PrimitiveType::Void3,
             "void22" => PrimitiveType::Void22,
             "void32" => PrimitiveType::Void32,
             _ => panic!("{} is not a valid PrimitiveType", s),

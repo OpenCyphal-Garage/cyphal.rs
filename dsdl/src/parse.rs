@@ -48,6 +48,7 @@ named!(primitive_type<PrimitiveType>, map!(map_res!(
     alt!(
         complete!(tag!("void32")) |
         complete!(tag!("void22")) |
+        complete!(tag!("void3")) |
         complete!(tag!("void2")) |
         
         complete!(tag!("uint32")) |
@@ -108,6 +109,12 @@ named!(attribute_definition<AttributeDefinition>, complete!(sep!(whitespace, alt
 
 
 
+named!(line<Line>, sep!(whitespace, do_parse!(
+    attribute_definition: opt!(attribute_definition) >>
+        comment: opt!(comment) >>
+        _eol: verify!(not_line_ending, |x:&[u8]| x.len() == 0) >>
+        (Line(attribute_definition, comment))
+)));                        
 
 
 fn is_whitespace(chr: u8) -> bool {
@@ -323,6 +330,46 @@ mod tests {
                 constant: Value::Dec(String::from("0")),
             }))
         );
+
+        
+    }
+
+
+
+
+
+    #[test]
+    fn parse_line() {
+        assert_eq!(
+            line(&b"void2\n"[..]),
+            IResult::Done(&b"\n"[..], Line(
+                Some(AttributeDefinition::Void(VoidDefinition{
+                    field_type: PrimitiveType::Void2,
+                })),
+                None
+            ))
+        );
+
+        assert_eq!(
+            line(&b"void3"[..]),
+            IResult::Done(&b""[..], Line(
+                Some(AttributeDefinition::Void(VoidDefinition{
+                    field_type: PrimitiveType::Void3,
+                })),
+                None
+            ))
+        );
+
+        assert_eq!(
+            line(&b"void2 # test comment\n"[..]),
+            IResult::Done(&b"\n"[..], Line(
+                Some(AttributeDefinition::Void(VoidDefinition{
+                    field_type: PrimitiveType::Void2,
+                })),
+                Some(Comment(String::from(" test comment")))
+            ))
+        );
+
 
         
     }
