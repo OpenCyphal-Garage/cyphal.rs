@@ -5,6 +5,7 @@ use {
     Comment,
     Ident,
     Num,
+    Value,
     PrimitiveType,
     CastMode,
     Ty,
@@ -15,9 +16,18 @@ use {
 use nom::{
     not_line_ending,
     is_digit,
+    is_hex_digit,
 };
 
 named!(comment<Comment>, map!(map_res!(preceded!(tag!("#"), not_line_ending), str::from_utf8), Comment::from));
+
+named!(constant<Value>, alt!(
+    complete!(do_parse!(_value: tag!("true") >> (Value::Bool(true)) )) |
+    complete!(do_parse!(_value: tag!("false") >> (Value::Bool(false)) )) |
+    complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Value::Hex(String::from(value))))) |
+    complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Value::Bin(String::from(value))))) |
+    complete!(do_parse!(value: map_res!(take_while!(is_digit), str::from_utf8) >> (Value::Dec(String::from(value)))))
+));
 
 named!(cast_mode<CastMode>, map_res!(map_res!(
     alt!(
@@ -90,6 +100,10 @@ fn is_numeric(chr: u8) -> bool {
     chr >= b'0' && chr <= b'9'
 }
 
+fn is_bin_digit(chr: u8) -> bool {
+    chr == b'0' || chr == b'1'
+}
+
 
 fn is_allowed_in_field_name(chr: u8) -> bool {
     is_lowercase_char(chr) || is_numeric(chr) || chr == b'_'
@@ -122,6 +136,16 @@ mod tests {
         assert_eq!(comment(&b"#This is a longer comment"[..]), IResult::Done(&b""[..], Comment(String::from("This is a longer comment"))));
         assert_eq!(comment(&b"# This is a comment"[..]), IResult::Done(&b""[..], Comment(String::from(" This is a comment"))));
         assert_eq!(comment(&b"#"[..]), IResult::Done(&b""[..], Comment(String::from(""))));   
+    }
+
+    #[test]
+    fn parse_constant() {
+        assert_eq!(constant(&b"0x123"[..]), IResult::Done(&b""[..], Value::Hex(String::from("123"))));
+        assert_eq!(constant(&b"0xAABBCC"[..]), IResult::Done(&b""[..], Value::Hex(String::from("AABBCC"))));
+        assert_eq!(constant(&b"0b000111"[..]), IResult::Done(&b""[..], Value::Bin(String::from("000111"))));
+        assert_eq!(constant(&b"12354"[..]), IResult::Done(&b""[..], Value::Dec(String::from("12354"))));
+        assert_eq!(constant(&b"true"[..]), IResult::Done(&b""[..], Value::Bool(true)));
+        assert_eq!(constant(&b"false"[..]), IResult::Done(&b""[..], Value::Bool(false)));
     }
 
     #[test]

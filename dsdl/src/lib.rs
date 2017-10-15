@@ -36,6 +36,16 @@ impl FromStr for Num {
 }
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum Value {
+    Dec(String),
+    Hex(String),
+    Bin(String),
+    Bool(bool),
+}
+// TODO: consider using this instead of Num for array lengths
+
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum CastMode {
     Saturated,
     Truncated,
