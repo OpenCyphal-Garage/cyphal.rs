@@ -30,14 +30,15 @@ impl DSDL {
     }
 
     fn read_uavcan_files(path: &Path, namespace: String, files: &mut HashMap<String, File>) -> std::io::Result<()> {
+        let uavcan_path = if namespace.as_str() == "" {
+            String::from(path.file_name().unwrap().to_str().unwrap())
+        } else {
+            namespace.clone() + "." + path.file_name().unwrap().to_str().unwrap()
+        };
         if path.is_dir() {
             for entry in fs::read_dir(path)? {
                 let current_path = entry?.path();
-                if namespace == "" {
-                    DSDL::read_uavcan_files(&current_path, String::from(current_path.file_name().unwrap().to_str().unwrap()), files)?;
-                } else {
-                    DSDL::read_uavcan_files(&current_path, namespace.clone() + "." + current_path.file_name().unwrap().to_str().unwrap(), files)?;
-                }
+                DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), files)?;
             }
         } else {
             let mut file = fs::File::open(path)?;
@@ -47,7 +48,7 @@ impl DSDL {
             let bytes_slice = bytes.into_boxed_slice();
             let (_i, lines) = parse::lines(&bytes_slice).unwrap();
             
-            files.insert(namespace.clone() + "/" + file_name, File{id: None, namespace: namespace.clone(), name: String::from(file_name), lines: lines}); 
+            files.insert(uavcan_path.clone(), File{id: None, namespace: namespace.clone(), name: String::from(file_name), lines: lines}); 
         }
     
         Ok(())
