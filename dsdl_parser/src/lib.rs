@@ -58,7 +58,12 @@ impl DSDL {
                     Some(s) => Some(String::from(s)),
                     None => None,
                 };
-                files.insert(uavcan_path.clone(), File{id: id, namespace: namespace.clone(), name: type_name, lines: lines});
+                let qualified_name = if namespace == "" {
+                    type_name.clone()
+                } else {
+                    namespace.clone() + "." + type_name.as_str()
+                };
+                files.insert(qualified_name, File{id: id, namespace: namespace.clone(), name: type_name, lines: lines});
             }
         }
     
@@ -527,12 +532,12 @@ mod tests {
     
     #[test]
     fn read_node_status() {
-        let dsdl = DSDL::open("tests/dsdl/uavcan").unwrap();
+        let dsdl = DSDL::open("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
         
-        assert_eq!(dsdl.files.get(&String::from("uavcan.protocol.341.NodeStatus.uavcan")).unwrap(),
+        assert_eq!(dsdl.files.get(&String::from("NodeStatus")).unwrap(),
                    &File {
                        id: Some(String::from("341")),
-                       namespace: String::from("uavcan.protocol"),
+                       namespace: String::from(""),
                        name: String::from("NodeStatus"),
                        lines: vec!(
                            Line(None, Some(Comment(String::new()))),
