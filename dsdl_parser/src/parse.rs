@@ -41,9 +41,9 @@ named!(const_name<Ident>, map!(map_res!(
     str::from_utf8), Ident::from)
 );
 
-named!(composite_type_name<Ident>, map!(map_res!(
+named!(composite_type_name<CompositeType>, map_res!(map_res!(
     verify!(take_while!(is_allowed_in_composite_type_name), |x:&[u8]| x.len() >= 1 && is_uppercase_char(x[0])),
-    str::from_utf8), Ident::from)
+    str::from_utf8), CompositeType::from_str)
 );
 
 named!(primitive_type<PrimitiveType>, map_res!(map_res!(take_while!(is_allowed_in_primitive_type_name), str::from_utf8), PrimitiveType::from_str));
@@ -208,8 +208,8 @@ mod tests {
 
     #[test]
     fn parse_composite_type_name() {
-        assert_eq!(composite_type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ident(String::from("TypeName"))));
-        assert_eq!(composite_type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ident(String::from("TypeName1234"))));
+        assert_eq!(composite_type_name(&b"TypeName"[..]), IResult::Done(&b""[..], CompositeType{namespace: None, name: Ident(String::from("TypeName")) } ));
+        assert_eq!(composite_type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], CompositeType{namespace: None, name: Ident(String::from("TypeName1234")) } ));
         assert!(composite_type_name(&b"typeName"[..]).is_err());
         assert!(composite_type_name(&b"2typeName"[..]).is_err());
     }
@@ -226,13 +226,13 @@ mod tests {
 
     #[test]
     fn parse_type_name() {
-        assert_eq!(type_name(&b"uint2"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint2)));
-        assert_eq!(type_name(&b"uint3"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint3)));
-        assert_eq!(type_name(&b"uint16"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint16)));
-        assert_eq!(type_name(&b"uint32"[..]), IResult::Done(&b""[..], Ty::PrimitiveType(PrimitiveType::Uint32)));
+        assert_eq!(type_name(&b"uint2"[..]), IResult::Done(&b""[..], Ty::Primitive(PrimitiveType::Uint2)));
+        assert_eq!(type_name(&b"uint3"[..]), IResult::Done(&b""[..], Ty::Primitive(PrimitiveType::Uint3)));
+        assert_eq!(type_name(&b"uint16"[..]), IResult::Done(&b""[..], Ty::Primitive(PrimitiveType::Uint16)));
+        assert_eq!(type_name(&b"uint32"[..]), IResult::Done(&b""[..], Ty::Primitive(PrimitiveType::Uint32)));
 
-        assert_eq!(type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ty::Path(Ident(String::from("TypeName")))));
-        assert_eq!(type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ty::Path(Ident(String::from("TypeName1234")))));
+        assert_eq!(type_name(&b"TypeName"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: None, name: Ident(String::from("TypeName"))})));
+        assert_eq!(type_name(&b"TypeName1234"[..]), IResult::Done(&b""[..], Ty::Composite(CompositeType{namespace: None, name: Ident(String::from("TypeName1234"))})));
         assert!(type_name(&b"typeName"[..]).is_err());
         assert!(type_name(&b"2typeName"[..]).is_err());
         
@@ -286,7 +286,7 @@ mod tests {
             field_definition(&b"uint32 uptime_sec"[..]),
             IResult::Done(&b""[..], FieldDefinition{
                 cast_mode: None,
-                field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
                 name: Ident(String::from("uptime_sec")),
             })
@@ -301,7 +301,7 @@ mod tests {
             const_definition(&b"uint2 HEALTH_OK              = 0"[..]),
             IResult::Done(&b""[..], ConstDefinition{
                 cast_mode: None,
-                field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
                 constant: Value::Dec(String::from("0")),
             })
@@ -327,7 +327,7 @@ mod tests {
             attribute_definition(&b"uint32 uptime_sec"[..]),
             IResult::Done(&b""[..], AttributeDefinition::Field(FieldDefinition{
                 cast_mode: None,
-                field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
                 name: Ident(String::from("uptime_sec")),
             }))
@@ -337,7 +337,7 @@ mod tests {
             attribute_definition(&b"uint2 HEALTH_OK              = 0"[..]),
             IResult::Done(&b""[..], AttributeDefinition::Const(ConstDefinition{
                 cast_mode: None,
-                field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
                 constant: Value::Dec(String::from("0")),
             }))
@@ -395,7 +395,7 @@ mod tests {
             IResult::Done(&b""[..], Line(
                 Some(AttributeDefinition::Field(FieldDefinition{
                     cast_mode: None,
-                    field_type: Ty::PrimitiveType(PrimitiveType::Uint32),
+                    field_type: Ty::Primitive(PrimitiveType::Uint32),
                     array: ArrayInfo::Single,
                     name: Ident(String::from("uptime_sec")),
                 })),
@@ -408,7 +408,7 @@ mod tests {
             IResult::Done(&b""[..], Line(
                 Some(AttributeDefinition::Const(ConstDefinition{
                     cast_mode: None,
-                    field_type: Ty::PrimitiveType(PrimitiveType::Uint2),
+                    field_type: Ty::Primitive(PrimitiveType::Uint2),
                     name: Ident(String::from("HEALTH_OK")),
                     constant: Value::Dec(String::from("0")),
                 })),
