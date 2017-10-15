@@ -226,7 +226,7 @@ mod tests {
 
 
     #[test]
-    fn parse_field_type() {
+    fn parse_field_definition() {
         assert_eq!(
             field_definition(&b"uint32 uptime_sec"[..]),
             IResult::Done(&b""[..], FieldDefinition{
