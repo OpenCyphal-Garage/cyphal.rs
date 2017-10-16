@@ -76,7 +76,6 @@ pub struct FileName {
 impl FromStr for FileName {
     type Err = String;
 
-    // TODO: add some sensible error handling
     fn from_str(s: &str) -> Result<FileName, Self::Err> {
         let mut split = s.rsplit('.').peekable();
         
