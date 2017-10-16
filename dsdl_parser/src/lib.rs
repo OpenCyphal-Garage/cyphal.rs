@@ -185,15 +185,38 @@ impl<'a> From<&'a str> for Ident {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Num(String);
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Index(u64);
 
-impl FromStr for Num {
-    type Err = ();
+impl FromStr for Index {
+    type Err = std::num::ParseIntError;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO: fix sanitizing
-        Ok(Num(String::from(s)))
+        Ok(Index(u64::from_str(s)?))
+    }
+}
+
+impl From<u8> for Index {
+    fn from(i: u8) -> Index {
+        Index(u64::from(i))
+    }
+}
+
+impl From<u16> for Index {
+    fn from(i: u16) -> Index {
+        Index(u64::from(i))
+    }
+}
+
+impl From<u32> for Index {
+    fn from(i: u32) -> Index {
+        Index(u64::from(i))
+    }
+}
+
+impl From<u64> for Index {
+    fn from(i: u64) -> Index {
+        Index(i)
     }
 }
 
@@ -205,8 +228,6 @@ pub enum Const {
     Bool(bool),
     Char(String),
 }
-// TODO: consider using this instead of Num for array lengths
-
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CastMode {
@@ -229,8 +250,8 @@ impl FromStr for CastMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     Single,
-    Dynamic(Num),
-    Static(Num),
+    Dynamic(Index),
+    Static(Index),
 }
 
 
