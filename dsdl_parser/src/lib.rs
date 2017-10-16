@@ -841,10 +841,6 @@ impl PrimitiveType {
 mod tests {
     use super::*;
     
-    use nom::{
-        IResult,
-    };
-    
     #[test]
     fn read_node_status() {
         let dsdl = DSDL::open("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
