@@ -198,7 +198,7 @@ impl FromStr for Num {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Value {
+pub enum Const {
     Dec(String),
     Hex(String),
     Bin(String),
@@ -252,7 +252,7 @@ pub struct ConstDefinition {
     pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
     pub name: Ident,
-    pub constant: Value,
+    pub constant: Const,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -811,12 +811,12 @@ mod tests {
                            Line::Comment(Comment(String::from(" Publication period may vary within these limits."))),
                            Line::Comment(Comment(String::from(" It is NOT recommended to change it at run time."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), constant: Value::Dec(String::from("1000")) }), None),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), constant: Value::Dec(String::from("2")) }), None),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), constant: Const::Dec(String::from("1000")) }), None),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), constant: Const::Dec(String::from("2")) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" If a node fails to publish this message in this amount of time, it should be considered offline."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), constant: Value::Dec(String::from("3000")) }), None),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), constant: Const::Dec(String::from("3000")) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Uptime counter should never overflow."))),
                            Line::Comment(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards."))),
@@ -825,10 +825,10 @@ mod tests {
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Abstract node health."))),
                            Line::Comment(Comment(String::from(""))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), constant: Value::Dec(String::from("0")) }), Some(Comment(String::from(" The node is functioning properly.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), constant: Value::Dec(String::from("1")) }), Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), constant: Value::Dec(String::from("2")) }), Some(Comment(String::from(" The node encountered a major failure.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), constant: Value::Dec(String::from("3")) }), Some(Comment(String::from(" The node suffered a fatal malfunction.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), constant: Const::Dec(String::from("0")) }), Some(Comment(String::from(" The node is functioning properly.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), constant: Const::Dec(String::from("1")) }), Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), constant: Const::Dec(String::from("2")) }), Some(Comment(String::from(" The node encountered a major failure.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), constant: Const::Dec(String::from("3")) }), Some(Comment(String::from(" The node suffered a fatal malfunction.")))),
                            Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: ArrayInfo::Single, name: Ident(String::from("health")) }), None),
                            Line::Comment(Comment(String::from(""))),
                            Line::Comment(Comment(String::from(" Current mode."))),
@@ -839,11 +839,11 @@ mod tests {
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Reserved values can be used in future revisions of the specification."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), constant: Value::Dec(String::from("0")) }), Some(Comment(String::from(" Normal operating mode.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), constant: Value::Dec(String::from("1")) }), Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), constant: Value::Dec(String::from("2")) }), Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), constant: Value::Dec(String::from("3")) }), Some(Comment(String::from(" New software/firmware is being loaded.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), constant: Value::Dec(String::from("7")) }), Some(Comment(String::from(" The node is no longer available.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), constant: Const::Dec(String::from("0")) }), Some(Comment(String::from(" Normal operating mode.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), constant: Const::Dec(String::from("1")) }), Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), constant: Const::Dec(String::from("2")) }), Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), constant: Const::Dec(String::from("3")) }), Some(Comment(String::from(" New software/firmware is being loaded.")))),
+                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), constant: Const::Dec(String::from("7")) }), Some(Comment(String::from(" The node is no longer available.")))),
                            Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("mode")) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Not used currently, keep zero when publishing, ignore when receiving."))),

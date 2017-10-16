@@ -18,13 +18,13 @@ named!(directive<Directive>, map_res!(map_res!(do_parse!(_tag: tag!("@") >> name
 
 named!(service_response_marker<ServiceResponseMarker>, do_parse!(_srm: tag!("---") >> (ServiceResponseMarker{})));
 
-named!(constant<Value>, alt!(
-    complete!(do_parse!(_value: tag!("true") >> (Value::Bool(true)) )) |
-    complete!(do_parse!(_value: tag!("false") >> (Value::Bool(false)) )) |
-    complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Value::Hex(String::from(value))))) |
-    complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Value::Bin(String::from(value))))) |
-    complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Value::Char(String::from(achar))))) |
-    complete!(do_parse!(value: map_res!(take_while!(allowed_in_decimal_number), str::from_utf8) >> (Value::Dec(String::from(value)))))
+named!(constant<Const>, alt!(
+    complete!(do_parse!(_value: tag!("true") >> (Const::Bool(true)) )) |
+    complete!(do_parse!(_value: tag!("false") >> (Const::Bool(false)) )) |
+    complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Const::Hex(String::from(value))))) |
+    complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Const::Bin(String::from(value))))) |
+    complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Const::Char(String::from(achar))))) |
+    complete!(do_parse!(value: map_res!(take_while!(allowed_in_decimal_number), str::from_utf8) >> (Const::Dec(String::from(value)))))
 ));
 
 named!(cast_mode<CastMode>, map_res!(map_res!(
@@ -214,14 +214,14 @@ mod tests {
 
     #[test]
     fn parse_constant() {
-        assert_eq!(constant(&b"0x123"[..]), IResult::Done(&b""[..], Value::Hex(String::from("123"))));
-        assert_eq!(constant(&b"0xAABBCC"[..]), IResult::Done(&b""[..], Value::Hex(String::from("AABBCC"))));
-        assert_eq!(constant(&b"0b000111"[..]), IResult::Done(&b""[..], Value::Bin(String::from("000111"))));
-        assert_eq!(constant(&b"12354"[..]), IResult::Done(&b""[..], Value::Dec(String::from("12354"))));
-        assert_eq!(constant(&[39,92,b'n', 39]), IResult::Done(&b""[..], Value::Char(String::from("\\n"))));
-        assert_eq!(constant(&b"'b'"[..]), IResult::Done(&b""[..], Value::Char(String::from("b"))));
-        assert_eq!(constant(&b"true"[..]), IResult::Done(&b""[..], Value::Bool(true)));
-        assert_eq!(constant(&b"false"[..]), IResult::Done(&b""[..], Value::Bool(false)));
+        assert_eq!(constant(&b"0x123"[..]), IResult::Done(&b""[..], Const::Hex(String::from("123"))));
+        assert_eq!(constant(&b"0xAABBCC"[..]), IResult::Done(&b""[..], Const::Hex(String::from("AABBCC"))));
+        assert_eq!(constant(&b"0b000111"[..]), IResult::Done(&b""[..], Const::Bin(String::from("000111"))));
+        assert_eq!(constant(&b"12354"[..]), IResult::Done(&b""[..], Const::Dec(String::from("12354"))));
+        assert_eq!(constant(&[39,92,b'n', 39]), IResult::Done(&b""[..], Const::Char(String::from("\\n"))));
+        assert_eq!(constant(&b"'b'"[..]), IResult::Done(&b""[..], Const::Char(String::from("b"))));
+        assert_eq!(constant(&b"true"[..]), IResult::Done(&b""[..], Const::Bool(true)));
+        assert_eq!(constant(&b"false"[..]), IResult::Done(&b""[..], Const::Bool(false)));
     }
 
     #[test]
@@ -338,7 +338,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
-                constant: Value::Dec(String::from("0")),
+                constant: Const::Dec(String::from("0")),
             })
         );
 
@@ -374,7 +374,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
-                constant: Value::Dec(String::from("0")),
+                constant: Const::Dec(String::from("0")),
             }))
         );
 
@@ -444,7 +444,7 @@ mod tests {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint2),
                     name: Ident(String::from("HEALTH_OK")),
-                    constant: Value::Dec(String::from("0")),
+                    constant: Const::Dec(String::from("0")),
                 }),
                 None,
             ))
