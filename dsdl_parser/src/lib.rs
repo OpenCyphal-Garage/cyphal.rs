@@ -67,10 +67,10 @@ impl DSDL {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileName {
-    id: Option<String>,
-    namespace: String,
-    name: String,
-    version: Option<Version>,
+    pub id: Option<String>,
+    pub namespace: String,
+    pub name: String,
+    pub version: Option<Version>,
 }
 
 impl FromStr for FileName {
@@ -114,14 +114,14 @@ impl FromStr for FileName {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Version {
-    major: u32,
-    minor: u32,
+    pub major: u32,
+    pub minor: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct File {
-    name: FileName,
-    definition: TypeDefinition,
+    pub name: FileName,
+    pub definition: TypeDefinition,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -148,8 +148,8 @@ pub struct MessageDefinition(Vec<Line>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceDefinition{
-    request: MessageDefinition,
-    response: MessageDefinition,
+    pub request: MessageDefinition,
+    pub response: MessageDefinition,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -162,8 +162,8 @@ pub enum Line {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompositeType {
-    namespace: Option<Ident>,
-    name: Ident,
+    pub namespace: Option<Ident>,
+    pub name: Ident,
 }
 
 impl FromStr for CompositeType {
