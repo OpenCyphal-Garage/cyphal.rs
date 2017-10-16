@@ -43,33 +43,19 @@ impl DSDL {
                 let current_path = entry?.path();
                 DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), files)?;
             }
-        } else {
-            let file_name = path.file_name().unwrap().to_str().unwrap();
-            let mut partial_name = file_name.rsplit('.');
-            if partial_name.next() == Some("uavcan") {
-                let mut file = fs::File::open(path)?;
-                let mut bytes = Vec::new();
-                file.read_to_end(&mut bytes)?;
-                let bytes_slice = bytes.into_boxed_slice();
-                let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
-                
-                assert_eq!(remaining, &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
-                
-                
-                let type_name = String::from(partial_name.next().unwrap());
-                let id = match partial_name.next() {
-                    Some(s) => Some(String::from(s)),
-                    None => None,
-                };
-                let qualified_name = if namespace == "" {
-                    type_name.clone()
-                } else {
-                    namespace.clone() + "." + type_name.as_str()
-                };
-                files.insert(qualified_name, File{name: FileName{id: id, namespace: namespace.clone(), name: type_name, version: None}, definition: definition});
-            }
-        }
-    
+        } else if let IResult::Done(_i, file_name) = parse::file_name(uavcan_path.as_bytes()) {
+            let mut file = fs::File::open(path)?;
+            let mut bytes = Vec::new();
+            file.read_to_end(&mut bytes)?;
+            let bytes_slice = bytes.into_boxed_slice();
+            let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
+            
+            assert!(remaining == &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
+                                
+            let qualified_name = file_name.namespace.clone() + file_name.name.as_str();
+            files.insert(qualified_name, File{name: file_name, definition: definition});
+    }
+        
         Ok(())
     }
 }

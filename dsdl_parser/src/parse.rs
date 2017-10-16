@@ -14,7 +14,7 @@ named!(whitespace, take_while!(is_whitespace));
 
 named!(pub id<String>, map!(map_res!(verify!(take_while!(is_digit), |x:&[u8]| x.len() > 0), str::from_utf8), String::from));
 
-named!(file_name<FileName>, map_res!(map_res!(recognize!(complete!(terminated!(take_until!(".uavcan"), tag!(".uavcan")))), str::from_utf8), FileName::from_str));
+named!(pub file_name<FileName>, map_res!(map_res!(recognize!(complete!(terminated!(take_until!(".uavcan"), tag!(".uavcan")))), str::from_utf8), FileName::from_str));
 
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
