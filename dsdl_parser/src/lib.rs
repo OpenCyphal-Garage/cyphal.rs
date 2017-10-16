@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate nom;
 
+#[macro_use]
+extern crate log;
+
 use std::io::Read;
 
 use std::fs;
@@ -54,7 +57,9 @@ impl DSDL {
                                 
             let qualified_name = file_name.namespace.clone() + file_name.name.as_str();
             files.insert(qualified_name, File{name: file_name, definition: definition});
-    }
+        } else {
+            warn!("The file, {}, was not recognized as a DSDL file. DSDL files need to have the .uavcan extension", uavcan_path);
+        }
         
         Ok(())
     }

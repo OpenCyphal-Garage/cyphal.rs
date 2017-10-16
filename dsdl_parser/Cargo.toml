@@ -5,3 +5,7 @@ authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 [dependencies]
 nom = "3.2.0"
+log = "0.3.8"
+
+[dev-dependencies]
+test-logger = "0.1.0"
