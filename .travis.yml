@@ -5,12 +5,13 @@ rust:
   - nightly
 
 env:
-  - ACTION="test" FLAGS="--no-default-features"
-  - ACTION="test" FLAGS=""
+  - TEST_DIR="uavcan" ACTION="test" FLAGS="--no-default-features"
+  - TEST_DIR="uavcan" ACTION="test" FLAGS=""
+  - TEST_DIR="dsdl_parser" ACTION="test" FLAGS=""
 
 matrix:
   include:
     - rust: nightly
-      env: ACTION="build" FLAGS="--features clippy"
+      env: TEST_DIR="uavcan" ACTION="build" FLAGS="--features clippy"
   
-script: ./travis.sh
+script: cd $TEST_DIR && ./travis.sh
