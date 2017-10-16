@@ -64,7 +64,7 @@ impl DSDL {
                 } else {
                     namespace.clone() + "." + type_name.as_str()
                 };
-                files.insert(qualified_name, File{id: id, namespace: namespace.clone(), name: type_name, definition: definition});
+                files.insert(qualified_name, File{name: FileName{id: id, namespace: namespace.clone(), name: type_name}, definition: definition});
             }
         }
     
@@ -73,10 +73,15 @@ impl DSDL {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct File {
+pub struct FileName {
     id: Option<String>,
     namespace: String,
     name: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct File {
+    name: FileName,
     definition: TypeDefinition,
 }
 
@@ -807,9 +812,11 @@ mod tests {
         
         assert_eq!(dsdl.files.get(&String::from("NodeStatus")).unwrap(),
                    &File {
-                       id: Some(String::from("341")),
-                       namespace: String::from(""),
-                       name: String::from("NodeStatus"),
+                       name: FileName {
+                           id: Some(String::from("341")),
+                           namespace: String::from(""),
+                           name: String::from("NodeStatus"),
+                       },
                        definition: TypeDefinition::Message(MessageDefinition(vec!(
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Abstract node status information."))),
