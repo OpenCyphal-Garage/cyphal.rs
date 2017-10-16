@@ -12,6 +12,8 @@ use std::str::FromStr;
 
 use std::collections::HashMap;
 
+use nom::IResult;
+
 mod parse;
 
 
@@ -80,10 +82,50 @@ pub struct FileName {
     version: Option<Version>,
 }
 
+impl FromStr for FileName {
+    type Err = String;
+
+    // TODO: add some sensible error handling
+    fn from_str(s: &str) -> Result<FileName, Self::Err> {
+        let mut split = s.rsplit('.').peekable();
+        
+        if let Some("uavcan") = split.next() {
+        } else {
+            return Err(String::from("Error while parsing, {}, does file end with .uavcan?"));
+        }
+
+        let version = match u32::from_str(split.peek().ok_or(String::from("Error while parsing, {}, bad formated filename"))?) {
+            Ok(minor_version) => {
+                split.next().unwrap(); // remove minor version
+                let major_version = u32::from_str(split.next().ok_or(String::from("Error while parsing, {}, is versioning formated correctly?\n    versioning should be formated as <major>.<minor>"))?).unwrap();
+                Some(Version{major: major_version, minor: minor_version})
+            },
+            Err(_) => None,
+        };
+
+        let name = String::from(split.next().unwrap());
+
+        let id = if let IResult::Done(_i, o) = parse::id(split.peek().unwrap_or(&"").as_bytes()) {
+            split.next().unwrap();
+            Some(o)
+        } else {
+            None
+        };
+
+        let mut namespace = String::from(split.next().unwrap_or(""));
+        while let Some(namespace_part) = split.next() {
+            namespace = String::from(namespace_part) + "." + namespace.as_str();
+        }
+
+        Ok(FileName{id: id, namespace: namespace, name: name, version: version})
+    }
+}
+
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Version {
-    major: String,
-    minor: String,
+    major: u32,
+    minor: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
