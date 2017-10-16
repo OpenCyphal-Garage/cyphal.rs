@@ -55,7 +55,11 @@ impl DSDL {
             
             assert!(remaining == &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
                                 
-            let qualified_name = file_name.namespace.clone() + file_name.name.as_str();
+            let qualified_name = if file_name.namespace.as_str() == "" {
+                file_name.name.clone()
+            } else {
+                file_name.namespace.clone() + "." + file_name.name.as_str()
+            };
             files.insert(qualified_name, File{name: file_name, definition: definition});
         } else {
             warn!("The file, {}, was not recognized as a DSDL file. DSDL files need to have the .uavcan extension", uavcan_path);
