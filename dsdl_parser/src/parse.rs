@@ -67,8 +67,10 @@ named!(array_info<ArrayInfo>, alt!(
 
 
 
-named!(void_definition<VoidDefinition>, sep!(whitespace, 
-    do_parse!(type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >> (VoidDefinition{field_type: type_name}))
+named!(void_definition<FieldDefinition>, sep!(whitespace, 
+                                             do_parse!(
+                                                 type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >>
+                                                     (FieldDefinition{cast_mode: None, field_type: Ty::Primitive(type_name), array: ArrayInfo::Single, name: None}))
 ));
 
 
@@ -77,7 +79,7 @@ named!(field_definition<FieldDefinition>, sep!(whitespace, do_parse!(
         field_type: type_name >>
         array: array_info >>
         name: field_name >>
-        (FieldDefinition{cast_mode: cast_mode, field_type: field_type, array: array, name: name})
+        (FieldDefinition{cast_mode: cast_mode, field_type: field_type, array: array, name: Some(name)})
 )));
 
 
@@ -309,8 +311,11 @@ mod tests {
     fn parse_void_definition() {
         assert_eq!(
             void_definition(&b"void2"[..]),
-            IResult::Done(&b""[..], VoidDefinition{
-                field_type: PrimitiveType::Void2,
+            IResult::Done(&b""[..], FieldDefinition{
+                cast_mode: None,
+                field_type: Ty::Primitive(PrimitiveType::Void2),
+                array: ArrayInfo::Single,
+                name: None,
             })
         );        
     }
@@ -323,7 +328,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
-                name: Ident(String::from("uptime_sec")),
+                name: Some(Ident(String::from("uptime_sec"))),
             })
         );
 
@@ -353,8 +358,11 @@ mod tests {
     fn parse_attribute_definition() {
         assert_eq!(
             attribute_definition(&b"void2"[..]),
-            IResult::Done(&b""[..], AttributeDefinition::Void(VoidDefinition{
-                field_type: PrimitiveType::Void2,
+            IResult::Done(&b""[..], AttributeDefinition::Field(FieldDefinition{
+                cast_mode: None,
+                field_type: Ty::Primitive(PrimitiveType::Void2),
+                array: ArrayInfo::Single,
+                name: None,
             }))
         );
 
@@ -364,7 +372,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: ArrayInfo::Single,
-                name: Ident(String::from("uptime_sec")),
+                name: Some(Ident(String::from("uptime_sec"))),
             }))
         );
         
@@ -397,8 +405,11 @@ mod tests {
         assert_eq!(
             line(&b"void2\n"[..]),
             IResult::Done(&b"\n"[..], Line::Definition(
-                AttributeDefinition::Void(VoidDefinition{
-                    field_type: PrimitiveType::Void2,
+                AttributeDefinition::Field(FieldDefinition{
+                    cast_mode: None,
+                    field_type: Ty::Primitive(PrimitiveType::Void2),
+                    array: ArrayInfo::Single,
+                    name: None,
                 }),
                 None
             ))
@@ -407,8 +418,11 @@ mod tests {
         assert_eq!(
             line(&b"void3"[..]),
             IResult::Done(&b""[..], Line::Definition(
-                AttributeDefinition::Void(VoidDefinition{
-                    field_type: PrimitiveType::Void3,
+                AttributeDefinition::Field(FieldDefinition{
+                    cast_mode: None,
+                    field_type: Ty::Primitive(PrimitiveType::Void3),
+                    array: ArrayInfo::Single,
+                    name: None,
                 }),
                 None
             ))
@@ -417,8 +431,11 @@ mod tests {
         assert_eq!(
             line(&b"void2 # test comment\n"[..]),
             IResult::Done(&b"\n"[..], Line::Definition(
-                AttributeDefinition::Void(VoidDefinition{
-                    field_type: PrimitiveType::Void2,
+                AttributeDefinition::Field(FieldDefinition{
+                    cast_mode: None,
+                    field_type: Ty::Primitive(PrimitiveType::Void2),
+                    array: ArrayInfo::Single,
+                    name: None
                 }),
                 Some(Comment(String::from(" test comment")))
             ))
@@ -431,7 +448,7 @@ mod tests {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint32),
                     array: ArrayInfo::Single,
-                    name: Ident(String::from("uptime_sec")),
+                    name: Some(Ident(String::from("uptime_sec"))),
                 }),
                 None,
             ))
@@ -461,10 +478,10 @@ mod tests {
 void3
 void2 # test comment"[..]),
             IResult::Done(&b""[..], vec!(
-                Line::Definition(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void2}), None),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), None),
                 Line::Comment(Comment(String::from(" test comment"))),
-                Line::Definition(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void3}), None),
-                Line::Definition(AttributeDefinition::Void(VoidDefinition{field_type: PrimitiveType::Void2}), Some(Comment(String::from(" test comment")))),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: ArrayInfo::Single, name: None}), None),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), Some(Comment(String::from(" test comment")))),
             ))  
         );
         

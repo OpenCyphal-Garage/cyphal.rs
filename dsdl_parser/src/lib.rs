@@ -255,17 +255,12 @@ pub enum ArrayInfo {
 }
 
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct VoidDefinition {
-    pub field_type: PrimitiveType,
-}
-
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FieldDefinition {
     pub cast_mode: Option<CastMode>,
     pub field_type: Ty,
     pub array: ArrayInfo,
-    pub name: Ident,
+    pub name: Option<Ident>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -280,7 +275,6 @@ pub struct ConstDefinition {
 pub enum AttributeDefinition {
     Field(FieldDefinition),
     Const(ConstDefinition),
-    Void(VoidDefinition), 
 }
 
 impl From<FieldDefinition> for AttributeDefinition {
@@ -292,12 +286,6 @@ impl From<FieldDefinition> for AttributeDefinition {
 impl From<ConstDefinition> for AttributeDefinition {
     fn from(d: ConstDefinition) -> Self {
         AttributeDefinition::Const(d)
-    }
-}
-
-impl From<VoidDefinition> for AttributeDefinition {
-    fn from(d: VoidDefinition) -> Self {
-        AttributeDefinition::Void(d)
     }
 }
 
@@ -842,7 +830,7 @@ mod tests {
                            Line::Comment(Comment(String::from(" Uptime counter should never overflow."))),
                            Line::Comment(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: ArrayInfo::Single, name: Ident(String::from("uptime_sec")) }), None),
+                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: ArrayInfo::Single, name: Some(Ident(String::from("uptime_sec"))) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Abstract node health."))),
                            Line::Comment(Comment(String::from(""))),
@@ -850,7 +838,7 @@ mod tests {
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), constant: Const::Dec(String::from("1")) }), Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))),
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), constant: Const::Dec(String::from("2")) }), Some(Comment(String::from(" The node encountered a major failure.")))),
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), constant: Const::Dec(String::from("3")) }), Some(Comment(String::from(" The node suffered a fatal malfunction.")))),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: ArrayInfo::Single, name: Ident(String::from("health")) }), None),
+                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: ArrayInfo::Single, name: Some(Ident(String::from("health"))) }), None),
                            Line::Comment(Comment(String::from(""))),
                            Line::Comment(Comment(String::from(" Current mode."))),
                            Line::Comment(Comment(String::new())),
@@ -865,15 +853,15 @@ mod tests {
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), constant: Const::Dec(String::from("2")) }), Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))),
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), constant: Const::Dec(String::from("3")) }), Some(Comment(String::from(" New software/firmware is being loaded.")))),
                            Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), constant: Const::Dec(String::from("7")) }), Some(Comment(String::from(" The node is no longer available.")))),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("mode")) }), None),
+                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Some(Ident(String::from("mode"))) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Not used currently, keep zero when publishing, ignore when receiving."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Ident(String::from("sub_mode")) }), None),
+                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: ArrayInfo::Single, name: Some(Ident(String::from("sub_mode"))) }), None),
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: ArrayInfo::Single, name: Ident(String::from("vendor_specific_status_code")) }), None),
+                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: ArrayInfo::Single, name: Some(Ident(String::from("vendor_specific_status_code"))) }), None),
                        ))),}
         );
 
