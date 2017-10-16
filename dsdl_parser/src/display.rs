@@ -4,6 +4,28 @@ use std::fmt::Display;
 
 use *;
 
+impl Display for FileName {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        if self.namespace.as_str() != "" {
+            write!(f, "{}.", self.namespace)?;
+        }
+        if let Some(ref id) = self.id {
+            write!(f, "{}.", id)?;
+        }
+        write!(f, "{}", self.name)?;
+        if let Some(ref version) = self.version {
+            write!(f, ".{}", version)?;
+        }
+        write!(f, ".uavcan")            
+    }
+}
+
+impl Display for Version {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}.{}", self.major, self.minor)
+    }
+}
+    
 
 impl Display for CastMode {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
@@ -119,12 +141,46 @@ impl Display for Line {
     }
 }
 
+impl Display for File {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "File: {}\n{}", self.name, self.definition)
+    }
+}
+
 impl Display for AttributeDefinition {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             AttributeDefinition::Field(ref field_def) => write!(f, "{}", field_def),
             AttributeDefinition::Const(ref const_def) => write!(f, "{}", const_def),
         }
+    }
+}
+
+impl Display for TypeDefinition {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match *self {
+            TypeDefinition::Message(ref x) => write!(f, "{}", x),
+            TypeDefinition::Service(ref x) => write!(f, "{}", x),
+        }
+    }
+}
+
+impl Display for MessageDefinition {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        for (i, line) in self.0.iter().enumerate() {
+            if i == 0 {
+                write!(f, "{}", line)?;
+            } else {
+                write!(f, "\n{}", line)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Display for ServiceDefinition {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "{}\n---\n{}", self.request, self.response)
     }
 }
 
