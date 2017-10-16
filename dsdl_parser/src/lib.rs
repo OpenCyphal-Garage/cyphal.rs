@@ -18,7 +18,7 @@ use std::collections::HashMap;
 use nom::IResult;
 
 mod parse;
-
+mod display;
 
 
 #[derive(Debug, PartialEq, Eq)]
