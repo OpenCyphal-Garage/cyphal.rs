@@ -64,7 +64,7 @@ impl DSDL {
                 } else {
                     namespace.clone() + "." + type_name.as_str()
                 };
-                files.insert(qualified_name, File{name: FileName{id: id, namespace: namespace.clone(), name: type_name}, definition: definition});
+                files.insert(qualified_name, File{name: FileName{id: id, namespace: namespace.clone(), name: type_name, version: None}, definition: definition});
             }
         }
     
@@ -77,6 +77,13 @@ pub struct FileName {
     id: Option<String>,
     namespace: String,
     name: String,
+    version: Option<Version>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Version {
+    major: String,
+    minor: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -816,6 +823,7 @@ mod tests {
                            id: Some(String::from("341")),
                            namespace: String::from(""),
                            name: String::from("NodeStatus"),
+                           version: None,
                        },
                        definition: TypeDefinition::Message(MessageDefinition(vec!(
                            Line::Comment(Comment(String::new())),

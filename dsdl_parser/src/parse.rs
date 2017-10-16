@@ -11,6 +11,13 @@ use nom::{
 
 named!(whitespace, take_while!(is_whitespace));
 
+named!(version<Version>, do_parse!(
+    major: map!(map_res!(take_while!(is_digit), str::from_utf8), String::from) >>
+        _dot: tag!(".") >>
+        minor: map!(map_res!(take_while!(is_digit), str::from_utf8), String::from) >>
+        (Version{major: major, minor: minor})
+));
+
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
 
@@ -199,6 +206,14 @@ mod tests {
         IResult,
     };
 
+    #[test]
+    fn parse_version() {
+        assert_eq!(version(&b"2.3"[..]), IResult::Done(&b""[..], Version{minor: String::from("3"), major: String::from("2")}));
+        assert_eq!(version(&b"2.3s"[..]), IResult::Done(&b"s"[..], Version{minor: String::from("3"), major: String::from("2")}));
+        
+        assert!(version(&b"s2.2"[..]).is_err());
+    }
+    
     #[test]
     fn parse_directive() {
         assert_eq!(directive(&b"@union"[..]), IResult::Done(&b""[..], Directive::Union));
