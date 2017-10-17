@@ -66,7 +66,8 @@ impl Display for ArrayInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             ArrayInfo::Single => write!(f, ""),
-            ArrayInfo::Dynamic(ref num) => write!(f, "[<={}]", num),
+            ArrayInfo::DynamicLess(ref num) => write!(f, "[<{}]", num),
+            ArrayInfo::DynamicLeq(ref num) => write!(f, "[<={}]", num),
             ArrayInfo::Static(ref num) => write!(f, "[{}]", num),
         }
     }

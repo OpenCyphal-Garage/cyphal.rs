@@ -298,7 +298,8 @@ impl FromStr for CastMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     Single,
-    Dynamic(Index),
+    DynamicLess(Index),
+    DynamicLeq(Index),
     Static(Index),
 }
 
