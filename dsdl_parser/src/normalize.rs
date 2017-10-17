@@ -2,18 +2,27 @@ use *;
 
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Normalized(File);
+/// A normalized `File`
+///
+/// The underlying file can't be exposed in a mutable way. Any change to the normalized format would "denormalize" it.
+/// The `NormalizedFile` can be used to calculate the DSDL signature
+///
+pub struct NormalizedFile(File);
 
-impl Normalized {
-    pub fn file<'a>(&'a self) -> &'a File {
+impl NormalizedFile {
+    pub fn as_file<'a>(&'a self) -> &'a File {
         &self.0
+    }
+
+    pub fn into_file(self) -> File {
+        self.0
     }
         
 }
 
 impl File {
-    pub fn normalize(self) -> Normalized {
-        Normalized(File{name: self.name, definition: self.definition.normalize()})
+    pub fn normalize(self) -> NormalizedFile {
+        NormalizedFile(File{name: self.name, definition: self.definition.normalize()})
     }
 }
 

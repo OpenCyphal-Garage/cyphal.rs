@@ -21,7 +21,7 @@ mod parse;
 mod display;
 mod normalize;
 
-pub use normalize::Normalized;
+pub use normalize::NormalizedFile;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DSDL {
