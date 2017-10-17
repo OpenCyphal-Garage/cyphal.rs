@@ -4,6 +4,7 @@ use std::str::FromStr;
 use *;
 
 use nom::{
+    line_ending,
     not_line_ending,
     is_digit,
     is_hex_digit,
@@ -133,11 +134,11 @@ named!(line<Line>, sep!(whitespace, alt!(
     )
 )));                       
 
-named!(lines<Vec<Line>>, many0!(ws!(line)));
+named!(lines<Vec<Line>>, many0!(sep!(whitespace, do_parse!(line: line >> _eol: opt!(complete!(line_ending)) >> (line)))));
 
 named!(message_definition<MessageDefinition>, do_parse!(lines: lines >> (MessageDefinition(lines))));
 
-named!(service_definition<ServiceDefinition>, ws!(do_parse!(
+named!(service_definition<ServiceDefinition>, sep!(whitespace, do_parse!(
     request: message_definition >>
         _srm: service_response_marker >>
         response: message_definition >>
@@ -493,11 +494,13 @@ mod tests {
             lines(&b"void2
 # test comment
 void3
+
 void2 # test comment"[..]),
             IResult::Done(&b""[..], vec!(
                 Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), None),
                 Line::Comment(Comment(String::from(" test comment"))),
                 Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: ArrayInfo::Single, name: None}), None),
+                Line::Empty,
                 Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), Some(Comment(String::from(" test comment")))),
             ))  
         );
