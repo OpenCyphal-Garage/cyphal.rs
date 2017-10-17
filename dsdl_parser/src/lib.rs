@@ -19,7 +19,9 @@ use nom::IResult;
 
 mod parse;
 mod display;
+mod normalize;
 
+pub use normalize::Normalized;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DSDL {
@@ -148,7 +150,7 @@ impl From<ServiceDefinition> for TypeDefinition {
 
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MessageDefinition(Vec<Line>);
+pub struct MessageDefinition(pub Vec<Line>);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceDefinition{

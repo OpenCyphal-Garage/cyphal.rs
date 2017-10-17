@@ -135,6 +135,12 @@ impl Display for Line {
     }
 }
 
+impl Display for Normalized {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        write!(f, "Normalized definition of file: {}\n{}\n{}", self.file().name, self.file().name, self.file().definition)
+    }
+}
+
 impl Display for File {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "File: {}\n{}", self.name, self.definition)
