@@ -359,11 +359,11 @@ impl FromStr for CastMode {
 pub enum ArrayInfo {
     /// Not an array (i.e. `uint2`)
     Single,
-    /// Dynamic array on the less than form (i.e. `uint2[<5])
+    /// Dynamic array on the less than form (i.e. `uint2[<5]`)
     DynamicLess(Size),
-    /// Dynamic array on the less or equal form (i.e. `uint2[<=5])
+    /// Dynamic array on the less or equal form (i.e. `uint2[<=5]`)
     DynamicLeq(Size),
-    /// Static array on the less or equal form (i.e. `uint2[5])
+    /// Static array on the less or equal form (i.e. `uint2[5]`)
     Static(Size),
 }
 
