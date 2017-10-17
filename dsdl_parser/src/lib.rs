@@ -240,6 +240,10 @@ impl<'a> From<&'a str> for Comment {
 /// possibly followed by space-separated arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Directive {
+    /// This directive instructs the DSDL compiler that the current message or the current part of a service data type (request or response) is a tagged union.
+    /// A tagged union is a data structure that may encode either of its fields at a time.
+    /// Such a data structure contains one implicit field, a union tag that indicates what particular field the data structure is holding at the moment.
+    /// Unions are required to have at least two fields.
     Union,
 }
 
