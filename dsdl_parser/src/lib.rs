@@ -26,7 +26,7 @@ pub use normalize::NormalizedFile;
 /// The `DSDL` struct contains a number of data type definition
 #[derive(Debug, PartialEq, Eq)]
 pub struct DSDL {
-    pub files: HashMap<String, File>,
+    files: HashMap<String, File>,
 }
 
 impl DSDL {
@@ -71,6 +71,15 @@ impl DSDL {
         
         Ok(())
     }
+
+    pub fn get_file(&self, name: &str) -> Option<&File> {
+        self.files.get(name)
+    }
+
+    pub fn files(&self) -> Vec<&File> {
+        self.files.values().collect()
+    }
+        
 }
 
 /// Uniquely defines a DSDL file

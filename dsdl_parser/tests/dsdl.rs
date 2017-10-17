@@ -22,7 +22,7 @@ fn parse_dsdl() {
 fn verify_display() {
     test_logger::ensure_env_logger_initialized();
     let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
-    for dsdl_file in dsdl.files.values() {
+    for dsdl_file in dsdl.files() {
         let mut filename = String::from("./tests/dsdl/");
         if dsdl_file.name.namespace != "" {
             filename = filename + dsdl_file.name.namespace.replace(".", "/").as_str() + "/";
@@ -52,7 +52,7 @@ fn verify_display() {
 fn normalize_get_node_info() {
     let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
     
-    assert_eq!(format!("{}", dsdl.files.get("uavcan.protocol.GetNodeInfo").unwrap().clone().normalize()),
+    assert_eq!(format!("{}", dsdl.get_file("uavcan.protocol.GetNodeInfo").unwrap().clone().normalize()),
                "uavcan.protocol.GetNodeInfo
 ---
 saturated NodeStatus status
@@ -65,7 +65,7 @@ saturated uint8[<=80] name");
 fn normalize_node_status() {
     let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
     
-    assert_eq!(format!("{}", dsdl.files.get("uavcan.protocol.NodeStatus").unwrap().clone().normalize()),
+    assert_eq!(format!("{}", dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize()),
                "uavcan.protocol.NodeStatus
 saturated uint32 uptime_sec
 saturated uint2 health
