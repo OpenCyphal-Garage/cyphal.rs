@@ -80,7 +80,7 @@ impl Display for Const {
             Const::Hex(ref x) => write!(f, "0x{}", x),
             Const::Bin(ref x) => write!(f, "0b{}", x),
             Const::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
-            Const::Char(ref x) => write!(f, "{}", x),
+            Const::Char(ref x) => write!(f, "'{}'", x),
         }
     }
 }
