@@ -268,39 +268,39 @@ impl<'a> From<&'a str> for Ident {
     }
 }
 
-/// Used to determin size of DynamicArray or a StaticArray
+/// Used to determin size of e.g. DynamicArray or a StaticArray
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Index(u64);
+pub struct Size(u64);
 
-impl FromStr for Index {
+impl FromStr for Size {
     type Err = std::num::ParseIntError;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Index(u64::from_str(s)?))
+        Ok(Size(u64::from_str(s)?))
     }
 }
 
-impl From<u8> for Index {
-    fn from(i: u8) -> Index {
-        Index(u64::from(i))
+impl From<u8> for Size {
+    fn from(i: u8) -> Size {
+        Size(u64::from(i))
     }
 }
 
-impl From<u16> for Index {
-    fn from(i: u16) -> Index {
-        Index(u64::from(i))
+impl From<u16> for Size {
+    fn from(i: u16) -> Size {
+        Size(u64::from(i))
     }
 }
 
-impl From<u32> for Index {
-    fn from(i: u32) -> Index {
-        Index(u64::from(i))
+impl From<u32> for Size {
+    fn from(i: u32) -> Size {
+        Size(u64::from(i))
     }
 }
 
-impl From<u64> for Index {
-    fn from(i: u64) -> Index {
-        Index(i)
+impl From<u64> for Size {
+    fn from(i: u64) -> Size {
+        Size(i)
     }
 }
 
@@ -349,11 +349,11 @@ pub enum ArrayInfo {
     /// Not an array (i.e. `uint2`)
     Single,
     /// Dynamic array on the less than form (i.e. `uint2[<5])
-    DynamicLess(Index),
+    DynamicLess(Size),
     /// Dynamic array on the less or equal form (i.e. `uint2[<=5])
-    DynamicLeq(Index),
+    DynamicLeq(Size),
     /// Static array on the less or equal form (i.e. `uint2[5])
-    Static(Index),
+    Static(Size),
 }
 
 

@@ -93,7 +93,7 @@ impl FieldDefinition {
 
         // 4. For dynamic arrays, replace the max length specifier in the form [<X] to the form [<=Y]
         let array = match self.array {
-            ArrayInfo::DynamicLess(Index(num)) => ArrayInfo::DynamicLeq(Index(num-1)),
+            ArrayInfo::DynamicLess(Size(num)) => ArrayInfo::DynamicLeq(Size(num-1)),
             x => x,
         };
 
