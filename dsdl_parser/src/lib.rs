@@ -30,7 +30,15 @@ pub struct DSDL {
 }
 
 impl DSDL {
-    /// Reads `DSDL` definition recursively if path is a directory. Reads one `DSDL` definition if path is a definition. 
+    /// Reads `DSDL` definition recursively if path is a directory. Reads one `DSDL` definition if path is a definition.
+    ///
+    /// ## Example
+    /// ```
+    /// use dsdl_parser::DSDL;
+    ///
+    /// assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+    ///
+    /// ```
     pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
 
