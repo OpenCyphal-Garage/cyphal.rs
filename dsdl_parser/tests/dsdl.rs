@@ -9,19 +9,19 @@ use dsdl_parser::*;
 #[test]
 fn parse_protocol() {
     test_logger::ensure_env_logger_initialized();
-    let _dsdl = DSDL::open("./tests/dsdl/uavcan/protocol").unwrap();
+    let _dsdl = DSDL::read("./tests/dsdl/uavcan/protocol").unwrap();
 }
 
 #[test]
 fn parse_dsdl() {
     test_logger::ensure_env_logger_initialized();
-    let _dsdl = DSDL::open("./tests/dsdl/uavcan/").unwrap();
+    let _dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
 }
 
 #[test]
 fn verify_display() {
     test_logger::ensure_env_logger_initialized();
-    let dsdl = DSDL::open("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
     for dsdl_file in dsdl.files.values() {
         let mut filename = String::from("./tests/dsdl/");
         if dsdl_file.name.namespace != "" {

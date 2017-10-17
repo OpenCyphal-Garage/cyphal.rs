@@ -29,7 +29,7 @@ pub struct DSDL {
 }
 
 impl DSDL {
-    pub fn open<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
+    pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
 
         DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
@@ -682,7 +682,7 @@ mod tests {
     
     #[test]
     fn read_node_status() {
-        let dsdl = DSDL::open("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
+        let dsdl = DSDL::read("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
         
         assert_eq!(dsdl.files.get(&String::from("NodeStatus")).unwrap(),
                    &File {
