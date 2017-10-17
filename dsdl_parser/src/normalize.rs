@@ -10,10 +10,12 @@ use *;
 pub struct NormalizedFile(File);
 
 impl NormalizedFile {
+    /// Return a reference to the underlying `File`
     pub fn as_file<'a>(&'a self) -> &'a File {
         &self.0
     }
 
+    /// Turn the `NormalizedFile` into the underlying `File`
     pub fn into_file(self) -> File {
         self.0
     }
@@ -21,6 +23,7 @@ impl NormalizedFile {
 }
 
 impl File {
+    /// Normalizes a file according to the uavcan specification.
     pub fn normalize(self) -> NormalizedFile {
         NormalizedFile(File{name: self.name, definition: self.definition.normalize()})
     }

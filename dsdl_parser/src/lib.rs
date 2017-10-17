@@ -23,12 +23,14 @@ mod normalize;
 
 pub use normalize::NormalizedFile;
 
+/// The `DSDL` struct contains a number of data type definition
 #[derive(Debug, PartialEq, Eq)]
 pub struct DSDL {
     pub files: HashMap<String, File>,
 }
 
 impl DSDL {
+    /// Reads `DSDL` definition recursively if path is a directory. Reads one `DSDL` definition if path is a definition. 
     pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
 
@@ -71,6 +73,7 @@ impl DSDL {
     }
 }
 
+/// Uniquely defines a DSDL file
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FileName {
     pub id: Option<String>,
@@ -118,18 +121,24 @@ impl FromStr for FileName {
 }
 
 
+/// A dsdl file version
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Version {
     pub major: u32,
     pub minor: u32,
 }
 
+/// A DSDL file
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct File {
     pub name: FileName,
     pub definition: TypeDefinition,
 }
 
+/// A DSDL type definition.
+///
+/// Each DSDL definition specifies exactly one data structure that can be used for message broadcasting
+/// or a pair of structures that can be used for service invocation data exchange.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TypeDefinition {
     Message(MessageDefinition),
@@ -149,15 +158,31 @@ impl From<ServiceDefinition> for TypeDefinition {
 }
 
 
+
+/// An Uavcan message definition
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MessageDefinition(pub Vec<Line>);
 
+/// An Uavcan service definition
+///
+/// Since a service invocation consists of two network exchange operations,
+/// the DSDL definition for a service must define two structures:
+///
+/// - Request part - for request transfer (client to server).
+/// - Response part - for response transfer (server to client).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceDefinition{
+    /// The request part - for request transfer (client to server)
     pub request: MessageDefinition,
+    /// The response part - for response transfer (server to client)
     pub response: MessageDefinition,
 }
 
+/// A `Line` in a DSDL `File`
+///
+/// A data structure definition consists of attributes and directives.
+/// Any line of the definition file may contain at most one attribute definition or at most one directive.
+/// The same line cannot contain an attribute definition and a directive at the same time.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Line {
     Empty,
@@ -166,6 +191,9 @@ pub enum Line {
     Directive(Directive, Option<Comment>),
 }
 
+/// A CompositeType is what the uavcan specification refers to as "Nested data structures"
+///
+/// In short if it's not a primitive data type (or arrays of primitive data types) it's a `CompositeType`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompositeType {
     pub namespace: Option<Ident>,
@@ -196,7 +224,7 @@ impl FromStr for CompositeType {
     }
 }
 
-
+/// A comment
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Comment(String);
 
@@ -206,6 +234,10 @@ impl<'a> From<&'a str> for Comment {
     }
 }
 
+/// An Uavcan Directive
+///
+/// A directive is a single case-sensitive word starting with an “at sign” (@),
+/// possibly followed by space-separated arguments.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Directive {
     Union,
@@ -226,6 +258,7 @@ impl FromStr for Directive {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ServiceResponseMarker {}
 
+/// An Identifier (name)
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Ident(String);
 
@@ -235,6 +268,7 @@ impl<'a> From<&'a str> for Ident {
     }
 }
 
+/// Used to determin size of DynamicArray or a StaticArray
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Index(u64);
 
@@ -270,6 +304,18 @@ impl From<u64> for Index {
     }
 }
 
+/// A constant must be a primitive scalar type (i.e., arrays and nested data structures are not allowed as constant types).
+///
+/// A constant must be assigned with a constant initializer, which must be one of the following:
+/// 
+/// - Integer zero (0).
+/// - Integer literal in base 10, starting with a non-zero character. E.g., 123, -12.
+/// - Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12.
+/// - Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101.
+/// - Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777.
+/// - Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, 25E-4. Note that the use of infinity and NAN (not-a-number) is discouraged as it may not be supported on all platforms.
+/// - Boolean true or false.
+/// - Single ASCII character, ASCII escape sequence, or ASCII hex literal in single quotes. E.g., 'a', '\x61', '\n'.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Const {
     Dec(String),
@@ -297,15 +343,28 @@ impl FromStr for CastMode {
     }
 }
 
+/// Uavcan array information
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
+    /// Not an array (i.e. `uint2`)
     Single,
+    /// Dynamic array on the less than form (i.e. `uint2[<5])
     DynamicLess(Index),
+    /// Dynamic array on the less or equal form (i.e. `uint2[<=5])
     DynamicLeq(Index),
+    /// Static array on the less or equal form (i.e. `uint2[5])
     Static(Index),
 }
 
 
+/// A Field definition
+///
+/// Field definition patterns
+/// - `cast_mode field_type field_name`
+/// - `cast_mode field_type[X] field_name`
+/// - `cast_mode field_type[<X] field_name`
+/// - `cast_mode field_type[<=X] field_name`
+/// - `void_type`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct FieldDefinition {
     pub cast_mode: Option<CastMode>,
@@ -314,6 +373,10 @@ pub struct FieldDefinition {
     pub name: Option<Ident>,
 }
 
+/// A constant definition
+///
+/// Constant definition patterns
+/// - `cast_mode constant_type constant_name = constant_initializer`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConstDefinition {
     pub cast_mode: Option<CastMode>,
@@ -322,6 +385,7 @@ pub struct ConstDefinition {
     pub constant: Const,
 }
 
+/// An attribute definition is either a `FieldDefintion` or a `ConstDefinition`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AttributeDefinition {
     Field(FieldDefinition),
@@ -340,6 +404,7 @@ impl From<ConstDefinition> for AttributeDefinition {
     }
 }
 
+/// An Uavcan data type
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ty{
     Primitive(PrimitiveType),
@@ -358,6 +423,10 @@ impl From<CompositeType> for Ty {
     }
 }
 
+/// An Uavcan `PrimitiveDataType`
+///
+/// These types are assumed to be built-in. They can be directly referenced from any data type of any namespace.
+/// The DSDL compiler should implement these types using the native types of the target programming language.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PrimitiveType {
     Bool,
