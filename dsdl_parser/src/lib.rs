@@ -72,10 +72,32 @@ impl DSDL {
         Ok(())
     }
 
+    /// Return a file if there exists one, returns `None` otherwise
+    ///
+    /// ## Example
+    /// ```
+    /// use dsdl_parser::DSDL;
+    ///
+    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    ///
+    /// assert!(dsdl.get_file("uavcan.protocol.NodeStatus").is_some());
+    ///
+    /// ```
     pub fn get_file(&self, name: &str) -> Option<&File> {
         self.files.get(name)
     }
 
+    /// Returns a vector containing references to all files
+    ///
+    /// ## Example
+    /// ```
+    /// use dsdl_parser::DSDL;
+    ///
+    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    ///
+    /// assert!(dsdl.files().len() >= 1);
+    ///
+    /// ```
     pub fn files(&self) -> Vec<&File> {
         self.files.values().collect()
     }
