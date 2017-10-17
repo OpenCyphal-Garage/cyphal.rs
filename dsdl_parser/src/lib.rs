@@ -256,7 +256,7 @@ impl FromStr for Directive {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ServiceResponseMarker {}
+struct ServiceResponseMarker {}
 
 /// An Identifier (name)
 #[derive(Clone, Debug, PartialEq, Eq)]
