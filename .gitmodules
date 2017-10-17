@@ -1,3 +1,6 @@
 [submodule "dsdl_parser/tests/dsdl"]
 	path = dsdl_parser/tests/dsdl
 	url = https://github.com/UAVCAN/dsdl.git
+[submodule "dsdl_parser/tests/libcanard"]
+	path = dsdl_parser/tests/libcanard
+	url = https://github.com/UAVCAN/libcanard.git
