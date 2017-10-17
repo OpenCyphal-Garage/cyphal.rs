@@ -47,13 +47,4 @@ fn verify_display() {
         println!("Verified correct parsing on file: {}", filename);
     }
 }
-    
-
-#[test]
-fn display_node_status() {
-    let dsdl = DSDL::open("./tests/dsdl/uavcan/").unwrap();
-    //println!("{:?}", dsdl.files.keys());
-    //println!("{}", dsdl.files.get("uavcan.protocol.NodeStatus").unwrap());
-    //assert_eq!(format!("{}", dsdl.files.get("uavcan.protocol.NodeStatus").unwrap()), "");
-}
-
+ 
