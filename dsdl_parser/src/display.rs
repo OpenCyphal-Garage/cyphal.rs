@@ -180,7 +180,20 @@ impl Display for MessageDefinition {
 
 impl Display for ServiceDefinition {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}\n---\n{}", self.request, self.response)
+        let request = format!("{}", self.request);
+        let response = format!("{}", self.response);
+
+        if request != "" {
+            write!(f, "{}\n", request)?;
+        }
+        
+        write!(f, "---")?;
+
+        if response != "" {
+            write!(f, "\n{}", response)?;
+        }
+
+        Ok(())
     }
 }
 
