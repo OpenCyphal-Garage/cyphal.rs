@@ -9,14 +9,7 @@ impl Display for FileName {
         if self.namespace.as_str() != "" {
             write!(f, "{}.", self.namespace)?;
         }
-        if let Some(ref id) = self.id {
-            write!(f, "{}.", id)?;
-        }
-        write!(f, "{}", self.name)?;
-        if let Some(ref version) = self.version {
-            write!(f, ".{}", version)?;
-        }
-        write!(f, ".uavcan")            
+        write!(f, "{}", self.name)
     }
 }
 
