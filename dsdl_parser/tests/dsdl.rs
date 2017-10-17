@@ -47,4 +47,29 @@ fn verify_display() {
         println!("Verified correct parsing on file: {}", filename);
     }
 }
- 
+
+#[test]
+fn normalize_get_node_info() {
+    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    
+    assert_eq!(format!("{}", dsdl.files.get("uavcan.protocol.GetNodeInfo").unwrap().clone().normalize()),
+               "uavcan.protocol.GetNodeInfo
+---
+saturated NodeStatus status
+saturated SoftwareVersion software_version
+saturated HardwareVersion hardware_version
+saturated uint8[<=80] name");
+}
+
+#[test]
+fn normalize_node_status() {
+    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    
+    assert_eq!(format!("{}", dsdl.files.get("uavcan.protocol.NodeStatus").unwrap().clone().normalize()),
+               "uavcan.protocol.NodeStatus
+saturated uint32 uptime_sec
+saturated uint2 health
+saturated uint3 mode
+saturated uint3 sub_mode
+saturated uint16 vendor_specific_status_code");
+}
