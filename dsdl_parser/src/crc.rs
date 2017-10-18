@@ -1,5 +1,5 @@
 
-
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct CRC64WE(u64);
 
 impl CRC64WE {
