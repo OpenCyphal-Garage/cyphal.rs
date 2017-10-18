@@ -31,9 +31,7 @@ impl CRC64WE {
 
 #[cfg(test)]
 mod tests {
-    use *;
-
-    use signature::CRC64WE;
+    use crc::CRC64WE;
     
     #[test]
     fn test_crc_algorithm() {

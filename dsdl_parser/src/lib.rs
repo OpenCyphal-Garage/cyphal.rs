@@ -20,7 +20,7 @@ use nom::IResult;
 mod parse;
 mod display;
 mod normalize;
-mod signature;
+mod crc;
 
 pub use normalize::NormalizedFile;
 
