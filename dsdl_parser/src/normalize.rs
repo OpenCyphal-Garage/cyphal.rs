@@ -1,12 +1,12 @@
 use *;
 
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 /// A normalized `File`
 ///
 /// The underlying file can't be exposed in a mutable way. Any change to the normalized format would "denormalize" it.
 /// The `NormalizedFile` can be used to calculate the DSDL signature
 ///
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NormalizedFile(File);
 
 impl NormalizedFile {
