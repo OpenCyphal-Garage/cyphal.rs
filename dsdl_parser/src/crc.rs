@@ -39,9 +39,14 @@ mod tests {
     
     #[test]
     fn test_crc_algorithm() {
-        let mut crc = CRC64WE::new();
-        crc.add(b"123456789");
-        assert_eq!(crc.value(), 0x62ec59e3f1a4f00a);
+        let mut crc1 = CRC64WE::new();
+        crc1.add(b"123456789");
+        assert_eq!(crc1.value(), 0x62ec59e3f1a4f00a);
+       
+        let mut crc2 = CRC64WE::new();
+        crc2.add(b"123");
+        crc2.add("456789".as_bytes());
+        assert_eq!(crc2.value(), 0x62EC59E3F1A4F00A);
     }
 
     #[test]
