@@ -39,4 +39,16 @@ mod tests {
         crc.add(b"123456789");
         assert_eq!(crc.value(), 0x62ec59e3f1a4f00a);
     }
+
+    #[test]
+    fn calc_signature() {
+        let mut crc = CRC64WE::new();
+        crc.add(b"uavcan.protocol.NodeStatus
+saturated uint32 uptime_sec
+saturated uint2 health
+saturated uint3 mode
+saturated uint3 sub_mode
+saturated uint16 vendor_specific_status_code");
+        assert_eq!(crc.value(), 0x0f0868d0c1a7c6f1);
+    }
 }
