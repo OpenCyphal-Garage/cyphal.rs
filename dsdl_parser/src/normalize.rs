@@ -1,5 +1,5 @@
 use *;
-
+use crc::CRC64WE as CRC;
 
 /// A normalized `File`
 ///
@@ -18,6 +18,13 @@ impl NormalizedFile {
     /// Turn the `NormalizedFile` into the underlying `File`
     pub fn into_file(self) -> File {
         self.0
+    }
+
+    /// Calculate the DSDL signature
+    pub fn calc_dsdl_signature(&self) -> u64 {
+        let mut crc = CRC::new();
+        crc.add(format!("{}", self).as_bytes());
+        crc.value()
     }
         
 }
