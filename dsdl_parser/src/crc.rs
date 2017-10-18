@@ -10,6 +10,10 @@ impl CRC64WE {
         CRC64WE(CRC64WE::MASK)
     }
 
+    pub fn from_value(value: u64) -> CRC64WE {
+        CRC64WE((value & Self::MASK) ^ Self::MASK)
+    }
+
     pub fn add(&mut self, bytes: &[u8]) {
         let CRC64WE(ref mut crc) = *self;
         for byte in bytes {
