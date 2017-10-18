@@ -312,6 +312,18 @@ impl<'a> From<&'a str> for Ident {
     }
 }
 
+impl AsRef<str> for Ident {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+impl From<Ident> for String {
+    fn from(i: Ident) -> String {
+        i.0
+    }
+}
+
 /// Used to determin size of e.g. DynamicArray or a StaticArray
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Size(u64);
