@@ -92,8 +92,8 @@ impl DSDL {
     /// assert!(dsdl.get_file("uavcan.protocol.NodeStatus").is_some());
     ///
     /// ```
-    pub fn get_file(&self, name: &str) -> Option<&File> {
-        self.files.get(name)
+    pub fn get_file<T: AsRef<str>>(&self, name: T) -> Option<&File> {
+        self.files.get(name.as_ref())
     }
 
     /// Returns a vector containing references to all files
