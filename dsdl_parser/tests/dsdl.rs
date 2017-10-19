@@ -81,5 +81,20 @@ fn verify_dsdl_signature() {
 
     assert_eq!(dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize().calc_dsdl_signature(), 0x0f0868d0c1a7c6f1);
     assert_eq!(dsdl.get_file("uavcan.protocol.AccessCommandShell").unwrap().clone().normalize().calc_dsdl_signature(), 0x59276b5921c9246e);
+    assert_eq!(dsdl.get_file("uavcan.equipment.actuator.Command").unwrap().clone().normalize().calc_dsdl_signature(), 0x8d9a6a920c1d616c);
+
+}
+
+
+#[test]
+fn verify_data_type_signature() {
+    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+
+    assert_eq!(dsdl.data_type_signature("uavcan.protocol.NodeStatus").unwrap(), 0x0f0868d0c1a7c6f1);
+    assert_eq!(dsdl.data_type_signature("uavcan.protocol.CANIfaceStats").unwrap(), 0x13b106f0c44ca350);
+    
+    assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetTransportStats").unwrap(), 0xbe6f76a7ec312b04);
+
+    assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
 
 }

@@ -112,6 +112,48 @@ impl DSDL {
     pub fn files(&self) -> Vec<&File> {
         self.files.values().collect()
     }
+
+    /// Returns the data type signature of a data type
+    ///
+    /// ## Example
+    /// ```
+    /// use dsdl_parser::DSDL;
+    ///
+    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    ///
+    /// assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
+    ///
+    /// ```
+    pub fn data_type_signature<T: AsRef<str>>(&self, name: T) -> Option<u64> {
+        let normalized_file = self.get_file(name)?.clone().normalize();
+        let current_namespace = normalized_file.as_file().clone().name.namespace;
+        let mut crc = CRC::from_value(normalized_file.calc_dsdl_signature());
+
+        let lines = match normalized_file.as_file().definition {
+            TypeDefinition::Message(MessageDefinition(ref lines)) => lines.clone(),
+            TypeDefinition::Service(ServiceDefinition{request: MessageDefinition(ref request), response: MessageDefinition(ref response)}) => {let mut lines = request.clone(); lines.append(&mut response.clone()); lines},
+        };
+
+        for line in lines {
+            println!("Im looking at line: {}", line);
+            match line {
+                Line::Definition(
+                    AttributeDefinition::Field(
+                        FieldDefinition{field_type: Ty::Composite(
+                            CompositeType{namespace: None, ref name}), ..}), _)
+                    => crc.extend(self.data_type_signature((String::from(current_namespace.clone()) + "." + name.as_ref()).as_str()).unwrap()),
+                Line::Definition(
+                    AttributeDefinition::Field(
+                        FieldDefinition{field_type: Ty::Composite(
+                            CompositeType{namespace: Some(ref namespace), ref name}), .. }), _)
+                    => crc.extend(self.data_type_signature(String::from(namespace.clone()) + "." + name.as_ref()).unwrap()),
+                _ => (),
+            }
+
+        }
+        Some(crc.value())
+        
+    }
         
 }
 
