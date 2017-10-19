@@ -324,6 +324,12 @@ impl From<Ident> for String {
     }
 }
 
+impl From<String> for Ident {
+    fn from(s: String) -> Ident {
+        Ident(s)
+    }
+}
+
 /// Used to determin size of e.g. DynamicArray or a StaticArray
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Size(u64);
