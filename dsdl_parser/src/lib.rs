@@ -318,6 +318,14 @@ impl<'a> From<&'a str> for Comment {
     }
 }
 
+impl FromStr for Comment {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Comment, Self::Err> {
+        Ok(Comment::from(s))
+    }
+}
+
 /// An Uavcan Directive
 ///
 /// A directive is a single case-sensitive word starting with an “at sign” (@),
@@ -353,6 +361,14 @@ pub struct Ident(String);
 impl<'a> From<&'a str> for Ident {
     fn from(s: &'a str) -> Ident {
         Ident(String::from(s))
+    }
+}
+
+impl FromStr for Ident {
+    type Err = ();
+    
+    fn from_str(s: &str) -> Result<Ident, Self::Err> {
+        Ok(Ident(String::from(s)))
     }
 }
 
