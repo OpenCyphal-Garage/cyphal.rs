@@ -166,21 +166,29 @@ pub struct FileName {
     pub version: Option<Version>,
 }
 
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParseFileNameError {
+    Extension,
+    Format,
+    VersionFormat,
+}
+
 impl FromStr for FileName {
-    type Err = String;
+    type Err = ParseFileNameError;
 
     fn from_str(s: &str) -> Result<FileName, Self::Err> {
         let mut split = s.rsplit('.').peekable();
         
         if let Some("uavcan") = split.next() {
         } else {
-            return Err(String::from("Error while parsing, {}, does file end with .uavcan?"));
+            return Err(ParseFileNameError::Extension);
         }
 
-        let version = match u32::from_str(split.peek().ok_or(String::from("Error while parsing, {}, bad formated filename"))?) {
+        let version = match u32::from_str(split.peek().ok_or(ParseFileNameError::Format)?) {
             Ok(minor_version) => {
                 split.next().unwrap(); // remove minor version
-                let major_version = u32::from_str(split.next().ok_or(String::from("Error while parsing, {}, is versioning formated correctly?\n    versioning should be formated as <major>.<minor>"))?).unwrap();
+                let major_version = u32::from_str(split.next().ok_or(ParseFileNameError::Format)?).map_err(|_| ParseFileNameError::VersionFormat)?;
                 Some(Version{major: major_version, minor: minor_version})
             },
             Err(_) => None,
