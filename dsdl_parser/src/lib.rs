@@ -938,12 +938,7 @@ mod tests {
                            Line::Comment(Comment(String::new())),
                            Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: ArrayInfo::Single, name: Some(Ident(String::from("vendor_specific_status_code"))) }), None),
                        ))),}
-        );
-
-
-        
-        //assert_eq!(dsdl, DSDL::open("tests/dsdl/uavcan/protocol/1.GetNodeInfo.uavcan").unwrap());
-        
+        );        
     }
 }
 
