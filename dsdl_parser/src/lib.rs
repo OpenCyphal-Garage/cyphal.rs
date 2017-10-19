@@ -339,14 +339,19 @@ pub enum Directive {
     Union,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParseDirectiveError {
+    NotDirective(String),
+}
+
 impl FromStr for Directive {
-    type Err = ();
+    type Err = ParseDirectiveError;
     
     fn from_str(s: &str) -> Result<Directive, Self::Err> {
         match s {
             "@union" => Ok(Directive::Union),
             "union" => Ok(Directive::Union),
-            _ => Err(()),
+            _ => Err(ParseDirectiveError::NotDirective(String::from(s))),
         }
     }
 }
@@ -464,14 +469,19 @@ pub enum CastMode {
     Truncated,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParseCastModeError {
+    NotCastMode(String),
+}
+
 impl FromStr for CastMode {
-    type Err = ();
+    type Err = ParseCastModeError;
     
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "saturated" => Ok(CastMode::Saturated),
             "truncated" => Ok(CastMode::Truncated),
-            _ => Err(()),
+            _ => Err(ParseCastModeError::NotCastMode(String::from(s))),
         }
     }
 }
@@ -594,8 +604,13 @@ pub enum PrimitiveType {
     Void57, Void58, Void59, Void60, Void61, Void62, Void63, Void64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParsePrimitiveTypeError {
+    NotPrimitiveType(String),
+}
+
 impl FromStr for PrimitiveType {
-    type Err = ();
+    type Err = ParsePrimitiveTypeError;
     
     fn from_str(s: &str) -> Result<PrimitiveType, Self::Err> {    
         match s {
@@ -800,7 +815,7 @@ impl FromStr for PrimitiveType {
             "float16" => Ok(PrimitiveType::Float16),
             "float32" => Ok(PrimitiveType::Float32),
             "float64" => Ok(PrimitiveType::Float64),
-            _ => Err(()),
+            _ => Err(ParsePrimitiveTypeError::NotPrimitiveType(String::from(s))),
         }
     }
 }
