@@ -1,3 +1,15 @@
+//! A parser for the DSDL (Data structure description language) used in [uavcan](http://uavcan.org)
+//!
+//! For full description have a look at the [specification](http://uavcan.org/Specification/3._Data_structure_description_language/)
+//!
+//! ## Parse DSDL
+//! ```
+//! use dsdl_parser::DSDL;
+//!
+//! assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+//!
+//! ```
+
 #[macro_use]
 extern crate nom;
 
