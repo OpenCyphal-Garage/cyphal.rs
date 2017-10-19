@@ -3,9 +3,23 @@ name = "dsdl_parser"
 version = "0.0.1"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
+description = "A parser for the DSDL (Data structure description language) used in [uavcan](http://uavcan.org)"
+homepage = "http://uavcan.org/Specification/3._Data_structure_description_language/"
+repository = "https://github.com/UAVCAN/uavcan.rs/dsdl_parser"
+readme = "README.md"
+
+keywords = ["uavcan", "can", "dsdl", "parser"]
+categories = ["parser-implementations"]
+
+license = "Apache-2.0/MIT"
+
 [dependencies]
 nom = "3.2.0"
 log = "0.3.8"
 
 [dev-dependencies]
 test-logger = "0.1.0"
+
+[badges]
+travis-ci = {repository = "UAVCAN/uavcan.rs", branch = "master"}
+maintenance = {status = "actively-developed"}
