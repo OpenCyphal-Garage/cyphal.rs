@@ -171,7 +171,10 @@ impl DSDL {
     ///
     /// ```
     pub fn data_type_signature<T: AsRef<str>>(&self, name: T) -> Option<u64> {
-        let normalized_file = self.get_file(name)?.clone().normalize();
+        let normalized_file = match self.get_file(name) {
+            Some(file) => file.clone().normalize(),
+            None => return None,
+        };
         let current_namespace = normalized_file.as_file().clone().name.namespace;
         let mut crc = CRC::from_value(normalized_file.dsdl_signature());
 
