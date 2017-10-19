@@ -55,9 +55,9 @@ fn normalize_get_node_info() {
     assert_eq!(format!("{}", dsdl.get_file("uavcan.protocol.GetNodeInfo").unwrap().clone().normalize()),
                "uavcan.protocol.GetNodeInfo
 ---
-saturated NodeStatus status
-saturated SoftwareVersion software_version
-saturated HardwareVersion hardware_version
+uavcan.protocol.NodeStatus status
+uavcan.protocol.SoftwareVersion software_version
+uavcan.protocol.HardwareVersion hardware_version
 saturated uint8[<=80] name");
 }
 

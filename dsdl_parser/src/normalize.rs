@@ -32,30 +32,31 @@ impl NormalizedFile {
 impl File {
     /// Normalizes a file according to the uavcan specification.
     pub fn normalize(self) -> NormalizedFile {
-        NormalizedFile(File{name: self.name, definition: self.definition.normalize()})
+        let definition = self.definition.normalize(&self.name);
+        NormalizedFile(File{name: self.name, definition: definition})
     }
 }
 
 impl TypeDefinition {
-    fn normalize(self) -> Self {
+    fn normalize(self, file_name: &FileName) -> Self {
         match self {
-            TypeDefinition::Message(x) => TypeDefinition::Message(x.normalize()),
-            TypeDefinition::Service(x) => TypeDefinition::Service(x.normalize()),
+            TypeDefinition::Message(x) => TypeDefinition::Message(x.normalize(file_name)),
+            TypeDefinition::Service(x) => TypeDefinition::Service(x.normalize(file_name)),
         }
     }
 }
 
 impl ServiceDefinition {
-    fn normalize(self) -> Self {
-        ServiceDefinition{request: self.request.normalize(), response: self.response.normalize()}
+    fn normalize(self, file_name: &FileName) -> Self {
+        ServiceDefinition{request: self.request.normalize(file_name), response: self.response.normalize(file_name)}
     }
 }
 
 impl MessageDefinition {
-    fn normalize(self) -> Self {
+    fn normalize(self, file_name: &FileName) -> Self {
         let mut normalized_lines = Vec::new();
         for line in self.0 {
-            match line.normalize() {
+            match line.normalize(file_name) {
                 Some(x) => normalized_lines.push(x),
                 None => (),
             }
@@ -65,12 +66,12 @@ impl MessageDefinition {
 }
 
 impl Line {
-    fn normalize(self) -> Option<Self> {
+    fn normalize(self, file_name: &FileName) -> Option<Self> {
         // 1. Remove comments.
         match self {
             Line::Empty => None,
             Line::Comment(_) => None,
-            Line::Definition(def, _) => match def.normalize() {
+            Line::Definition(def, _) => match def.normalize(file_name) {
                 Some(norm_def) => Some(Line::Definition(norm_def, None)),
                 None => None,},
             Line::Directive(dir, _) => Some(Line::Directive(dir, None)),
@@ -79,11 +80,9 @@ impl Line {
 }
 
 impl AttributeDefinition {
-    fn normalize(self) -> Option<Self> {
+    fn normalize(self, file_name: &FileName) -> Option<Self> {
         match self {
-            AttributeDefinition::Field(def) => match def.normalize() {
-                Some(norm_field) => Some(AttributeDefinition::Field(norm_field)),
-                None => None,},
+            AttributeDefinition::Field(def) => Some(AttributeDefinition::Field(def.normalize(file_name))),
             // 2. Remove all constant definitions
             AttributeDefinition::Const(_) => None,
         }
@@ -91,19 +90,35 @@ impl AttributeDefinition {
 }
 
 impl FieldDefinition {
-    fn normalize(self) -> Option<Self> {
-        // 3. Ensure that all cast specifiers are explicitly defined; if not, add default cast specifiers.
-        let cast_mode = match self.cast_mode {
-            None => Some(CastMode::Saturated),
+    fn normalize(self, file_name: &FileName) -> Self {
+        match self {
+            // 3. Ensure that all cast specifiers are explicitly defined; if not, add default cast specifiers.
+            FieldDefinition{cast_mode: None, field_type: Ty::Primitive(primitive_type), array, name} =>
+                FieldDefinition{
+                    cast_mode: Some(CastMode::Saturated),
+                    field_type: Ty::Primitive(primitive_type),
+                    array: array.normalize(),
+                    name: name,
+                },
+            // 5. For nested data structures, replace all short names with full names.
+            FieldDefinition{field_type: Ty::Composite(CompositeType{namespace: None, name: type_name}), cast_mode, array, name: field_name} =>
+                FieldDefinition{
+                    cast_mode: cast_mode,
+                    field_type: Ty::Composite(CompositeType{namespace: Some(Ident::from(file_name.clone().namespace)), name: type_name}),
+                    array: array.normalize(),
+                    name: field_name,
+                },
             x => x,
-        };
+        }
+    }
+}
 
+impl ArrayInfo {
+    fn normalize(self) -> Self {
         // 4. For dynamic arrays, replace the max length specifier in the form [<X] to the form [<=Y]
-        let array = match self.array {
+        match self {
             ArrayInfo::DynamicLess(Size(num)) => ArrayInfo::DynamicLeq(Size(num-1)),
             x => x,
-        };
-
-        Some(FieldDefinition{cast_mode: cast_mode, field_type: self.field_type, array: array, name: self.name})
+        }
     }
 }
