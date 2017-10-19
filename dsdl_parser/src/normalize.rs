@@ -21,7 +21,7 @@ impl NormalizedFile {
     }
 
     /// Calculate the DSDL signature
-    pub fn calc_dsdl_signature(&self) -> u64 {
+    pub fn dsdl_signature(&self) -> u64 {
         let mut crc = CRC::new();
         crc.add(format!("{}", self).as_bytes());
         crc.value()

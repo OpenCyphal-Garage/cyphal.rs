@@ -79,9 +79,9 @@ saturated uint16 vendor_specific_status_code");
 fn verify_dsdl_signature() {
     let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
 
-    assert_eq!(dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize().calc_dsdl_signature(), 0x0f0868d0c1a7c6f1);
-    assert_eq!(dsdl.get_file("uavcan.protocol.AccessCommandShell").unwrap().clone().normalize().calc_dsdl_signature(), 0x59276b5921c9246e);
-    assert_eq!(dsdl.get_file("uavcan.equipment.actuator.Command").unwrap().clone().normalize().calc_dsdl_signature(), 0x8d9a6a920c1d616c);
+    assert_eq!(dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize().dsdl_signature(), 0x0f0868d0c1a7c6f1);
+    assert_eq!(dsdl.get_file("uavcan.protocol.AccessCommandShell").unwrap().clone().normalize().dsdl_signature(), 0x59276b5921c9246e);
+    assert_eq!(dsdl.get_file("uavcan.equipment.actuator.Command").unwrap().clone().normalize().dsdl_signature(), 0x8d9a6a920c1d616c);
 
 }
 
