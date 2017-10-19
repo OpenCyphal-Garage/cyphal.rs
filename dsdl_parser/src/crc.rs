@@ -28,6 +28,17 @@ impl CRC64WE {
         }
     }
 
+    /// This is the extension as described in the dsdl specification
+    pub fn extend(&mut self, signature: u64) {
+        let original_hash_value: u64 = self.value();
+        for byte in 0..8 {
+            self.add(&[(signature >> 8*byte) as u8]);
+        }
+        for byte in 0..8 {
+            self.add(&[(original_hash_value >> 8*byte) as u8]);
+        }
+    }
+    
     pub fn value(&self) -> u64 {
         (self.0 & CRC64WE::MASK) ^ CRC64WE::MASK
     }

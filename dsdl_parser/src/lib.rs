@@ -22,6 +22,8 @@ mod display;
 mod normalize;
 mod crc;
 
+use crc::CRC64WE as CRC;
+
 pub use normalize::NormalizedFile;
 
 /// The `DSDL` struct contains a number of data type definition
