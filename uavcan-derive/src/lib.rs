@@ -175,7 +175,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 if i == variant_data.fields().len() - 1 {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
                         let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
-                        self.#field_ident.set_length( ( #element_type::bit_length()-1 + *bit + buffer.bit_length()) / #element_type::bit_length() );
+                        self.#field_ident.set_length( ( #element_type::BIT_LENGTH-1 + *bit + buffer.bit_length()) / #element_type::BIT_LENGTH );
                         self.#field_ident.deserialize(&mut skewed_bit, buffer);
                         *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
                         return uavcan::DeserializationResult::Finished;                         
@@ -334,7 +334,7 @@ fn bit_length(field: &syn::Field) -> Tokens {
     };
 
     if is_primitive_type(field_type) {
-        quote!{#field_type::bit_length()}
+        quote!{#field_type::BIT_LENGTH}
     } else if is_dynamic_array(field_type) {
         let element_type = {
             if let syn::Ty::Path(_, ref path) = *field_type {
@@ -348,7 +348,7 @@ fn bit_length(field: &syn::Field) -> Tokens {
             }
         };
 
-        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::bit_length())}
+        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::BIT_LENGTH)}
     } else {
         quote!{self.#field_ident.bit_length()}
     }

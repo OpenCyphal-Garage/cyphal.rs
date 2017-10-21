@@ -159,7 +159,7 @@ impl DynamicArrayLength {
 
 
 pub trait PrimitiveType {
-    fn bit_length() -> usize where Self: Sized;
+    const BIT_LENGTH: usize;
     fn get_bits(&self, range: Range<usize>) -> u64;
     fn set_bits(&mut self, range: Range<usize>, value: u64);
     fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
