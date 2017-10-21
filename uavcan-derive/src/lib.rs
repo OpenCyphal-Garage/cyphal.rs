@@ -283,15 +283,15 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
 
 fn is_primitive_type(type_name: &syn::Ty) -> bool {
-    if *type_name == syn::parse::ty("Uint2").expect("") ||
-        *type_name == syn::parse::ty("Uint3").expect("") ||
-        *type_name == syn::parse::ty("Uint4").expect("") ||
-        *type_name == syn::parse::ty("Uint5").expect("") ||
-        *type_name == syn::parse::ty("Uint7").expect("") ||
-        *type_name == syn::parse::ty("Uint8").expect("") ||
-        *type_name == syn::parse::ty("Uint16").expect("") ||
-        *type_name == syn::parse::ty("Uint32").expect("") ||
-        *type_name == syn::parse::ty("Float16").expect("") {
+    if *type_name == syn::parse::ty("u2").expect("") ||
+        *type_name == syn::parse::ty("u3").expect("") ||
+        *type_name == syn::parse::ty("u4").expect("") ||
+        *type_name == syn::parse::ty("u5").expect("") ||
+        *type_name == syn::parse::ty("u7").expect("") ||
+        *type_name == syn::parse::ty("u8").expect("") ||
+        *type_name == syn::parse::ty("u16").expect("") ||
+        *type_name == syn::parse::ty("u32").expect("") ||
+        *type_name == syn::parse::ty("f16").expect("") {
             return true;
         }
     false

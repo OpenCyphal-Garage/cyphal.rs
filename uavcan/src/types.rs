@@ -1,5 +1,8 @@
-use bit_field::BitField;
-use half::f16;
+pub use ux::*;
+pub use half::f16;
+
+use lib::core::mem;
+
 use lib;
 use lib::core::fmt;
 use lib::core::cmp;
@@ -23,183 +26,6 @@ use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
 };
-
-
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Bool {
-    value: bool,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint2 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint3 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint4 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint5 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint6 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint7 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint8 {
-    value: u8,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint9 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint10 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint11 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint12 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint13 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint14 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint15 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint16 {
-    value: u16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint17 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint18 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint19 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint20 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint21 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint22 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint23 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint24 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint25 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint26 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint27 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint28 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint29 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint30 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint31 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Uint32 {
-    value: u32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Float16 {
-    value: f16,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Float32 {
-    value: f32,
-}
-
-#[derive(Default, Clone, Copy, Debug, PartialEq)]
-pub struct Float64 {
-    value: f64,
-}
 
 
 macro_rules! dynamic_array_def {
@@ -227,9 +53,9 @@ macro_rules! dynamic_array_def {
             }
         }
         
-        impl $i<Uint8>{
+        impl $i<u8>{
             pub fn with_str(string: &str) -> Self {
-                let mut data: [Uint8; $n] = [0.into(); $n];
+                let mut data: [u8; $n] = [0.into(); $n];
                 for (i, element) in data.iter_mut().enumerate().take(string.len()) {
                     *element = string.as_bytes()[i].into();
                 }
@@ -391,69 +217,6 @@ macro_rules! dynamic_array_def {
     };
 }
 
-impl From<u8> for Uint2 {
-    fn from(t: u8) -> Uint2 {
-        Uint2{value: t.get_bits(0..2)}
-    }
-}
-
-impl From<u8> for Uint3 {
-    fn from(t: u8) -> Uint3 {
-        Uint3{value: t.get_bits(0..3)}
-    }
-}
-
-impl From<u8> for Uint7 {
-    fn from(t: u8) -> Uint7 {
-        Uint7{value: t.get_bits(0..7)}
-    }
-}
-
-impl From<u8> for Uint8 {
-    fn from(t: u8) -> Uint8 {
-        Uint8{value: t.get_bits(0..8)}
-    }
-}
-
-impl From<u16> for Uint16 {
-    fn from(t: u16) -> Uint16 {
-        Uint16{value: t.get_bits(0..16)}
-    }
-}
-
-impl From<u32> for Uint32 {
-    fn from(t: u32) -> Uint32 {
-        Uint32{value: t.get_bits(0..32)}
-    }
-}
-
-impl From<Bool> for bool {
-    fn from(t: Bool) -> bool {
-        t.value
-    }
-}
-
-impl From<Float16> for f16 {
-    fn from(t: Float16) -> f16 {
-        t.value
-    }
-}
-
-impl From<Float32> for f32 {
-    fn from(t: Float32) -> f32 {
-        t.value
-    }
-}
-
-impl From<Float64> for f64 {
-    fn from(t: Float64) -> f64 {
-        t.value
-    }
-}
-
-
-
-
 macro_rules! impl_serialize_for_primitive_type {
     ($underlying_type:ty) => {
         fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
@@ -465,11 +228,11 @@ macro_rules! impl_serialize_for_primitive_type {
             } else if buffer_bits_remaining == 0 {
                 SerializationResult::BufferFull
             } else if buffer_bits_remaining >= type_bits_remaining {
-                buffer.push_bits(type_bits_remaining, (u64::from(self.value) >> *bit));
+                buffer.push_bits(type_bits_remaining, (u64::from(*self) >> *bit));
                 *bit = Self::BIT_LENGTH;
                 SerializationResult::Finished
             } else {
-                buffer.push_bits(buffer_bits_remaining, (u64::from(self.value) >> *bit));
+                buffer.push_bits(buffer_bits_remaining, (u64::from(*self) >> *bit));
                 *bit += buffer_bits_remaining;
                 SerializationResult::BufferFull
             }
@@ -482,11 +245,11 @@ macro_rules! impl_serialize_for_primitive_type {
             } else if buffer_len == 0 && *bit != Self::BIT_LENGTH {
                 DeserializationResult::BufferInsufficient
             } else if buffer_len < Self::BIT_LENGTH - *bit {
-                self.value |= (buffer.pop_bits(buffer_len) << *bit) as $underlying_type;
+                *self |= unsafe{mem::transmute::<$underlying_type, Self>((buffer.pop_bits(buffer_len) << *bit) as $underlying_type)};  //change into something more sensible
                 *bit += buffer_len;
                 DeserializationResult::BufferInsufficient
             } else {
-                self.value |= (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit) as $underlying_type;
+                *self |= unsafe{mem::transmute::<$underlying_type, Self>((buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit) as $underlying_type)}; //change into something more sensible
                 *bit += Self::BIT_LENGTH;
                 DeserializationResult::Finished
             }
@@ -498,42 +261,42 @@ macro_rules! impl_serialize_for_primitive_type {
 }
 
 
-impl PrimitiveType for Uint2 {
+impl PrimitiveType for u2 {
     const BIT_LENGTH: usize = 2;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint3 {
+impl PrimitiveType for u3 {
     const BIT_LENGTH: usize = 3;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint4 {
+impl PrimitiveType for u4 {
     const BIT_LENGTH: usize = 4;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint5 {
+impl PrimitiveType for u5 {
     const BIT_LENGTH: usize = 5;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint7 {
+impl PrimitiveType for u7 {
     const BIT_LENGTH: usize = 7;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint8 {
+impl PrimitiveType for u8 {
     const BIT_LENGTH: usize =  8;
     impl_serialize_for_primitive_type!(u8);
 }
 
-impl PrimitiveType for Uint16 {
+impl PrimitiveType for u16 {
     const BIT_LENGTH: usize = 16;
     impl_serialize_for_primitive_type!(u16);
 }
     
-impl PrimitiveType for Uint32 {
+impl PrimitiveType for u32 {
     const BIT_LENGTH: usize = 32;
     impl_serialize_for_primitive_type!(u32);
 }

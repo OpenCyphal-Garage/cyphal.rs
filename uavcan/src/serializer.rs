@@ -246,9 +246,9 @@ mod tests {
     
     #[test]
     fn uavcan_serialize_primitive_types() {
-        let uint2: Uint2 = 1.into();
-        let uint8: Uint8 = 128.into();
-        let uint16: Uint16 = 257.into();
+        let uint2: u2 = u2::new(1);
+        let uint8: u8 = 128;
+        let uint16: u16 = 257;
 
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
@@ -281,9 +281,9 @@ mod tests {
 
     #[test]
     fn uavcan_serialize_dynamic_array() {
-        let a1: DynamicArray4<Uint2> = DynamicArray4::with_data(&[1.into(), 0.into(), 1.into(), 0.into()]);
-        let a2: DynamicArray6<Uint2> = DynamicArray6::with_data(&[1.into(), 0.into(), 1.into(), 0.into(), 1.into(), 0.into()]);
-        let a3: DynamicArray4<Uint7> = DynamicArray4::with_data(&[1.into(), 2.into(), 4.into(), 8.into()]);
+        let a1: DynamicArray4<u2> = DynamicArray4::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
+        let a2: DynamicArray6<u2> = DynamicArray6::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
+        let a3: DynamicArray4<u7> = DynamicArray4::with_data(&[u7::new(1), u7::new(2), u7::new(4), u7::new(8)]);
 
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
@@ -305,7 +305,7 @@ mod tests {
 
     #[test]
     fn uavcan_serialize_dynamic_array_without_length() {
-        let a: DynamicArray6<Uint7> = DynamicArray6::with_data(&[1.into(), 1.into(), 1.into(), 1.into()]);
+        let a: DynamicArray6<u7> = DynamicArray6::with_data(&[u7::new(1), u7::new(1), u7::new(1), u7::new(1)]);
 
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
@@ -332,18 +332,18 @@ mod tests {
 
         #[derive(UavcanStruct)]
         struct Message {
-            v1: Uint8,
-            v2: Uint32,
-            v3: Uint16,
-            v4: Uint8,
+            v1: u8,
+            v2: u32,
+            v3: u16,
+            v4: u8,
         }
 
 
         let message = Message{
-            v1: 17.into(),
-            v2: 19.into(),
-            v3: 21.into(),
-            v4: 23.into(),
+            v1: 17,
+            v2: 19,
+            v3: 21,
+            v4: 23,
         };
 
         let mut serializer: Serializer<Message> = Serializer::from_structure(message);
@@ -364,19 +364,19 @@ mod tests {
         
         #[derive(UavcanStruct)]
         struct NodeStatus {
-            uptime_sec: Uint32,
-            health: Uint2,
-            mode: Uint3,
-            sub_mode: Uint3,
-            vendor_specific_status_code: Uint16,
+            uptime_sec: u32,
+            health: u2,
+            mode: u3,
+            sub_mode: u3,
+            vendor_specific_status_code: u16,
         }
 
         let message = NodeStatus{
-            uptime_sec: 1.into(),
-            health: 2.into(),
-            mode: 3.into(),
-            sub_mode: 4.into(),
-            vendor_specific_status_code: 5.into(),
+            uptime_sec: 1,
+            health: u2::new(2),
+            mode: u3::new(3),
+            sub_mode: u3::new(4),
+            vendor_specific_status_code: 5,
         };
 
         let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
