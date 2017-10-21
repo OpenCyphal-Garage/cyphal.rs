@@ -46,8 +46,6 @@ pub mod frame_disassembler;
 
 use bit_field::BitField;
 
-use lib::core::ops::Range;
-
 use transfer::TransferFrameID;
 
 pub use serializer::{
@@ -160,11 +158,8 @@ impl DynamicArrayLength {
 
 pub trait PrimitiveType {
     const BIT_LENGTH: usize;
-    fn get_bits(&self, range: Range<usize>) -> u64;
-    fn set_bits(&mut self, range: Range<usize>, value: u64);
     fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-
 }
 
 

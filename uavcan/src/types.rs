@@ -1,7 +1,6 @@
 use bit_field::BitField;
 use half::f16;
 use lib;
-use lib::core::ops::Range;
 use lib::core::fmt;
 use lib::core::cmp;
 use lib::core::ops::{
@@ -456,7 +455,7 @@ impl From<Float64> for f64 {
 
 
 macro_rules! impl_serialize_for_primitive_type {
-    () => {
+    ($underlying_type:ty) => {
         fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
             let type_bits_remaining = Self::BIT_LENGTH - *bit;
             let buffer_bits_remaining = buffer.bits_remaining();
@@ -466,11 +465,11 @@ macro_rules! impl_serialize_for_primitive_type {
             } else if buffer_bits_remaining == 0 {
                 SerializationResult::BufferFull
             } else if buffer_bits_remaining >= type_bits_remaining {
-                buffer.push_bits(type_bits_remaining, self.get_bits(*bit..Self::BIT_LENGTH) as u64);
+                buffer.push_bits(type_bits_remaining, (u64::from(self.value) >> *bit));
                 *bit = Self::BIT_LENGTH;
                 SerializationResult::Finished
             } else {
-                buffer.push_bits(buffer_bits_remaining, self.get_bits(*bit..(*bit + buffer_bits_remaining)) as u64);
+                buffer.push_bits(buffer_bits_remaining, (u64::from(self.value) >> *bit));
                 *bit += buffer_bits_remaining;
                 SerializationResult::BufferFull
             }
@@ -483,11 +482,11 @@ macro_rules! impl_serialize_for_primitive_type {
             } else if buffer_len == 0 && *bit != Self::BIT_LENGTH {
                 DeserializationResult::BufferInsufficient
             } else if buffer_len < Self::BIT_LENGTH - *bit {
-                self.set_bits(*bit..(*bit+buffer_len), buffer.pop_bits(buffer_len));
+                self.value |= (buffer.pop_bits(buffer_len) << *bit) as $underlying_type;
                 *bit += buffer_len;
                 DeserializationResult::BufferInsufficient
             } else {
-                self.set_bits(*bit..Self::BIT_LENGTH, buffer.pop_bits(Self::BIT_LENGTH-*bit));
+                self.value |= (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit) as $underlying_type;
                 *bit += Self::BIT_LENGTH;
                 DeserializationResult::Finished
             }
@@ -501,65 +500,42 @@ macro_rules! impl_serialize_for_primitive_type {
 
 impl PrimitiveType for Uint2 {
     const BIT_LENGTH: usize = 2;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint3 {
     const BIT_LENGTH: usize = 3;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint4 {
     const BIT_LENGTH: usize = 4;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint5 {
     const BIT_LENGTH: usize = 5;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint7 {
     const BIT_LENGTH: usize = 7;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint8 {
     const BIT_LENGTH: usize =  8;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u8); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u8);
 }
 
 impl PrimitiveType for Uint16 {
     const BIT_LENGTH: usize = 16;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u16); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u16);
 }
     
 impl PrimitiveType for Uint32 {
     const BIT_LENGTH: usize = 32;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.set_bits((range.start as u8..range.end as u8), value as u32); }
-    impl_serialize_for_primitive_type!();
-}
-
-impl PrimitiveType for Float16 {
-    const BIT_LENGTH: usize = 16;
-    #[inline] fn get_bits(&self, range: Range<usize>) -> u64 { self.value.as_bits().get_bits(range.start as u8..range.end as u8) as u64}
-    #[inline] fn set_bits(&mut self, range: Range<usize>, value: u64) { self.value.as_bits().set_bits((range.start as u8..range.end as u8), value as u16); }
-    impl_serialize_for_primitive_type!();
+    impl_serialize_for_primitive_type!(u32);
 }
 
 dynamic_array_def!(DynamicArray3, 3, 2);
