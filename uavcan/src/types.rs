@@ -1,8 +1,6 @@
 pub use ux::*;
 pub use half::f16;
 
-use lib::core::mem;
-
 use lib;
 use lib::core::fmt;
 use lib::core::cmp;
@@ -26,11 +24,55 @@ use deserializer::{
     DeserializationBuffer,
 };
 
-
-pub trait PrimitiveType {
+/// This trait is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
+pub trait PrimitiveType : Sized + Copy{
     const BIT_LENGTH: usize;
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+    
+    /// Mask bits exceeding `BIT_LENGTH`
+    fn from_bits(v: u64) -> Self;
+    
+    /// Zeroes bits exceeding `BIT_LENGTH`
+    fn to_bits(self) -> u64;
+
+    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
+        let type_bits_remaining = Self::BIT_LENGTH - *bit;
+        let buffer_bits_remaining = buffer.bits_remaining();
+        
+        if type_bits_remaining == 0 {
+            SerializationResult::Finished
+        } else if buffer_bits_remaining == 0 {
+            SerializationResult::BufferFull
+        } else if buffer_bits_remaining >= type_bits_remaining {
+            buffer.push_bits(type_bits_remaining, (self.to_bits() >> *bit));
+            *bit = Self::BIT_LENGTH;
+            SerializationResult::Finished
+        } else {
+            buffer.push_bits(buffer_bits_remaining, (self.to_bits() >> *bit));
+            *bit += buffer_bits_remaining;
+            SerializationResult::BufferFull
+        }
+    }
+
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+        let buffer_len = buffer.bit_length();
+        if buffer_len == 0 && *bit == Self::BIT_LENGTH {
+            DeserializationResult::Finished
+        } else if buffer_len == 0 && *bit != Self::BIT_LENGTH {
+            DeserializationResult::BufferInsufficient
+        } else if buffer_len < Self::BIT_LENGTH - *bit {
+            *self = Self::from_bits(self.to_bits() | (buffer.pop_bits(buffer_len) << *bit));
+            *bit += buffer_len;
+            DeserializationResult::BufferInsufficient
+        } else {
+            *self = Self::from_bits(self.to_bits() | (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit));
+            *bit += Self::BIT_LENGTH;
+            DeserializationResult::Finished
+        }
+        
+    }
 }
 
 
@@ -223,88 +265,107 @@ macro_rules! dynamic_array_def {
     };
 }
 
-macro_rules! impl_serialize_for_primitive_type {
-    ($underlying_type:ty) => {
-        fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
-            let type_bits_remaining = Self::BIT_LENGTH - *bit;
-            let buffer_bits_remaining = buffer.bits_remaining();
-
-            if type_bits_remaining == 0 {
-                SerializationResult::Finished
-            } else if buffer_bits_remaining == 0 {
-                SerializationResult::BufferFull
-            } else if buffer_bits_remaining >= type_bits_remaining {
-                buffer.push_bits(type_bits_remaining, (u64::from(*self) >> *bit));
-                *bit = Self::BIT_LENGTH;
-                SerializationResult::Finished
-            } else {
-                buffer.push_bits(buffer_bits_remaining, (u64::from(*self) >> *bit));
-                *bit += buffer_bits_remaining;
-                SerializationResult::BufferFull
-            }
-        }
-
-        fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-            let buffer_len = buffer.bit_length();
-            if buffer_len == 0 && *bit == Self::BIT_LENGTH {
-                DeserializationResult::Finished
-            } else if buffer_len == 0 && *bit != Self::BIT_LENGTH {
-                DeserializationResult::BufferInsufficient
-            } else if buffer_len < Self::BIT_LENGTH - *bit {
-                *self |= unsafe{mem::transmute::<$underlying_type, Self>((buffer.pop_bits(buffer_len) << *bit) as $underlying_type)};  //change into something more sensible
-                *bit += buffer_len;
-                DeserializationResult::BufferInsufficient
-            } else {
-                *self |= unsafe{mem::transmute::<$underlying_type, Self>((buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit) as $underlying_type)}; //change into something more sensible
-                *bit += Self::BIT_LENGTH;
-                DeserializationResult::Finished
-            }
-            
-        }
-
-
-    };
-}
-
 
 impl PrimitiveType for u2 {
     const BIT_LENGTH: usize = 2;
-    impl_serialize_for_primitive_type!(u8);
+
+    fn from_bits(v: u64) -> Self {
+        u2::new(v as u8)
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
 }
 
 impl PrimitiveType for u3 {
     const BIT_LENGTH: usize = 3;
-    impl_serialize_for_primitive_type!(u8);
+
+    fn from_bits(v: u64) -> Self {
+        u3::new(v as u8)
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
 
 impl PrimitiveType for u4 {
     const BIT_LENGTH: usize = 4;
-    impl_serialize_for_primitive_type!(u8);
+
+    fn from_bits(v: u64) -> Self {
+        u4::new(v as u8)
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
 
 impl PrimitiveType for u5 {
     const BIT_LENGTH: usize = 5;
-    impl_serialize_for_primitive_type!(u8);
+
+    fn from_bits(v: u64) -> Self {
+        u5::new(v as u8)
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
 
 impl PrimitiveType for u7 {
     const BIT_LENGTH: usize = 7;
-    impl_serialize_for_primitive_type!(u8);
+
+    fn from_bits(v: u64) -> Self {
+        u7::new(v as u8)
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
 
 impl PrimitiveType for u8 {
     const BIT_LENGTH: usize =  8;
-    impl_serialize_for_primitive_type!(u8);
-}
 
+    fn from_bits(v: u64) -> Self {
+        v as u8
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
+}
 impl PrimitiveType for u16 {
     const BIT_LENGTH: usize = 16;
-    impl_serialize_for_primitive_type!(u16);
+
+    fn from_bits(v: u64) -> Self {
+        v as u16
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
     
 impl PrimitiveType for u32 {
     const BIT_LENGTH: usize = 32;
-    impl_serialize_for_primitive_type!(u32);
+
+    fn from_bits(v: u64) -> Self {
+        v as u32
+    }
+
+    fn to_bits(self) -> u64 {
+        u64::from(self)
+    }
+
 }
 
 dynamic_array_def!(DynamicArray3, 3, 2);
