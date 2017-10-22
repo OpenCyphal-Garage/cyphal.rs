@@ -271,119 +271,62 @@ macro_rules! dynamic_array_def {
 }
 
 
-impl PrimitiveType for u2 {
-    const BIT_LENGTH: usize = 2;
-
-    fn from_bits(v: u64) -> Self {
-        u2::new(v as u8)
-    }
-
-    fn to_bits(self) -> u64 {
-        u64::from(self)
-    }
+macro_rules! impl_primitive_types_ux{
+    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_primitive_types_ux!($type, $bits, $underlying_type);)*};
+    ($type:ident, $bits:expr, $underlying_type:ident) => {
+        impl PrimitiveType for $type {
+            const BIT_LENGTH: usize = $bits;
+            fn from_bits(v: u64) -> Self {
+                $type::new(v as $underlying_type)
+            }
+            fn to_bits(self) -> u64 {
+                u64::from(self)
+            }
+        }
+    };
 }
 
-impl PrimitiveType for u3 {
-    const BIT_LENGTH: usize = 3;
+impl_primitive_types_ux!([(u2, 2), (u3, 3), (u4, 4), (u5, 5), (u6, 6), (u7, 7)], u8);
 
-    fn from_bits(v: u64) -> Self {
-        u3::new(v as u8)
-    }
-
-    fn to_bits(self) -> u64 {
-        u64::from(self)
-    }
-
-}
-
-impl PrimitiveType for u4 {
-    const BIT_LENGTH: usize = 4;
-
-    fn from_bits(v: u64) -> Self {
-        u4::new(v as u8)
-    }
-
-    fn to_bits(self) -> u64 {
-        u64::from(self)
-    }
-
-}
-
-impl PrimitiveType for u5 {
-    const BIT_LENGTH: usize = 5;
-
-    fn from_bits(v: u64) -> Self {
-        u5::new(v as u8)
-    }
-
-    fn to_bits(self) -> u64 {
-        u64::from(self)
-    }
-
-}
-
-impl PrimitiveType for u7 {
-    const BIT_LENGTH: usize = 7;
-
-    fn from_bits(v: u64) -> Self {
-        u7::new(v as u8)
-    }
-
-    fn to_bits(self) -> u64 {
-        u64::from(self)
-    }
-
-}
 
 impl PrimitiveType for u8 {
     const BIT_LENGTH: usize =  8;
-
     fn from_bits(v: u64) -> Self {
         v as u8
     }
-
     fn to_bits(self) -> u64 {
         u64::from(self)
     }
-
 }
+
 impl PrimitiveType for u16 {
     const BIT_LENGTH: usize = 16;
-
     fn from_bits(v: u64) -> Self {
         v as u16
     }
-
     fn to_bits(self) -> u64 {
         u64::from(self)
     }
-
 }
     
 impl PrimitiveType for u32 {
     const BIT_LENGTH: usize = 32;
-
     fn from_bits(v: u64) -> Self {
         v as u32
     }
-
     fn to_bits(self) -> u64 {
         u64::from(self)
     }
-
 }
 
 impl PrimitiveType for f16 {
     const BIT_LENGTH: usize = 16;
-
     fn from_bits(v: u64) -> Self {
         f16::from_bits(v as u16)
     }
-
     fn to_bits(self) -> u64 {
         u64::from(f16::as_bits(self))
     }
-
 }
 
 dynamic_array_def!(DynamicArray3, 3, 2);
