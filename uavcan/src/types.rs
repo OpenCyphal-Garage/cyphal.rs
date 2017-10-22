@@ -451,6 +451,21 @@ impl PrimitiveType for f64 {
     }
 }
 
+impl PrimitiveType for bool {
+    const BIT_LENGTH: usize = 1;
+    fn from_bits(v: u64) -> Self {
+        v & 1 == 1
+    }
+    fn to_bits(self) -> u64 {
+        if self {
+            1
+        } else {
+            0
+        }
+    }
+}
+
+
 dynamic_array_def!(DynamicArray3, 3, 2);
 dynamic_array_def!(DynamicArray4, 4, 3);
 dynamic_array_def!(DynamicArray5, 5, 3);
