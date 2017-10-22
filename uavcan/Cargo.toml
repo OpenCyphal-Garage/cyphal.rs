@@ -14,15 +14,22 @@ license = "Apache-2.0/MIT"
 
 [features]
 default = ["std"]
-std = []
+std = ["ux/std", "half/std"]
 
 [workspace]
 
 [dependencies]
 bit_field = "0.8.0"
-half = "1.0.0"
 uavcan-derive = {path = "../uavcan-derive"}
 embedded_types = "0.3.0"
-ux = "0.0.1"
 
 clippy = {version = "*", optional = true}
+
+
+[dependencies.half]
+version = "1.0.0"
+default-features = false
+
+[dependencies.ux]
+version = "0.0.1"
+default-features = false
