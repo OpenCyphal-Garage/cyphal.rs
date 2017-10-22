@@ -286,6 +286,21 @@ macro_rules! impl_primitive_types_ux{
     };
 }
 
+macro_rules! impl_primitive_types_ix{
+    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_primitive_types_ix!($type, $bits, $underlying_type);)*};
+    ($type:ident, $bits:expr, $underlying_type:ident) => {
+        impl PrimitiveType for $type {
+            const BIT_LENGTH: usize = $bits;
+            fn from_bits(v: u64) -> Self {
+                $type::new(v as $underlying_type)
+            }
+            fn to_bits(self) -> u64 {
+                i64::from(self) as u64
+            }
+        }
+    };
+}
+
 impl_primitive_types_ux!([(u2, 2), (u3, 3), (u4, 4), (u5, 5), (u6, 6), (u7, 7)], u8);
 
 impl_primitive_types_ux!([(u9, 9), (u10, 10), (u11, 11), (u12, 12), (u13, 13), (u14, 14), (u15, 15)], u16);
@@ -297,6 +312,20 @@ impl_primitive_types_ux!([(u33, 33), (u34, 34), (u35, 35), (u36, 36), (u37, 37),
                           (u41, 41), (u42, 42), (u43, 43), (u44, 44), (u45, 45), (u46, 46), (u47, 47), (u48, 48),
                           (u49, 49), (u50, 50), (u51, 51), (u52, 52), (u53, 53), (u54, 54), (u55, 55), (u56, 56),
                           (u57, 57), (u58, 58), (u59, 59), (u60, 60), (u61, 61), (u62, 62), (u63, 63)], u64);
+
+
+
+impl_primitive_types_ix!([(i2, 2), (i3, 3), (i4, 4), (i5, 5), (i6, 6), (i7, 7)], i8);
+
+impl_primitive_types_ix!([(i9, 9), (i10, 10), (i11, 11), (i12, 12), (i13, 13), (i14, 14), (i15, 15)], i16);
+
+impl_primitive_types_ix!([(i17, 17), (i18, 18), (i19, 19), (i20, 20), (i21, 21), (i22, 22), (i23, 23), (i24, 24),
+                          (i25, 25), (i26, 26), (i27, 27), (i28, 28), (i29, 29), (i30, 30), (i31, 31)], i32);
+
+impl_primitive_types_ix!([(i33, 33), (i34, 34), (i35, 35), (i36, 36), (i37, 37), (i38, 38), (i39, 39), (i40, 40),
+                          (i41, 41), (i42, 42), (i43, 43), (i44, 44), (i45, 45), (i46, 46), (i47, 47), (i48, 48),
+                          (i49, 49), (i50, 50), (i51, 51), (i52, 52), (i53, 53), (i54, 54), (i55, 55), (i56, 56),
+                          (i57, 57), (i58, 58), (i59, 59), (i60, 60), (i61, 61), (i62, 62), (i63, 63)], i64);
 
 
 impl PrimitiveType for u8 {
@@ -326,6 +355,56 @@ impl PrimitiveType for u32 {
     }
     fn to_bits(self) -> u64 {
         u64::from(self)
+    }
+}
+
+impl PrimitiveType for u64 {
+    const BIT_LENGTH: usize = 64;
+    fn from_bits(v: u64) -> Self {
+        v
+    }
+    fn to_bits(self) -> u64 {
+        self
+    }
+}
+
+impl PrimitiveType for i8 {
+    const BIT_LENGTH: usize = 8;
+    fn from_bits(v: u64) -> Self {
+        v as i8
+    }
+    fn to_bits(self) -> u64 {
+        self as u64
+    }
+}
+
+impl PrimitiveType for i16 {
+    const BIT_LENGTH: usize = 16;
+    fn from_bits(v: u64) -> Self {
+        v as i16
+    }
+    fn to_bits(self) -> u64 {
+        self as u64
+    }
+}
+    
+impl PrimitiveType for i32 {
+    const BIT_LENGTH: usize = 32;
+    fn from_bits(v: u64) -> Self {
+        v as i32
+    }
+    fn to_bits(self) -> u64 {
+        self as u64
+    }
+}
+
+impl PrimitiveType for i64 {
+    const BIT_LENGTH: usize = 64;
+    fn from_bits(v: u64) -> Self {
+        v as i64
+    }
+    fn to_bits(self) -> u64 {
+        self as u64
     }
 }
 

@@ -248,6 +248,8 @@ mod tests {
         let uint2: u2 = u2::new(1);
         let uint8: u8 = 128;
         let uint16: u16 = 257;
+        let int16: i16 = -1;
+        let int7: i7 = i7::new(-64);
         let float16 = f16::from_f32(3.141592);
 
         let mut data = [0u8; 4];
@@ -276,6 +278,15 @@ mod tests {
         uint8.serialize(&mut 0, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 0b01000000, 0b10000000]);
 
+        buffer.stop_bit_index = 0;
+        int16.serialize(&mut 0, &mut buffer);
+        assert_eq!(buffer.data[0..2], [0xff, 0xff]);
+
+        buffer.stop_bit_index = 0;
+        buffer.data[0] = 0;
+        int7.serialize(&mut 0, &mut buffer);
+        assert_eq!(buffer.data[0], (-64i8 as u8) << 1);
+        
         buffer.stop_bit_index = 0;
         float16.serialize(&mut 0, &mut buffer);
         assert_eq!(buffer.data[0..2], [f16::from_f32(3.141592).as_bits() as u8, (f16::from_f32(3.141592).as_bits() >> 8) as u8]);
