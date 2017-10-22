@@ -155,19 +155,6 @@ impl DynamicArrayLength {
 
 
 
-
-
-pub trait PrimitiveType {
-    const BIT_LENGTH: usize;
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-}
-
-
-
-
-
-
 pub trait Frame {
     type Header : Header;
     type Body : Struct;

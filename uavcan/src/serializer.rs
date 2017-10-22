@@ -193,7 +193,6 @@ mod tests {
     use uavcan;
 
     use {
-        PrimitiveType,
         DynamicArray,
     };
 

@@ -12,7 +12,6 @@ use lib::core::ops::{
 };
 
 use {
-    PrimitiveType,
     DynamicArray,
     DynamicArrayLength,
 };
@@ -26,6 +25,13 @@ use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
 };
+
+
+pub trait PrimitiveType {
+    const BIT_LENGTH: usize;
+    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
 
 
 macro_rules! dynamic_array_def {

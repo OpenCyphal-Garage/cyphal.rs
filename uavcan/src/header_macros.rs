@@ -218,7 +218,6 @@ mod tests {
 
     use {
         DynamicArray,
-        PrimitiveType,
         Frame,
     };
 
