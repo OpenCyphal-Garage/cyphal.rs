@@ -36,18 +36,21 @@ mod uavcan {
 pub use uavcan_derive::*;
 
 pub mod transfer;
-#[macro_use]
-mod header_macros;
 pub mod types;
 mod crc;
 mod deserializer;
 pub mod frame_assembler;
 mod serializer;
 pub mod frame_disassembler;
+mod node;
 
 use bit_field::BitField;
 
 use transfer::TransferFrameID;
+
+
+pub use node::NodeID;
+
 
 pub use serializer::{
     SerializationResult,
@@ -59,44 +62,119 @@ pub use deserializer::{
     DeserializationBuffer,
 };
 
-
-pub trait Header {
-    fn from_id(TransferFrameID) -> Result<Self, ()> where Self: Sized;
-    
-    fn id(&self) -> TransferFrameID;
-    fn set_priority(&mut self, priority: u8);
-    fn get_priority(&self) -> u8;
-}
-
-pub trait MessageFrameHeader : Header {
-    const TYPE_ID: u16;
-    
-    fn new(priority: u8, source_node: u8) -> Self;
-}
-
-pub trait AnonymousFrameHeader : Header {
-    const TYPE_ID: u8;
-    
-    fn new(priority: u8, discriminator: u16) -> Self;
-}
-
-pub trait ServiceFrameHeader : Header {
-    const TYPE_ID: u8;
-    
-    fn new(priority: u8, request: bool, source_node: u8, destination_node: u8) -> Self;
-}
-
-
-
-
-
-pub trait Struct {
+pub trait Struct: Sized {
     const TAIL_ARRAY_OPTIMIZABLE: bool;
     const FLATTENED_FIELDS_NUMBER: usize;
+
+    const DSDL_SIGNATURE: u64;
+    const DATA_TYPE_SIGNATURE: u64;
 
     fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
+
+pub trait Message: Struct {
+    const TYPE_ID: u16;
+
+    fn id(priority: u8, source_node: NodeID) -> TransferFrameID {
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+
+        TransferFrameID::new(id)
+    }
+
+    fn id_anonymous(priority: u8, discriminator: u16) -> TransferFrameID {
+        let mut id = 0;
+        id.set_bits(0..7, 0);
+        id.set_bit(7, false);
+        id.set_bits(8..10, u32::from(Self::TYPE_ID));
+        id.set_bits(10..24, u32::from(discriminator));
+        id.set_bits(24..29, u32::from(priority));
+        TransferFrameID::new(id)
+    }
+}
+
+pub trait Request: Struct {
+    type RESPONSE: Response;
+    const TYPE_ID: u8;
+
+    fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..15, u32::from(destination_node));
+        id.set_bit(15, true);
+        id.set_bits(16..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+        TransferFrameID::new(id)
+    }
+}
+
+pub trait Response: Struct {
+    type REQUEST: Request;
+    const TYPE_ID: u8;
+
+    fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..15, u32::from(destination_node));
+        id.set_bit(15, true);
+        id.set_bits(16..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+        TransferFrameID::new(id)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Frame<T: Struct> {
+    id: TransferFrameID,
+    body: T,
+}
+
+impl<T: Struct> Frame<T> {
+
+    
+    pub fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {
+        Frame::from_parts(
+            T::id(priority, source_node),
+            message,
+        )
+    }
+
+    pub fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
+        Frame::from_parts(
+            T::id_anonymous(priority, discriminator),
+            message,
+        )
+    }
+
+    pub fn from_request(request: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
+        Frame::from_parts(
+            T::id(priority, source_node, destination_node),
+            request,
+        )
+    }
+
+    pub fn from_response(response: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
+        Frame::from_parts(
+            T::id(priority, source_node, destination_node),
+            response,
+        )
+    }
+
+    
+    fn from_parts(id: TransferFrameID, body: T) -> Self {
+        Frame{id: id, body: body}
+    }
+    
+    fn into_parts(self) -> (TransferFrameID, T) {
+        (self.id, self.body)
+    }
 }
 
 
@@ -154,18 +232,6 @@ impl DynamicArrayLength {
 
 
 
-
-pub trait Frame {
-    type Header : Header;
-    type Body : Struct;
-
-    const DATA_TYPE_SIGNATURE: u64;
-    
-    fn from_parts(header: Self::Header, body: Self::Body) -> Self;
-    fn to_parts(self) -> (Self::Header, Self::Body);
-    fn header(&self) -> &Self::Header;
-    fn body(&self) -> &Self::Body;
-}
 
 
 

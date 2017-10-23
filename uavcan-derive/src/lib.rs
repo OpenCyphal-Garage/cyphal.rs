@@ -7,10 +7,11 @@ extern crate quote;
 
 use proc_macro::TokenStream;
 use syn::Body;
+use syn::Ident;
 use quote::Tokens;
 
 
-#[proc_macro_derive(UavcanStruct)]
+#[proc_macro_derive(UavcanStruct, attributes(DSDLSignature, DataTypeSignature))]
 pub fn uavcan_sized(input: TokenStream) -> TokenStream {
     let s = input.to_string();
     let ast = syn::parse_macro_input(&s).unwrap();
@@ -25,6 +26,32 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         Body::Struct(ref variant_data) => variant_data,
     };
 
+    // first handle the attributes
+
+    let mut dsdl_signature = quote!{0x00};
+    let mut data_type_signature = quote!{0x00};
+    
+    for attr in &ast.attrs {
+        if let syn::MetaItem::NameValue(ref ident, ref lit) = attr.value {
+            if ident == "DSDLSignature" {
+                if let syn::Lit::Str(ref lit_str, _) = *lit {
+                    let value = Ident::from(lit_str.clone()); // hack needed since only string literals is supported for attributes
+                    dsdl_signature = quote!{#value};
+                } else {
+                    panic!("DSDLSignature must be on the form \"0x123456789abc\"");
+                }
+            } else if ident == "DataTypeSignature" {
+                if let syn::Lit::Str(ref lit_str, _) = *lit {
+                    let value = Ident::from(lit_str.clone()); // hack needed since only string literals is supported for attributes
+                    data_type_signature = quote!{#value};
+                } else {
+                    panic!("Data type signature must be on the form \"0x123456789abc\"");
+                }
+            }
+        }
+    }
+
+    
     let tail_array_optimizable = is_dynamic_array(&variant_data.fields().last().unwrap().ty);        
 
     let number_of_flattened_fields = {
@@ -253,6 +280,9 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         impl uavcan::Struct for #name {
             const TAIL_ARRAY_OPTIMIZABLE: bool = #tail_array_optimizable;
             const FLATTENED_FIELDS_NUMBER: usize = #number_of_flattened_fields;
+
+            const DSDL_SIGNATURE: u64 = #dsdl_signature;
+            const DATA_TYPE_SIGNATURE: u64 = #data_type_signature;
 
             fn bit_length(&self) -> usize {
                 #bit_length_body
