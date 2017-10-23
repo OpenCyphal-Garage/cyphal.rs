@@ -137,11 +137,11 @@ mod tests {
 
         #[derive(UavcanStruct)]
         struct NodeStatus {
-            uptime_sec: Uint32,
-            health: Uint2,
-            mode: Uint3,
-            sub_mode: Uint3,
-            vendor_specific_status_code: Uint16,
+            uptime_sec: u32,
+            health: u2,
+            mode: u3,
+            sub_mode: u3,
+            vendor_specific_status_code: u16,
         }
 
         message_frame_header!(NodeStatusHeader, 341);
@@ -155,11 +155,11 @@ mod tests {
         message_builder.add_transfer_frame(can_frame).unwrap();
         let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
         
-        assert_eq!(parsed_message.body.uptime_sec, 1.into());
-        assert_eq!(parsed_message.body.health, 2.into());
-        assert_eq!(parsed_message.body.mode, 3.into());
-        assert_eq!(parsed_message.body.sub_mode, 4.into());
-        assert_eq!(parsed_message.body.vendor_specific_status_code, 5.into());
+        assert_eq!(parsed_message.body.uptime_sec, 1);
+        assert_eq!(parsed_message.body.health, u2::new(2));
+        assert_eq!(parsed_message.body.mode, u3::new(3));
+        assert_eq!(parsed_message.body.sub_mode, u3::new(4));
+        assert_eq!(parsed_message.body.vendor_specific_status_code, 5);
         assert_eq!(parsed_message.header, NodeStatusHeader::new(0, 32));
                                               
     }
@@ -169,14 +169,14 @@ mod tests {
         
         #[derive(Debug, PartialEq, UavcanStruct)]
         struct LogLevel {
-            value: Uint3,
+            value: u3,
         }
         
         #[derive(Debug, PartialEq, UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
-            source: DynamicArray31<Uint8>,
-            text: DynamicArray90<Uint8>,
+            source: DynamicArray31<u8>,
+            text: DynamicArray90<u8>,
         }
         
         message_frame_header!(LogMessageHeader, 16383);
@@ -186,7 +186,7 @@ mod tests {
         let uavcan_frame = LogMessageMessage{
             header: LogMessageHeader::new(0, 32),
             body: LogMessage{
-                level: LogLevel{value: 0.into()},
+                level: LogLevel{value: u3::new(0)},
                 source: DynamicArray31::with_str("test source"),
                 text: DynamicArray90::with_str("test text"),
             },

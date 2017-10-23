@@ -218,7 +218,6 @@ mod tests {
 
     use {
         DynamicArray,
-        PrimitiveType,
         Frame,
     };
 
@@ -229,14 +228,14 @@ mod tests {
         
         #[derive(UavcanStruct)]
         struct LogLevel {
-            value: Uint3,
+            value: u3,
         }
 
         #[derive(UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
-            source: DynamicArray31<Uint8>,
-            text: DynamicArray90<Uint8>,
+            source: DynamicArray31<u8>,
+            text: DynamicArray90<u8>,
         }
         
         message_frame_header!(LogMessageHeader, 16383);

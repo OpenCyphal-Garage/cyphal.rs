@@ -103,11 +103,11 @@ mod tests {
 
         #[derive(UavcanStruct, Default)]
         struct NodeStatus {
-            uptime_sec: Uint32,
-            health: Uint2,
-            mode: Uint3,
-            sub_mode: Uint3,
-            vendor_specific_status_code: Uint16,
+            uptime_sec: u32,
+            health: u2,
+            mode: u3,
+            sub_mode: u3,
+            vendor_specific_status_code: u16,
         }
 
         message_frame_header!(NodeStatusHeader, 341);
@@ -119,11 +119,11 @@ mod tests {
         let uavcan_frame = NodeStatusMessage{
             header: NodeStatusHeader::new(0, 32),
             body: NodeStatus{
-                uptime_sec: 1.into(),
-                health: 2.into(),
-                mode: 3.into(),
-                sub_mode: 4.into(),
-                vendor_specific_status_code: 5.into(),
+                uptime_sec: 1,
+                health: u2::new(2),
+                mode: u3::new(3),
+                sub_mode: u3::new(4),
+                vendor_specific_status_code: 5,
             },
         };
 
@@ -139,14 +139,14 @@ mod tests {
 
         #[derive(UavcanStruct)]
         struct LogLevel {
-            value: Uint3,
+            value: u3,
         }
         
         #[derive(UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
-            source: DynamicArray31<Uint8>,
-            text: DynamicArray90<Uint8>,
+            source: DynamicArray31<u8>,
+            text: DynamicArray90<u8>,
         }
 
         message_frame_header!(LogMessageHeader, 16383);
@@ -156,7 +156,7 @@ mod tests {
         let uavcan_frame = LogMessageMessage{
             header: LogMessageHeader::new(0, 32),
             body: LogMessage{
-                level: LogLevel{value: 0.into()},
+                level: LogLevel{value: u3::new(0)},
                 source: DynamicArray31::with_str("test source"),
                 text: DynamicArray90::with_str("test text"),
             },

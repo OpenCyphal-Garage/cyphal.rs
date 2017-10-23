@@ -16,6 +16,7 @@ extern crate uavcan_derive;
 
 extern crate bit_field;
 extern crate embedded_types;
+extern crate ux;
 extern crate half;
 
 mod lib {
@@ -45,8 +46,6 @@ mod serializer;
 pub mod frame_disassembler;
 
 use bit_field::BitField;
-
-use lib::core::ops::Range;
 
 use transfer::TransferFrameID;
 
@@ -151,22 +150,6 @@ impl DynamicArrayLength {
     }
         
 }
-
-
-
-
-
-
-
-pub trait PrimitiveType {
-    fn bit_length() -> usize where Self: Sized;
-    fn get_bits(&self, range: Range<usize>) -> u64;
-    fn set_bits(&mut self, range: Range<usize>, value: u64);
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-
-}
-
 
 
 

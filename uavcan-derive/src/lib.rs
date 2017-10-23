@@ -67,7 +67,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             
             if is_primitive_type(field_type) {
                 serialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if self.#field_ident.serialize(bit, buffer) == uavcan::SerializationResult::Finished {
+                    if uavcan::types::PrimitiveType::serialize(&self.#field_ident, bit, buffer) == uavcan::SerializationResult::Finished {
                         *flattened_field += 1;
                         *bit = 0;
                     } else {
@@ -150,7 +150,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             
             if is_primitive_type(field_type) {
                 deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if self.#field_ident.deserialize(bit, buffer) == uavcan::DeserializationResult::Finished {
+                    if uavcan::types::PrimitiveType::deserialize(&mut self.#field_ident, bit, buffer) == uavcan::DeserializationResult::Finished {
                         *flattened_field += 1;
                         *bit = 0;
                     } else {
@@ -175,7 +175,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 if i == variant_data.fields().len() - 1 {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
                         let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
-                        self.#field_ident.set_length( ( #element_type::bit_length()-1 + *bit + buffer.bit_length()) / #element_type::bit_length() );
+                        self.#field_ident.set_length( ( <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH-1 + *bit + buffer.bit_length()) / <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH );
                         self.#field_ident.deserialize(&mut skewed_bit, buffer);
                         *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
                         return uavcan::DeserializationResult::Finished;                         
@@ -283,15 +283,15 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
 
 fn is_primitive_type(type_name: &syn::Ty) -> bool {
-    if *type_name == syn::parse::ty("Uint2").expect("") ||
-        *type_name == syn::parse::ty("Uint3").expect("") ||
-        *type_name == syn::parse::ty("Uint4").expect("") ||
-        *type_name == syn::parse::ty("Uint5").expect("") ||
-        *type_name == syn::parse::ty("Uint7").expect("") ||
-        *type_name == syn::parse::ty("Uint8").expect("") ||
-        *type_name == syn::parse::ty("Uint16").expect("") ||
-        *type_name == syn::parse::ty("Uint32").expect("") ||
-        *type_name == syn::parse::ty("Float16").expect("") {
+    if *type_name == syn::parse::ty("u2").expect("") ||
+        *type_name == syn::parse::ty("u3").expect("") ||
+        *type_name == syn::parse::ty("u4").expect("") ||
+        *type_name == syn::parse::ty("u5").expect("") ||
+        *type_name == syn::parse::ty("u7").expect("") ||
+        *type_name == syn::parse::ty("u8").expect("") ||
+        *type_name == syn::parse::ty("u16").expect("") ||
+        *type_name == syn::parse::ty("u32").expect("") ||
+        *type_name == syn::parse::ty("f16").expect("") {
             return true;
         }
     false
@@ -334,7 +334,7 @@ fn bit_length(field: &syn::Field) -> Tokens {
     };
 
     if is_primitive_type(field_type) {
-        quote!{#field_type::bit_length()}
+        quote!{<#field_type as uavcan::types::PrimitiveType>::BIT_LENGTH}
     } else if is_dynamic_array(field_type) {
         let element_type = {
             if let syn::Ty::Path(_, ref path) = *field_type {
@@ -348,7 +348,7 @@ fn bit_length(field: &syn::Field) -> Tokens {
             }
         };
 
-        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::bit_length())}
+        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::BIT_LENGTH)}
     } else {
         quote!{self.#field_ident.bit_length()}
     }
