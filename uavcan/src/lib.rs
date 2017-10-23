@@ -172,7 +172,7 @@ impl<T: Struct> Frame<T> {
         Frame{id: id, body: body}
     }
     
-    fn to_parts(self) -> (TransferFrameID, T) {
+    fn into_parts(self) -> (TransferFrameID, T) {
         (self.id, self.body)
     }
 }

@@ -27,7 +27,7 @@ pub struct FrameDisassembler<S: Struct> {
 
 impl<S: Struct> FrameDisassembler<S> {
     pub fn from_uavcan_frame(frame: Frame<S>, transfer_id: TransferID) -> Self {
-        let (id, body) = frame.to_parts();
+        let (id, body) = frame.into_parts();
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
