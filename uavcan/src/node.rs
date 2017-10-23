@@ -17,3 +17,9 @@ impl From<NodeID> for u8 {
         id.0
     }
 }
+
+impl From<NodeID> for u32 {
+    fn from(id: NodeID) -> u32 {
+        u32::from(id.0)
+    }
+}

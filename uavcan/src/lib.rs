@@ -79,10 +79,10 @@ pub trait Message: Struct {
 
     fn id(priority: u8, source_node: NodeID) -> TransferFrameID {
         let mut id = 0;
-        id.set_bits(0..7, u8::from(source_node) as u32);
+        id.set_bits(0..7, u32::from(source_node));
         id.set_bit(7, false);
-        id.set_bits(8..24, Self::TYPE_ID as u32);
-        id.set_bits(24..29, priority as u32);
+        id.set_bits(8..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
 
         TransferFrameID::new(id)
     }
@@ -91,9 +91,9 @@ pub trait Message: Struct {
         let mut id = 0;
         id.set_bits(0..7, 0);
         id.set_bit(7, false);
-        id.set_bits(8..10, Self::TYPE_ID as u32);
-        id.set_bits(10..24, discriminator as u32);
-        id.set_bits(24..29, priority as u32);
+        id.set_bits(8..10, u32::from(Self::TYPE_ID));
+        id.set_bits(10..24, u32::from(discriminator));
+        id.set_bits(24..29, u32::from(priority));
         TransferFrameID::new(id)
     }
 }
@@ -104,12 +104,12 @@ pub trait Request: Struct {
 
     fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
         let mut id = 0;
-        id.set_bits(0..7, u8::from(source_node) as u32);
+        id.set_bits(0..7, u32::from(source_node));
         id.set_bit(7, false);
-        id.set_bits(8..15, u8::from(destination_node) as u32);
+        id.set_bits(8..15, u32::from(destination_node));
         id.set_bit(15, true);
-        id.set_bits(16..24, Self::TYPE_ID as u32);
-        id.set_bits(24..29, priority as u32);
+        id.set_bits(16..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
         TransferFrameID::new(id)
     }
 }
@@ -120,12 +120,12 @@ pub trait Response: Struct {
 
     fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
         let mut id = 0;
-        id.set_bits(0..7, u8::from(source_node) as u32);
+        id.set_bits(0..7, u32::from(source_node));
         id.set_bit(7, false);
-        id.set_bits(8..15, u8::from(destination_node) as u32);
+        id.set_bits(8..15, u32::from(destination_node));
         id.set_bit(15, true);
-        id.set_bits(16..24, Self::TYPE_ID as u32);
-        id.set_bits(24..29, priority as u32);
+        id.set_bits(16..24, u32::from(Self::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
         TransferFrameID::new(id)
     }
 }
