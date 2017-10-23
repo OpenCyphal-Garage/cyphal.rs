@@ -139,28 +139,28 @@ pub struct Frame<T: Struct> {
 impl<T: Struct> Frame<T> {
 
     
-    fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {
+    pub fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {
         Frame::from_parts(
             T::id(priority, source_node),
             message,
         )
     }
 
-    fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
+    pub fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
         Frame::from_parts(
             T::id_anonymous(priority, discriminator),
             message,
         )
     }
 
-    fn from_request(request: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
+    pub fn from_request(request: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
         Frame::from_parts(
             T::id(priority, source_node, destination_node),
             request,
         )
     }
 
-    fn from_response(response: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
+    pub fn from_response(response: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
         Frame::from_parts(
             T::id(priority, source_node, destination_node),
             response,
