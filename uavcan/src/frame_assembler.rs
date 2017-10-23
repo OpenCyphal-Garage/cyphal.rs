@@ -8,7 +8,7 @@ use transfer::{
 
 use {
     Frame,
-    Header,
+    Struct,
 };
 
 use deserializer::{
@@ -35,8 +35,8 @@ pub enum BuildError {
     NotFinishedParsing,
 }
 
-pub struct FrameAssembler<F: Frame> {
-    deserializer: Deserializer<F::Body>,
+pub struct FrameAssembler<S: Struct> {
+    deserializer: Deserializer<S>,
     started: bool,
     id: TransferFrameID,
     crc: u16,
@@ -45,7 +45,7 @@ pub struct FrameAssembler<F: Frame> {
     transfer_id: TransferID,    
 }
 
-impl<F: Frame> FrameAssembler<F> {
+impl<S: Struct> FrameAssembler<S> {
     pub fn new() -> Self {
         Self{
             deserializer: Deserializer::new(),
@@ -92,20 +92,15 @@ impl<F: Frame> FrameAssembler<F> {
         }
     }
 
-    pub fn build(self) -> Result<F, BuildError> {
-        let header = if let Ok(id) = F::Header::from_id(self.id) {
-            id
-        } else {
-            return Err(BuildError::IdError)
-        };
-
+    pub fn build(self) -> Result<Frame<S>, BuildError> {
+        
         let body = if let Ok(body) = self.deserializer.into_structure() {
             body
         } else {
             return Err(BuildError::NotFinishedParsing)
         };
 
-        Ok(F::from_parts(header, body))
+        Ok(Frame::from_parts(self.id, body))
     }
                 
 }
@@ -144,23 +139,22 @@ mod tests {
             vendor_specific_status_code: u16,
         }
 
-        message_frame_header!(NodeStatusHeader, 341);
-
-        uavcan_frame!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
-            
+        impl Message for NodeStatus {
+            const TYPE_ID: u16 = 341;
+        }
         
-        let can_frame = CanFrame{id: TransferFrameID::from(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
+        let can_frame = CanFrame{id: NodeStatus::id(0, NodeID::new(32)), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
         
         let mut message_builder = FrameAssembler::new();
         message_builder.add_transfer_frame(can_frame).unwrap();
-        let parsed_message: NodeStatusMessage = message_builder.build().unwrap();
+        let parsed_message: Frame<NodeStatus> = message_builder.build().unwrap();
         
         assert_eq!(parsed_message.body.uptime_sec, 1);
         assert_eq!(parsed_message.body.health, u2::new(2));
         assert_eq!(parsed_message.body.mode, u3::new(3));
         assert_eq!(parsed_message.body.sub_mode, u3::new(4));
         assert_eq!(parsed_message.body.vendor_specific_status_code, 5);
-        assert_eq!(parsed_message.header, NodeStatusHeader::new(0, 32));
+        assert_eq!(parsed_message.id, NodeStatus::id(0, NodeID::new(32)));
                                               
     }
     
@@ -178,43 +172,40 @@ mod tests {
             source: DynamicArray31<u8>,
             text: DynamicArray90<u8>,
         }
-        
-        message_frame_header!(LogMessageHeader, 16383);
 
-        uavcan_frame!(derive(Debug, PartialEq), LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
-
-        let uavcan_frame = LogMessageMessage{
-            header: LogMessageHeader::new(0, 32),
-            body: LogMessage{
-                level: LogLevel{value: u3::new(0)},
-                source: DynamicArray31::with_str("test source"),
-                text: DynamicArray90::with_str("test text"),
-            },
-        };
+        impl Message for LogMessage {
+            const TYPE_ID: u16 = 16383;
+        }
+         
+        let uavcan_frame = LogMessage{
+            level: LogLevel{value: u3::new(0)},
+            source: DynamicArray31::with_str("test source"),
+            text: DynamicArray90::with_str("test text"),
+        }.into_frame(0, NodeID::new(32));
 
         let crc = 0;
         let mut message_builder = FrameAssembler::new();
         
         message_builder.add_transfer_frame(CanFrame{
-            id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+            id: LogMessage::id(0, NodeID::new(32)),
             dlc: 8,
             data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(5..8, 0).set_bits(0..5, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
-            id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+            id: LogMessage::id(0, NodeID::new(32)),
             dlc: 8,
             data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
-            id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+            id: LogMessage::id(0, NodeID::new(32)),
             dlc: 8,
             data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
         }).unwrap();
         
         message_builder.add_transfer_frame(CanFrame{
-            id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+            id: LogMessage::id(0, NodeID::new(32)),
             dlc: 3,
             data: [b'x', b't', TailByte::new(false, true, true, TransferID::new(0)).into(), 0, 0, 0, 0, 0],
         }).unwrap();

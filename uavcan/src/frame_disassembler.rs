@@ -1,8 +1,8 @@
 use bit_field::BitField;
 
 use {
+    Struct,
     Frame,
-    Header,
 };
 
 use transfer::{
@@ -16,8 +16,8 @@ use serializer::*;
 
 
 
-pub struct FrameDisassembler<F: Frame> {
-    serializer: Serializer<F::Body>,
+pub struct FrameDisassembler<S: Struct> {
+    serializer: Serializer<S>,
     started: bool,
     finished: bool,
     id: TransferFrameID,
@@ -25,14 +25,14 @@ pub struct FrameDisassembler<F: Frame> {
     transfer_id: TransferID,
 }
 
-impl<F: Frame> FrameDisassembler<F> {
-    pub fn from_uavcan_frame(frame: F, transfer_id: TransferID) -> Self {
-        let (header, body) = frame.to_parts();
+impl<S: Struct> FrameDisassembler<S> {
+    pub fn from_uavcan_frame(frame: Frame<S>, transfer_id: TransferID) -> Self {
+        let (id, body) = frame.to_parts();
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
             finished: false,
-            id: header.id(),
+            id: id,
             toggle: false,
             transfer_id: transfer_id,
         }
@@ -50,7 +50,7 @@ impl<F: Frame> FrameDisassembler<F> {
         if self.finished {
             return None;
         } else if first_of_multi_frame {
-            let crc = self.serializer.crc(F::DATA_TYPE_SIGNATURE);
+            let crc = self.serializer.crc(<Frame<S>>::DATA_TYPE_SIGNATURE);
             transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
             transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             {
@@ -110,22 +110,18 @@ mod tests {
             vendor_specific_status_code: u16,
         }
 
-        message_frame_header!(NodeStatusHeader, 341);
-        
-        uavcan_frame!(NodeStatusMessage, NodeStatusHeader, NodeStatus, 0);
-            
-        let can_frame = CanFrame{id: TransferFrameID::from(NodeStatusHeader::new(0, 32).id()), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
+        impl Message for NodeStatus {
+            const TYPE_ID: u16 = 341;
+        }   
+        let can_frame = CanFrame{id: TransferFrameID::from(NodeStatus::id(0, NodeID::new(32))), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
 
-        let uavcan_frame = NodeStatusMessage{
-            header: NodeStatusHeader::new(0, 32),
-            body: NodeStatus{
-                uptime_sec: 1,
-                health: u2::new(2),
-                mode: u3::new(3),
-                sub_mode: u3::new(4),
-                vendor_specific_status_code: 5,
-            },
-        };
+        let uavcan_frame = NodeStatus{
+            uptime_sec: 1,
+            health: u2::new(2),
+            mode: u3::new(3),
+            sub_mode: u3::new(4),
+            vendor_specific_status_code: 5,
+        }.into_frame(0, NodeID::new(32));
 
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
@@ -149,18 +145,15 @@ mod tests {
             text: DynamicArray90<u8>,
         }
 
-        message_frame_header!(LogMessageHeader, 16383);
-
-        uavcan_frame!(LogMessageMessage, LogMessageHeader, LogMessage, 0xd654a48e0c049d75);
+        impl Message for LogMessage {
+            const TYPE_ID: u16 = 16383;
+        }
         
-        let uavcan_frame = LogMessageMessage{
-            header: LogMessageHeader::new(0, 32),
-            body: LogMessage{
-                level: LogLevel{value: u3::new(0)},
-                source: DynamicArray31::with_str("test source"),
-                text: DynamicArray90::with_str("test text"),
-            },
-        };
+        let uavcan_frame = LogMessage{
+            level: LogLevel{value: u3::new(0)},
+            source: DynamicArray31::with_str("test source"),
+            text: DynamicArray90::with_str("test text"),
+        }.into_frame(0, NodeID::new(32));
 
         assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
         
@@ -172,7 +165,7 @@ mod tests {
         assert_eq!(
             frame_generator.next_transfer_frame(),
             Some(CanFrame{
-                id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+                id: LogMessage::id(0, NodeID::new(32)),
                 dlc: 8,
                 data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(0..5, 11).set_bits(5..8, 0).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::new(0)).into()],
             })
@@ -181,7 +174,7 @@ mod tests {
         assert_eq!(
             frame_generator.next_transfer_frame(),
             Some(CanFrame{
-                id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+                id: LogMessage::id(0, NodeID::new(32)),
                 dlc: 8,
                 data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, true, TransferID::new(0)).into()],
             })
@@ -190,7 +183,7 @@ mod tests {
         assert_eq!(
             frame_generator.next_transfer_frame(),
             Some(CanFrame{
-                id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+                id: LogMessage::id(0, NodeID::new(32)),
                 dlc: 8,
                 data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
             })
@@ -199,7 +192,7 @@ mod tests {
         assert_eq!(
             frame_generator.next_transfer_frame(),
             Some(CanFrame{
-                id: TransferFrameID::from(LogMessageHeader::new(0, 32).id()),
+                id: LogMessage::id(0, NodeID::new(32)),
                 dlc: 3,
                 data: [b'x', b't', TailByte::new(false, true, true, TransferID::new(0)).into(), 0, 0, 0, 0, 0],
             })
