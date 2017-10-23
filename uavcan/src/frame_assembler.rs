@@ -177,11 +177,11 @@ mod tests {
             const TYPE_ID: u16 = 16383;
         }
          
-        let uavcan_frame = LogMessage{
+        let uavcan_frame = Frame::from_message(LogMessage{
             level: LogLevel{value: u3::new(0)},
             source: DynamicArray31::with_str("test source"),
             text: DynamicArray90::with_str("test text"),
-        }.into_frame(0, NodeID::new(32));
+        }, 0, NodeID::new(32));
 
         let crc = 0;
         let mut message_builder = FrameAssembler::new();

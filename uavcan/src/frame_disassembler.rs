@@ -115,13 +115,13 @@ mod tests {
         }   
         let can_frame = CanFrame{id: TransferFrameID::from(NodeStatus::id(0, NodeID::new(32))), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
 
-        let uavcan_frame = NodeStatus{
+        let uavcan_frame = Frame::from_message(NodeStatus{
             uptime_sec: 1,
             health: u2::new(2),
             mode: u3::new(3),
             sub_mode: u3::new(4),
             vendor_specific_status_code: 5,
-        }.into_frame(0, NodeID::new(32));
+        }, 0, NodeID::new(32));
 
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
@@ -149,11 +149,11 @@ mod tests {
             const TYPE_ID: u16 = 16383;
         }
         
-        let uavcan_frame = LogMessage{
+        let uavcan_frame = Frame::from_message(LogMessage{
             level: LogLevel{value: u3::new(0)},
             source: DynamicArray31::with_str("test source"),
             text: DynamicArray90::with_str("test text"),
-        }.into_frame(0, NodeID::new(32));
+        }, 0, NodeID::new(32));
 
         assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
         
