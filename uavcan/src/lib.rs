@@ -62,11 +62,12 @@ pub use deserializer::{
     DeserializationBuffer,
 };
 
-
-
 pub trait Struct: Sized {
     const TAIL_ARRAY_OPTIMIZABLE: bool;
     const FLATTENED_FIELDS_NUMBER: usize;
+
+    const DSDL_SIGNATURE: u64;
+    const DATA_TYPE_SIGNATURE: u64;
 
     fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
@@ -136,7 +137,6 @@ pub struct Frame<T: Struct> {
 }
 
 impl<T: Struct> Frame<T> {
-    const DATA_TYPE_SIGNATURE: u64 = 0; // temp value
 
     
     fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {

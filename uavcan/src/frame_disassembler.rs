@@ -50,7 +50,7 @@ impl<S: Struct> FrameDisassembler<S> {
         if self.finished {
             return None;
         } else if first_of_multi_frame {
-            let crc = self.serializer.crc(<Frame<S>>::DATA_TYPE_SIGNATURE);
+            let crc = self.serializer.crc(S::DATA_TYPE_SIGNATURE);
             transport_frame.data_as_mut()[0] = crc.get_bits(0..8) as u8;
             transport_frame.data_as_mut()[1] = crc.get_bits(8..16) as u8;
             {
@@ -139,6 +139,7 @@ mod tests {
         }
         
         #[derive(UavcanStruct)]
+        #[DataTypeSignature = "0xd654a48e0c049d75"]
         struct LogMessage {
             level: LogLevel,
             source: DynamicArray31<u8>,
