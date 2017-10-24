@@ -54,6 +54,14 @@ pub struct NodeConfig {
     pub id: Option<NodeID>,
 }
 
+impl Default for NodeConfig {
+    fn default() -> Self {
+        NodeConfig{
+            id: None,
+        }
+    }
+}
+
 pub struct SimpleNode<'a, I>
     where I: TransferInterface<'a> + 'a {
     interface: I,
