@@ -119,11 +119,11 @@ impl<'a, I> Node for SimpleNode<'a, I>
 
     fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
         let identifier = FullTransferID {
-            frame_id: T::id(0, NodeID::new(0)),
+            frame_id: T::id(0, NodeID(0)),
             transfer_id: TransferID::new(0),
         };
         let mask = FullTransferID {
-            frame_id: T::id(0, NodeID::new(0)),
+            frame_id: T::id(0, NodeID(0)),
             transfer_id: TransferID::new(0),
         };
 
