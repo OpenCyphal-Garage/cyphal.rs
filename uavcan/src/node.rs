@@ -17,17 +17,28 @@ use frame_assembler::FrameAssembler;
 use frame_assembler::AssemblerResult;
 
 use embedded_types::io::Error as IOError;
-        
+
+/// The 7 bit `NodeID` used in Uavcan
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct NodeID(u8);
 
 impl NodeID {
     /// Creates a new NodeID
     ///
+    /// # Examples
+    /// ```
+    ///
+    /// use uavcan::NodeID;
+    ///
+    /// let node_id = NodeID::new(127);
+    ///
+    /// ```
+    ///
     /// # Panics
-    /// Panics if `id > 127`
+    /// Panics if `id > 127` or `id == 0`
     pub fn new(id: u8) -> NodeID {
-        assert!(id <= 127, "Uavcan node IDs must be 7bit");
+        assert_ne!(id, 0, "Uavcan node IDs can't be 0");
+        assert!(id <= 127, "Uavcan node IDs must be 7bit (<127)");
         NodeID(id)
     }
 }
