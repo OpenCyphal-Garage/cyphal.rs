@@ -102,6 +102,10 @@ macro_rules! dynamic_array_def {
             pub fn iter(&self) -> lib::core::slice::Iter<T> {
                 self.data[0..self.current_size].iter()
             }
+        
+            pub fn iter_mut(&mut self) -> lib::core::slice::IterMut<T> {
+                self.data[0..self.current_size].iter_mut()
+            }
         }
         
         impl $i<u8>{
@@ -169,9 +173,9 @@ macro_rules! dynamic_array_def {
                     start_element += 1;
                 }
 
-                for i in start_element..self.length().current_length {
+                for element in self.iter().skip(start_element) {
                     let mut bits_serialized = 0;
-                    match self[i].serialize(&mut bits_serialized, buffer) {
+                    match element.serialize(&mut bits_serialized, buffer) {
                         SerializationResult::Finished => {
                             *bit += bits_serialized;
                         },
@@ -218,9 +222,9 @@ macro_rules! dynamic_array_def {
                     start_element += 1;
                 }
                 
-                for i in start_element..self.length().current_length {
+                for element in self.iter_mut().skip(start_element) {
                     let mut bits_deserialized = start_element_bit;
-                    match self[i].deserialize(&mut bits_deserialized, buffer) {
+                    match element.deserialize(&mut bits_deserialized, buffer) {
                         DeserializationResult::Finished => {
                             *bit += bits_deserialized;
                         },
