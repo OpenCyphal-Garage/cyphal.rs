@@ -46,9 +46,9 @@ pub mod transfer;
 pub mod types;
 mod crc;
 mod deserializer;
-pub mod frame_assembler;
+mod frame_assembler;
 mod serializer;
-pub mod frame_disassembler;
+mod frame_disassembler;
 mod node;
 
 use bit_field::BitField;
@@ -141,7 +141,7 @@ pub trait Response: Struct {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Frame<T: Struct> {
+pub(crate) struct Frame<T: Struct> {
     id: TransferFrameID,
     body: T,
 }

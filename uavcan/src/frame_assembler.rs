@@ -35,7 +35,7 @@ pub enum BuildError {
     NotFinishedParsing,
 }
 
-pub struct FrameAssembler<S: Struct> {
+pub(crate) struct FrameAssembler<S: Struct> {
     deserializer: Deserializer<S>,
     started: bool,
     id: TransferFrameID,

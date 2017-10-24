@@ -16,7 +16,7 @@ use serializer::*;
 
 
 
-pub struct FrameDisassembler<S: Struct> {
+pub(crate) struct FrameDisassembler<S: Struct> {
     serializer: Serializer<S>,
     started: bool,
     finished: bool,
