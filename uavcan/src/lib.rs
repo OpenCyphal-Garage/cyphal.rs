@@ -13,6 +13,7 @@
 #![cfg_attr(feature="clippy", deny(unreadable_literal))]
 #![cfg_attr(feature="clippy", deny(if_same_then_else))]
 #![cfg_attr(feature="clippy", deny(needless_bool))]
+#![cfg_attr(feature="clippy", deny(assign_op_pattern))]
 
 #[allow(unused_imports)]
 #[macro_use]
