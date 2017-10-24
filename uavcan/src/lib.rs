@@ -9,6 +9,13 @@
 #![cfg_attr(feature="clippy", deny(clone_on_copy))]
 #![cfg_attr(feature="clippy", deny(char_lit_as_u8))]
 #![cfg_attr(feature="clippy", deny(should_assert_eq))]
+#![cfg_attr(feature="clippy", deny(manual_memcpy))]
+#![cfg_attr(feature="clippy", deny(unreadable_literal))]
+#![cfg_attr(feature="clippy", deny(if_same_then_else))]
+#![cfg_attr(feature="clippy", deny(needless_bool))]
+#![cfg_attr(feature="clippy", deny(assign_op_pattern))]
+#![cfg_attr(feature="clippy", deny(needless_return))]
+#![cfg_attr(feature="clippy", deny(doc_markdown))]
 
 #[allow(unused_imports)]
 #[macro_use]

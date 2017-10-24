@@ -92,9 +92,7 @@ macro_rules! dynamic_array_def {
         impl<T: PrimitiveType + Copy> $i<T> {
             pub fn with_data(data: &[T]) -> Self {
                 let mut data_t = [data[0]; $n];
-                for i in 0..data.len() {
-                    data_t[i] = data[i];
-                }
+                data_t[0..data.len()].clone_from_slice(data);
                 Self{
                     current_size: data.len(),
                     data: data_t,
@@ -103,6 +101,10 @@ macro_rules! dynamic_array_def {
             
             pub fn iter(&self) -> lib::core::slice::Iter<T> {
                 self.data[0..self.current_size].iter()
+            }
+        
+            pub fn iter_mut(&mut self) -> lib::core::slice::IterMut<T> {
+                self.data[0..self.current_size].iter_mut()
             }
         }
         
@@ -171,9 +173,9 @@ macro_rules! dynamic_array_def {
                     start_element += 1;
                 }
 
-                for i in start_element..self.length().current_length {
+                for element in self.iter().skip(start_element) {
                     let mut bits_serialized = 0;
-                    match self[i].serialize(&mut bits_serialized, buffer) {
+                    match element.serialize(&mut bits_serialized, buffer) {
                         SerializationResult::Finished => {
                             *bit += bits_serialized;
                         },
@@ -220,9 +222,9 @@ macro_rules! dynamic_array_def {
                     start_element += 1;
                 }
                 
-                for i in start_element..self.length().current_length {
+                for element in self.iter_mut().skip(start_element) {
                     let mut bits_deserialized = start_element_bit;
-                    match self[i].deserialize(&mut bits_deserialized, buffer) {
+                    match element.deserialize(&mut bits_deserialized, buffer) {
                         DeserializationResult::Finished => {
                             *bit += bits_deserialized;
                         },
@@ -420,10 +422,12 @@ impl PrimitiveType for f16 {
 
 impl PrimitiveType for f32 {
     const BIT_LENGTH: usize = 32;
+    
+    #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(v: u64) -> Self {
         let mut v32 = v as u32;
-        const EXP_MASK: u32   = 0x7F800000;
-        const FRACT_MASK: u32 = 0x007FFFFF;
+        const EXP_MASK: u32   = 0x7F80_0000;
+        const FRACT_MASK: u32 = 0x007F_FFFF;
         if v32  & EXP_MASK == EXP_MASK && v32 & FRACT_MASK != 0 {
             v32 = unsafe { lib::core::mem::transmute(lib::core::f32::NAN) };
         }
@@ -438,9 +442,11 @@ impl PrimitiveType for f32 {
 
 impl PrimitiveType for f64 {
     const BIT_LENGTH: usize = 64;
+    
+    #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(mut v: u64) -> Self {
-        const EXP_MASK: u64   = 0x7FF0000000000000;
-        const FRACT_MASK: u64 = 0x000FFFFFFFFFFFFF;
+        const EXP_MASK: u64   = 0x7FF0_0000_0000_0000;
+        const FRACT_MASK: u64 = 0x000F_FFFF_FFFF_FFFF;
         if v & EXP_MASK == EXP_MASK && v & FRACT_MASK != 0 {
             v = unsafe { lib::core::mem::transmute(lib::core::f64::NAN) };
         }

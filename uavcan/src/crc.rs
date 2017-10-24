@@ -19,7 +19,7 @@ impl TransferCRC {
                     if (*value & 0x8000) != 0 {
                         *value = (*value << 1) ^ 0x1021;
                     } else {
-                        *value = *value << 1;
+                        *value <<= 1;
                     }
                 }
             },

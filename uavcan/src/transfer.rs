@@ -160,7 +160,7 @@ impl TransferFrameID {
     /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
         let TransferFrameID(mut value) = self;
-        value = value & u32::from(mask);
+        value &= u32::from(mask);
         TransferFrameID(value)        
     }
 }
@@ -188,7 +188,7 @@ impl TransferID {
     /// Deasserts bits based on the asserted bits of `mask`
     pub fn mask(self, mask: Self) -> Self {
         let TransferID(mut value) = self;
-        value = value & u8::from(mask);
+        value &= u8::from(mask);
         TransferID(value)        
     }
 }

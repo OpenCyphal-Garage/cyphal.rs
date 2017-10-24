@@ -78,7 +78,7 @@ impl Default for NodeConfig {
 
 /// A minimal featured Uavcan node
 ///
-/// Supports sending and receiving of UavcanMessages
+/// Supports the features required by `Node` trait
 pub struct SimpleNode<'a, I>
     where I: TransferInterface<'a> + 'a {
     interface: I,
