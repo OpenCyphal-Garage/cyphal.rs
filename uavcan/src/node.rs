@@ -43,13 +43,27 @@ impl NodeID {
     }
 }
 
+/// The Uavcan node trait.
+///
+/// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
 pub trait Node<'a, I: TransferInterface<'a>> {
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
     fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError>;
 }
 
     
-
+/// Configuration for an `Node`
+///
+/// # Examples
+/// ```
+///
+/// use uavcan::NodeConfig;
+/// use uavcan::NodeID;
+///
+/// let mut node_config = NodeConfig::default();
+/// node_config.id = Some(NodeID::new(127));
+///
+/// ```
 pub struct NodeConfig {
     pub id: Option<NodeID>,
 }
@@ -62,6 +76,9 @@ impl Default for NodeConfig {
     }
 }
 
+/// A minimal featured Uavcan node
+///
+/// Supports sending and receiving of UavcanMessages
 pub struct SimpleNode<'a, I>
     where I: TransferInterface<'a> + 'a {
     interface: I,
