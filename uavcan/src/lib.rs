@@ -10,6 +10,7 @@
 #![cfg_attr(feature="clippy", deny(char_lit_as_u8))]
 #![cfg_attr(feature="clippy", deny(should_assert_eq))]
 #![cfg_attr(feature="clippy", deny(manual_memcpy))]
+#![cfg_attr(feature="clippy", deny(unreadable_literal))]
 
 #[allow(unused_imports)]
 #[macro_use]

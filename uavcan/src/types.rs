@@ -424,8 +424,8 @@ impl PrimitiveType for f32 {
     const BIT_LENGTH: usize = 32;
     fn from_bits(v: u64) -> Self {
         let mut v32 = v as u32;
-        const EXP_MASK: u32   = 0x7F800000;
-        const FRACT_MASK: u32 = 0x007FFFFF;
+        const EXP_MASK: u32   = 0x7F80_0000;
+        const FRACT_MASK: u32 = 0x007F_FFFF;
         if v32  & EXP_MASK == EXP_MASK && v32 & FRACT_MASK != 0 {
             v32 = unsafe { lib::core::mem::transmute(lib::core::f32::NAN) };
         }
@@ -441,8 +441,8 @@ impl PrimitiveType for f32 {
 impl PrimitiveType for f64 {
     const BIT_LENGTH: usize = 64;
     fn from_bits(mut v: u64) -> Self {
-        const EXP_MASK: u64   = 0x7FF0000000000000;
-        const FRACT_MASK: u64 = 0x000FFFFFFFFFFFFF;
+        const EXP_MASK: u64   = 0x7FF0_0000_0000_0000;
+        const FRACT_MASK: u64 = 0x000F_FFFF_FFFF_FFFF;
         if v & EXP_MASK == EXP_MASK && v & FRACT_MASK != 0 {
             v = unsafe { lib::core::mem::transmute(lib::core::f64::NAN) };
         }
