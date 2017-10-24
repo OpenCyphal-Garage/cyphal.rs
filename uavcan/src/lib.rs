@@ -15,6 +15,7 @@
 #![cfg_attr(feature="clippy", deny(needless_bool))]
 #![cfg_attr(feature="clippy", deny(assign_op_pattern))]
 #![cfg_attr(feature="clippy", deny(needless_return))]
+#![cfg_attr(feature="clippy", deny(doc_markdown))]
 
 #[allow(unused_imports)]
 #[macro_use]
