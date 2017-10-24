@@ -46,7 +46,7 @@ impl NodeID {
 /// The Uavcan node trait.
 ///
 /// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
-pub trait Node<'a, I: TransferInterface<'a>> {
+pub trait Node {
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
     fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError>;
 }
@@ -98,9 +98,8 @@ impl<'a, I> SimpleNode<'a, I>
     }
 }
 
-impl<'a, I> Node<'a, I> for SimpleNode<'a, I>
+impl<'a, I> Node for SimpleNode<'a, I>
     where I: TransferInterface<'a> + 'a {
-    
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
