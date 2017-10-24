@@ -40,15 +40,19 @@ mod uavcan {
     pub use *;
 }
 
+/// This module is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use uavcan_derive::*;
 
 pub mod transfer;
 pub mod types;
 mod crc;
 mod deserializer;
-pub mod frame_assembler;
+mod frame_assembler;
 mod serializer;
-pub mod frame_disassembler;
+mod frame_disassembler;
 mod node;
 
 use bit_field::BitField;
@@ -62,11 +66,19 @@ pub use node::Node;
 pub use node::SimpleNode;
 
 
+/// These data type is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use serializer::{
     SerializationResult,
     SerializationBuffer,        
 };
 
+/// These data type is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
@@ -141,7 +153,7 @@ pub trait Response: Struct {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct Frame<T: Struct> {
+pub(crate) struct Frame<T: Struct> {
     id: TransferFrameID,
     body: T,
 }
