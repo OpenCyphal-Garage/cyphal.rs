@@ -422,6 +422,8 @@ impl PrimitiveType for f16 {
 
 impl PrimitiveType for f32 {
     const BIT_LENGTH: usize = 32;
+    
+    #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(v: u64) -> Self {
         let mut v32 = v as u32;
         const EXP_MASK: u32   = 0x7F80_0000;
@@ -440,6 +442,8 @@ impl PrimitiveType for f32 {
 
 impl PrimitiveType for f64 {
     const BIT_LENGTH: usize = 64;
+    
+    #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(mut v: u64) -> Self {
         const EXP_MASK: u64   = 0x7FF0_0000_0000_0000;
         const FRACT_MASK: u64 = 0x000F_FFFF_FFFF_FFFF;
