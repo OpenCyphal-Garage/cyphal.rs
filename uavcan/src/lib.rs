@@ -49,7 +49,10 @@ use bit_field::BitField;
 use transfer::TransferFrameID;
 
 
+pub use node::NodeConfig;
 pub use node::NodeID;
+pub use node::Node;
+pub use node::SimpleNode;
 
 
 pub use serializer::{
