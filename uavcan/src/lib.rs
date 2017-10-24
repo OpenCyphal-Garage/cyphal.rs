@@ -14,6 +14,7 @@
 #![cfg_attr(feature="clippy", deny(if_same_then_else))]
 #![cfg_attr(feature="clippy", deny(needless_bool))]
 #![cfg_attr(feature="clippy", deny(assign_op_pattern))]
+#![cfg_attr(feature="clippy", deny(needless_return))]
 
 #[allow(unused_imports)]
 #[macro_use]

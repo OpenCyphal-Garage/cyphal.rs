@@ -75,7 +75,7 @@ impl<S: Struct> FrameDisassembler<S> {
         self.started = true;
         self.toggle = !self.toggle;
         
-        return Some(transport_frame);
+        Some(transport_frame)
     }
 }
 
