@@ -11,6 +11,8 @@
 #![cfg_attr(feature="clippy", deny(should_assert_eq))]
 #![cfg_attr(feature="clippy", deny(manual_memcpy))]
 #![cfg_attr(feature="clippy", deny(unreadable_literal))]
+#![cfg_attr(feature="clippy", deny(if_same_then_else))]
+#![cfg_attr(feature="clippy", deny(needless_bool))]
 
 #[allow(unused_imports)]
 #[macro_use]

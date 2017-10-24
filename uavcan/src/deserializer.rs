@@ -37,13 +37,7 @@ impl<T: Struct> Deserializer<T> {
     pub fn into_structure(self) -> Result<T, ()> {
         let number_of_fields = T::FLATTENED_FIELDS_NUMBER;
 
-        let finished = if number_of_fields == self.field_index {
-            true
-        } else if number_of_fields - 1 == self.field_index && T::TAIL_ARRAY_OPTIMIZABLE{
-            true
-        } else {
-            false
-        };
+        let finished = (number_of_fields == self.field_index) || (number_of_fields - 1 == self.field_index && T::TAIL_ARRAY_OPTIMIZABLE);
 
         if finished {
             Ok(self.structure)
