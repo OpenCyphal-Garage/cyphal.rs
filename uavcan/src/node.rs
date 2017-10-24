@@ -32,7 +32,12 @@ impl NodeID {
     }
 }
 
+pub trait Node<'a, I: TransferInterface<'a>> {
+    fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
+    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError>;
+}
 
+    
 
 pub struct NodeConfig {
     pub id: Option<NodeID>,
@@ -45,6 +50,7 @@ pub struct SimpleNode<'a, I>
     phantom: PhantomData<&'a I>,
 }
 
+
 impl<'a, I> SimpleNode<'a, I>
     where I: TransferInterface<'a> + 'a {
     pub fn new(interface: I, config: NodeConfig) -> Self {
@@ -54,8 +60,12 @@ impl<'a, I> SimpleNode<'a, I>
             phantom: PhantomData,
         }
     }
+}
 
-    pub fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
+impl<'a, I> Node<'a, I> for SimpleNode<'a, I>
+    where I: TransferInterface<'a> + 'a {
+    
+    fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
         
@@ -72,7 +82,7 @@ impl<'a, I> SimpleNode<'a, I>
         Ok(())
     }
 
-    pub fn receive_message<T: Struct + Message>(&self) -> Option<T> {
+    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
         let identifier = FullTransferID {
             frame_id: T::id(0, NodeID::new(0)),
             transfer_id: TransferID::new(0),
@@ -86,14 +96,14 @@ impl<'a, I> SimpleNode<'a, I>
             let mut assembler = FrameAssembler::new();
             loop {
                 match assembler.add_transfer_frame(self.interface.receive(&id).unwrap()) {
-                    Err(_) => return None,
+                    Err(_) => return Err(IOError::Other), // fix error message
                     Ok(AssemblerResult::Finished) => break,
                     Ok(AssemblerResult::Ok) => (),
                 }
             }
-            Some(assembler.build().unwrap().into_parts().1)
+            Ok(assembler.build().unwrap().into_parts().1)
         } else {
-            None
+            Err(IOError::Other) // fix error message
         }
     }
 }
