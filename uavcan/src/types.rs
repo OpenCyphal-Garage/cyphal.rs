@@ -92,9 +92,7 @@ macro_rules! dynamic_array_def {
         impl<T: PrimitiveType + Copy> $i<T> {
             pub fn with_data(data: &[T]) -> Self {
                 let mut data_t = [data[0]; $n];
-                for i in 0..data.len() {
-                    data_t[i] = data[i];
-                }
+                data_t[0..data.len()].clone_from_slice(data);
                 Self{
                     current_size: data.len(),
                     data: data_t,
