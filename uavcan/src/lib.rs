@@ -40,6 +40,10 @@ mod uavcan {
     pub use *;
 }
 
+/// This module is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use uavcan_derive::*;
 
 pub mod transfer;
@@ -62,11 +66,19 @@ pub use node::Node;
 pub use node::SimpleNode;
 
 
+/// These data type is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use serializer::{
     SerializationResult,
     SerializationBuffer,        
 };
 
+/// These data type is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
