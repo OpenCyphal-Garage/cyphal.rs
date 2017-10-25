@@ -273,14 +273,16 @@ impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
 mod tests {
     use *;
     use dsdl_parser::PrimitiveType;
+    use dsdl_parser::Ty;
+    use dsdl_parser::Size;
     use dsdl_parser::Comment;
 
     #[test]
     fn compile_type() {
-        let composite = dsdl_parser::Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile();
+        let composite = Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile();
         assert_eq!(quote!(uavcan::protocol::NodeStatus), quote!{#composite});
 
-        let primitive = PrimitiveType::Uint2.compile();
+        let primitive = Ty::Primitive(PrimitiveType::Uint2).compile();
         assert_eq!(quote!(u2), quote!{#primitive});
 
     }
