@@ -7,6 +7,23 @@ pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
+impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
+    fn compile(self) -> syn::Field {
+        let ty = match self.array {
+            dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
+            dsdl_parser::ArrayInfo::DynamicLess(_) => unimplemented!("Compilation for dynamic arrays is not implemented yet"),
+            dsdl_parser::ArrayInfo::DynamicLeq(_) => unimplemented!("Compilation for dynamic arrays is not implemented yet"),
+            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile()), size.compile()),
+        };
+        
+        syn::Field{
+            ident: self.name.map(|x| x.compile()),
+            vis: syn::Visibility::Public,
+            attrs: Vec::new(),
+            ty: ty,
+        }
+    }
+}
 
 impl Compile<syn::ConstExpr> for dsdl_parser::Size {
     fn compile(self) -> syn::ConstExpr {
@@ -276,6 +293,37 @@ mod tests {
     use dsdl_parser::Ty;
     use dsdl_parser::Size;
     use dsdl_parser::Comment;
+
+    #[test]
+    fn compile_field_def() {
+        let simple_field = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
+            array: dsdl_parser::ArrayInfo::Single,
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(pub name: u3), quote!{#simple_field});
+
+        let composite_field = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
+            array: dsdl_parser::ArrayInfo::Single,
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(pub name: uavcan::protocol::NodeStatus), quote!{#composite_field});
+
+        let array_field = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
+            array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(pub name: [u3; 19]), quote!{#array_field});
+    }
+        
 
     #[test]
     fn compile_type() {
