@@ -383,6 +383,12 @@ impl FromStr for Comment {
     }
 }
 
+impl AsRef<str> for Comment {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
 /// An Uavcan Directive
 ///
 /// A directive is a single case-sensitive word starting with an “at sign” (@),
