@@ -332,6 +332,43 @@ pub enum Line {
     Directive(Directive, Option<Comment>),
 }
 
+impl Line {
+    /// returns true if the `Line` is empty
+    pub fn is_empty(&self) -> bool {
+        match *self {
+            Line::Empty => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a directive
+    pub fn is_directive(&self) -> bool {
+        match *self {
+            Line::Directive(_,_) => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a definiition
+    pub fn is_definition(&self) -> bool {
+        match *self {
+            Line::Definition(_,_) => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a comment
+    pub fn has_comment(&self) -> bool {
+        match *self {
+            Line::Comment(_) => true,
+            Line::Directive(_,Some(_)) => true,
+            Line::Definition(_,Some(_)) => true,
+            _ => false,
+        }
+    }
+        
+}
+
 /// A CompositeType is what the uavcan specification refers to as "Nested data structures"
 ///
 /// In short if it's not a primitive data type (or arrays of primitive data types) it's a `CompositeType`
