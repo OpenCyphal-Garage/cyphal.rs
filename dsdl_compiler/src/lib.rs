@@ -24,6 +24,15 @@ impl Compile<syn::Attribute> for dsdl_parser::Comment {
     }
 }
 
+impl Compile<syn::Ty> for dsdl_parser::Ty {
+    fn compile(self) -> syn::Ty {
+        match self {
+            dsdl_parser::Ty::Primitive(x) => x.compile(),
+            dsdl_parser::Ty::Composite(x) => x.compile(),
+        }
+    }
+}
+
 impl Compile<syn::Ty> for dsdl_parser::CompositeType {
     fn compile(self) -> syn::Ty {
         let mut path = syn::Path {
@@ -254,6 +263,16 @@ mod tests {
     use dsdl_parser::PrimitiveType;
     use dsdl_parser::Comment;
 
+    #[test]
+    fn compile_type() {
+        let composite = dsdl_parser::Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile();
+        assert_eq!(quote!(uavcan::protocol::NodeStatus), quote!{#composite});
+
+        let primitive = PrimitiveType::Uint2.compile();
+        assert_eq!(quote!(u2), quote!{#primitive});
+
+    }
+    
     #[test]
     fn compile_composite_type() {
         let t = dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}.compile();
