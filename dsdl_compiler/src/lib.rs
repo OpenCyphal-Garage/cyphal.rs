@@ -8,6 +8,18 @@ pub trait Compile<T> {
 }
 
 
+impl Compile<syn::ConstExpr> for dsdl_parser::Size {
+    fn compile(self) -> syn::ConstExpr {
+        syn::ConstExpr::Lit(self.compile())
+    }    
+}
+    
+impl Compile<syn::Lit> for dsdl_parser::Size {
+    fn compile(self) -> syn::Lit {
+        syn::Lit::Int(self.into(), syn::IntTy::Unsuffixed)
+    }    
+}
+    
 impl Compile<syn::Ident> for dsdl_parser::Ident {
     fn compile(self) -> syn::Ident {
         syn::Ident::from(self.as_ref())
