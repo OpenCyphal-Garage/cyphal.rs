@@ -21,7 +21,7 @@ path = "src/bin/main.rs"
 
 
 [dependencies]
-dsdl_parser = "0.0.1"
+dsdl_parser = {path = "../dsdl_parser"}
 syn = "0.11"
 quote = "0.3"
 

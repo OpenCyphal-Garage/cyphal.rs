@@ -7,6 +7,16 @@ pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
+impl Compile<syn::Attribute> for dsdl_parser::Comment {
+    fn compile(self) -> syn::Attribute {
+        syn::Attribute{
+            style: syn::AttrStyle::Outer,
+            value: syn::MetaItem::NameValue(syn::Ident::from("doc"), syn::Lit::Str(String::from(self.as_ref()), syn::StrStyle::Raw(0))),
+            is_sugared_doc: true,
+        }
+    }
+}
+
 impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
     fn compile(self) -> syn::Ty {
         match self {
@@ -216,6 +226,7 @@ impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
 mod tests {
     use *;
     use dsdl_parser::PrimitiveType;
+    use dsdl_parser::Comment;
     
     #[test]
     fn compile_primitive_type() {
@@ -234,4 +245,11 @@ mod tests {
         let float64 = PrimitiveType::Float64.compile();
         assert_eq!(quote!(f64), quote!{#float64});
     }
-}
+    
+    #[test]
+    fn compile_comment() {
+        let comment = Comment::from(" test comment").compile();
+        assert_eq!(quote!{/// test comment
+        }, quote!{#comment});
+        }
+        }
