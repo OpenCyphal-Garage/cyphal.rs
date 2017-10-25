@@ -507,6 +507,12 @@ impl FromStr for Size {
     }
 }
 
+impl From<Size> for u64 {
+    fn from(i: Size) -> u64 {
+        i.0
+    }
+}
+
 impl From<u8> for Size {
     fn from(i: u8) -> Size {
         Size(u64::from(i))
