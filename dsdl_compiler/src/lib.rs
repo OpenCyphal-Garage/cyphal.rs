@@ -24,6 +24,25 @@ impl Compile<syn::Attribute> for dsdl_parser::Comment {
     }
 }
 
+impl Compile<syn::Ty> for dsdl_parser::CompositeType {
+    fn compile(self) -> syn::Ty {
+        let mut path = syn::Path {
+            global: false,
+            segments: Vec::new(),
+        };
+        
+        if let Some(namespace) = self.namespace {
+            for segment in namespace.as_ref().split(".") {
+                path.segments.push(syn::PathSegment{ident: syn::Ident::from(segment), parameters: syn::PathParameters::none()});
+            }
+        }
+        
+        path.segments.push(syn::PathSegment{ident: self.name.compile(), parameters: syn::PathParameters::none()});
+        
+        syn::Ty::Path(None, path)
+    }
+}   
+
 impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
     fn compile(self) -> syn::Ty {
         match self {
@@ -234,6 +253,12 @@ mod tests {
     use *;
     use dsdl_parser::PrimitiveType;
     use dsdl_parser::Comment;
+
+    #[test]
+    fn compile_composite_type() {
+        let t = dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}.compile();
+        assert_eq!(quote!(uavcan::protocol::NodeStatus), quote!{#t});
+    }
     
     #[test]
     fn compile_primitive_type() {
@@ -258,5 +283,5 @@ mod tests {
         let comment = Comment::from(" test comment").compile();
         assert_eq!(quote!{/// test comment
         }, quote!{#comment});
-        }
-        }
+    }
+}
