@@ -1,0 +1,28 @@
+[package]
+name = "dsdl_compiler"
+version = "0.0.1"
+authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
+
+description = "A compiler for the DSDL (Data structure description language) used when transmitting over Uavcan"
+homepage = "http://uavcan.org/Specification/3._Data_structure_description_language/"
+repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl_compiler"
+
+
+keywords = ["uavcan", "can", "dsdl", "compiler"]
+categories = ["command-lines-utilities"]
+
+license = "Apache-2.0/MIT"
+
+
+[[bin]]
+doc = false
+name = "dsdlc"
+path = "src/bin/main.rs"
+
+
+[dependencies]
+
+
+[badges]
+travis-ci = {repository = "UAVCAN/uavcan.rs", branch = "master"}
+maintenance = {status = "actively-developed"}
