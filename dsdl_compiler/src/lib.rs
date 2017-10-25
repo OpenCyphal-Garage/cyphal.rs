@@ -7,6 +7,13 @@ pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
+
+impl Compile<syn::Ident> for dsdl_parser::Ident {
+    fn compile(self) -> syn::Ident {
+        syn::Ident::from(self.as_ref())
+    }
+}
+
 impl Compile<syn::Attribute> for dsdl_parser::Comment {
     fn compile(self) -> syn::Attribute {
         syn::Attribute{
