@@ -215,6 +215,28 @@ pub struct FileName {
     pub version: Option<Version>,
 }
 
+impl FileName {
+    /// Split a namespace into parts
+    ///
+    /// # Examples
+    /// ```
+    /// use dsdl_parser::FileName;
+    ///
+    /// let name = FileName {
+    ///                     id: Some(String::from("341")),
+    ///                     namespace: String::from("uavcan.protocol"),
+    ///                     name: String::from("NodeStatus"),
+    ///                     version: None,
+    /// };
+    ///
+    /// assert_eq!(name.split_namespace(), vec!["uavcan", "protocol"]);
+    ///
+    /// ```
+    pub fn split_namespace(&self) -> Vec<String> {
+        self.namespace.split('.').map(|x| String::from(x)).collect()
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseFileNameError {
