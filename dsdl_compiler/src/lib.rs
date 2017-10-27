@@ -7,6 +7,52 @@ pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
+
+impl Compile<syn::Body> for dsdl_parser::MessageDefinition {
+    fn compile(self) -> syn::Body {
+        let (directives, not_directives): (Vec<dsdl_parser::Line>, Vec<dsdl_parser::Line>) = self.0.into_iter().partition(|x| x.is_directive());
+        
+        // first scan through directives
+        let mut union = false;
+
+        for directive in directives {
+            if let dsdl_parser::Line::Directive(dsdl_parser::Directive::Union, _) = directive {
+                union = true;
+            }
+        }
+
+        
+
+        if union {
+            unimplemented!("Unions are not implemented yet")
+        } else {
+            let mut fields = Vec::new();
+            let mut current_comments = Vec::new();
+
+            for line in not_directives {
+                match line {
+                    dsdl_parser::Line::Empty => current_comments = Vec::new(),
+                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile()),
+                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                        if let Some(comment) = opt_comment {
+                            current_comments.push(comment.compile());
+                        }
+                        let mut field = def.compile();
+                        field.attrs = current_comments.clone();
+                        fields.push(field);
+                        
+                        current_comments = Vec::new();
+                    },
+                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Const(_), _) => (), // const definitions is only used in the impls
+                    dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
+                }
+            }   
+            syn::Body::Struct(syn::VariantData::Struct(fields))
+        }
+    }
+}
+
+
 impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
     fn compile(self) -> syn::Field {
         let ty = match self.array {
@@ -312,10 +358,56 @@ impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
 mod tests {
     use *;
     use dsdl_parser::PrimitiveType;
+    use dsdl_parser::AttributeDefinition;
     use dsdl_parser::Ty;
+    use dsdl_parser::ArrayInfo;
     use dsdl_parser::Size;
     use dsdl_parser::Comment;
+    use dsdl_parser::Line;
 
+
+    #[test]
+    fn compile_struct_body() {
+        let body = dsdl_parser::MessageDefinition(
+            vec![Line::Comment(Comment::from("ignored comment")),
+                 Line::Comment(Comment::from("ignored comment")),
+                 Line::Empty,
+                 Line::Comment(Comment::from("test comment0")),
+                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
+                     cast_mode: None,
+                     field_type: Ty::Primitive(PrimitiveType::Uint8),
+                     array: ArrayInfo::Single,
+                     name: Some(dsdl_parser::Ident::from("node_status")),
+                 }) , Some(Comment::from("test comment1"))),
+                 Line::Comment(Comment::from("ignored comment")),
+                 Line::Empty,
+                 Line::Comment(Comment::from("test comment2")),
+                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
+                     cast_mode: None,
+                     field_type: Ty::Primitive(PrimitiveType::Uint7),
+                     array: ArrayInfo::Single,
+                     name: Some(dsdl_parser::Ident::from("node_something")),
+                 }) , Some(Comment::from("test comment3"))),
+
+            ]
+        ).compile();
+
+        let struct_body = if let syn::Body::Struct(x) = body {
+            x
+        } else {
+            unreachable!("This is a struct")
+        };
+        
+        assert_eq!(quote!({
+            ///test comment0
+            ///test comment1
+            pub node_status: u8,
+            ///test comment2
+            ///test comment3
+            pub node_something: u7
+        }), quote!{#struct_body});
+    }
+    
     #[test]
     fn compile_field_def() {
         let simple_field = dsdl_parser::FieldDefinition{
