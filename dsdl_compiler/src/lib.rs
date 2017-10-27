@@ -1,3 +1,5 @@
+#![recursion_limit="128"]
+
 #[macro_use]
 extern crate quote;
 extern crate dsdl_parser;
@@ -8,6 +10,47 @@ pub trait Compile<T> {
 }
 
 
+impl Compile<Vec<syn::Item>> for dsdl_parser::File {
+    fn compile(self) -> Vec<syn::Item> {
+        match self.definition {
+            dsdl_parser::TypeDefinition::Message(message) => {
+                let (body, attrs) = message.compile();
+                match body {
+                    syn::Body::Struct(variant_data) => {
+                        let definition = syn::Item {
+                            ident: syn::Ident::from(self.name.name.clone()),
+                            vis: syn::Visibility::Public,
+                            attrs: attrs,
+                            node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                        };
+
+                        let mut items = vec![definition];
+
+                        // put all the items into the correct namespace
+                        for mod_name in self.name.rsplit_namespace() {
+                            items = vec![syn::Item{
+                                ident: syn::Ident::from(mod_name),
+                                vis: syn::Visibility::Public,
+                                attrs: Vec::new(),
+                                node: syn::ItemKind::Mod(Some(items)),
+                            }];
+                        }
+
+                        items
+                    },
+                    syn::Body::Enum(_variants) => {
+                        unimplemented!("Unions are not implemented yet")
+                    },
+                }
+            },
+            dsdl_parser::TypeDefinition::Service(_service) => {
+                unimplemented!("Services are not implemented yet")
+            },
+        }
+    }
+}
+
+        
 impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinition {
     fn compile(self) -> (syn::Body, Vec<syn::Attribute>) {
         let (directives, not_directives): (Vec<dsdl_parser::Line>, Vec<dsdl_parser::Line>) = self.0.into_iter().partition(|x| x.is_directive());
@@ -366,6 +409,7 @@ impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
 #[cfg(test)]
 mod tests {
     use *;
+    use dsdl_parser::DSDL;
     use dsdl_parser::PrimitiveType;
     use dsdl_parser::AttributeDefinition;
     use dsdl_parser::Ty;
@@ -373,6 +417,54 @@ mod tests {
     use dsdl_parser::Size;
     use dsdl_parser::Comment;
     use dsdl_parser::Line;
+
+
+    #[test]
+    fn compile_struct() {
+        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.NodeStatus")).unwrap().clone().compile();
+        
+        assert_eq!(quote!(#(#file)*), quote!{
+            pub mod uavcan {
+                pub mod protocol {
+                    ///
+                    /// Abstract node status information.
+                    ///
+                    /// Any UAVCAN node is required to publish this message periodically.
+                    ///
+                    pub struct NodeStatus {
+                        ///
+                        /// Uptime counter should never overflow.
+                        /// Other nodes may detect that a remote node has restarted when this value goes backwards.
+                        ///
+                        pub uptime_sec: u32,
+                        ///
+                        /// Abstract node health.
+                        ///
+                        pub health: u2,
+                        ///
+                        /// Current mode.
+                        ///
+                        /// Mode OFFLINE can be actually reported by the node to explicitly inform other network
+                        /// participants that the sending node is about to shutdown. In this case other nodes will not
+                        /// have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available.
+                        ///
+                        /// Reserved values can be used in future revisions of the specification.
+                        ///
+                        pub mode: u3,
+                        ///
+                        /// Not used currently, keep zero when publishing, ignore when receiving.
+                        ///
+                        pub sub_mode: u3,
+                        ///
+                        /// Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.
+                        ///
+                        pub vendor_specific_status_code: u16
+                    }
+                }
+            }
+        });
+    }
 
 
     #[test]

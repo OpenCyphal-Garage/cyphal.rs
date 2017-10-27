@@ -22,8 +22,11 @@ path = "src/bin/main.rs"
 
 [dependencies]
 dsdl_parser = {path = "../dsdl_parser"}
-syn = "0.11"
 quote = "0.3"
+
+[dependencies.syn]
+version = "^0.11.11"
+features = ["full"]
 
 [badges]
 travis-ci = {repository = "UAVCAN/uavcan.rs", branch = "master"}
