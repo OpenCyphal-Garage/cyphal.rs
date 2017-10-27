@@ -357,6 +357,14 @@ impl Line {
         }
     }
 
+    /// returns true if the `Line` is nothing but a comment
+    pub fn is_comment(&self) -> bool {
+        match *self {
+            Line::Comment(_) => true,
+            _ => false,
+        }
+    }
+
     /// returns true if the `Line` contains a comment
     pub fn has_comment(&self) -> bool {
         match *self {
