@@ -8,8 +8,8 @@ pub trait Compile<T> {
 }
 
 
-impl Compile<syn::Body> for dsdl_parser::MessageDefinition {
-    fn compile(self) -> syn::Body {
+impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinition {
+    fn compile(self) -> (syn::Body, Vec<syn::Attribute>) {
         let (directives, not_directives): (Vec<dsdl_parser::Line>, Vec<dsdl_parser::Line>) = self.0.into_iter().partition(|x| x.is_directive());
         
         // first scan through directives
@@ -28,6 +28,15 @@ impl Compile<syn::Body> for dsdl_parser::MessageDefinition {
         } else {
             let mut fields = Vec::new();
             let mut current_comments = Vec::new();
+            
+            for line in not_directives.clone() {
+                if let dsdl_parser::Line::Comment(comment) = line {
+                    current_comments.push(comment.compile());
+                } else {
+                    break
+                }
+            }
+            let attributes = current_comments.clone();
 
             for line in not_directives {
                 match line {
@@ -46,8 +55,8 @@ impl Compile<syn::Body> for dsdl_parser::MessageDefinition {
                     dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Const(_), _) => (), // const definitions is only used in the impls
                     dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
                 }
-            }   
-            syn::Body::Struct(syn::VariantData::Struct(fields))
+            }
+            (syn::Body::Struct(syn::VariantData::Struct(fields)), attributes)
         }
     }
 }
@@ -369,8 +378,8 @@ mod tests {
     #[test]
     fn compile_struct_body() {
         let body = dsdl_parser::MessageDefinition(
-            vec![Line::Comment(Comment::from("ignored comment")),
-                 Line::Comment(Comment::from("ignored comment")),
+            vec![Line::Comment(Comment::from("about struct0")),
+                 Line::Comment(Comment::from("about struct1")),
                  Line::Empty,
                  Line::Comment(Comment::from("test comment0")),
                  Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
@@ -392,11 +401,18 @@ mod tests {
             ]
         ).compile();
 
-        let struct_body = if let syn::Body::Struct(x) = body {
+        let struct_body = if let syn::Body::Struct(x) = body.0 {
             x
         } else {
             unreachable!("This is a struct")
         };
+
+        let struct_attributes = body.1;
+
+        assert_eq!(quote!(
+            ///about struct0
+            ///about struct1
+        ), quote!{#(#struct_attributes)*});
         
         assert_eq!(quote!({
             ///test comment0
