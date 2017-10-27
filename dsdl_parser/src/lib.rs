@@ -235,6 +235,27 @@ impl FileName {
     pub fn split_namespace(&self) -> Vec<String> {
         self.namespace.split('.').map(|x| String::from(x)).collect()
     }
+    
+    /// Split a namespace into parts
+    ///
+    /// # Examples
+    /// ```
+    /// use dsdl_parser::FileName;
+    ///
+    /// let name = FileName {
+    ///                     id: Some(String::from("341")),
+    ///                     namespace: String::from("uavcan.protocol"),
+    ///                     name: String::from("NodeStatus"),
+    ///                     version: None,
+    /// };
+    ///
+    /// assert_eq!(name.rsplit_namespace(), vec!["protocol", "uavcan"]);
+    ///
+    /// ```
+    pub fn rsplit_namespace(&self) -> Vec<String> {
+        self.namespace.rsplit('.').map(|x| String::from(x)).collect()
+    }
+
 }
 
 
