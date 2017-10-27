@@ -11,8 +11,30 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
     fn compile(self) -> syn::Field {
         let ty = match self.array {
             dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
-            dsdl_parser::ArrayInfo::DynamicLess(_) => unimplemented!("Compilation for dynamic arrays is not implemented yet"),
-            dsdl_parser::ArrayInfo::DynamicLeq(_) => unimplemented!("Compilation for dynamic arrays is not implemented yet"),
+            dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
+                None, syn::Path{
+                    global: false,
+                    segments: vec![syn::PathSegment{
+                        ident: syn::Ident::from("Dynamic"),
+                        parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                            lifetimes: Vec::new(),
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), dsdl_parser::Size::from(u64::from(size) - 1).compile())],
+                            bindings: Vec::new(),
+                        })
+                    }],
+                }),
+            dsdl_parser::ArrayInfo::DynamicLeq(size) => syn::Ty::Path(
+                None, syn::Path{
+                    global: false,
+                    segments: vec![syn::PathSegment{
+                        ident: syn::Ident::from("Dynamic"),
+                        parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                            lifetimes: Vec::new(),
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), size.compile())],
+                            bindings: Vec::new(),
+                        })
+                    }],
+                }),
             dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile()), size.compile()),
         };
         
@@ -322,6 +344,25 @@ mod tests {
         }.compile();
 
         assert_eq!(quote!(pub name: [u3; 19]), quote!{#array_field});
+
+        let dynleq_array_field = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
+            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(pub name: Dynamic<[i29; 191]>), quote!{#dynleq_array_field});
+        
+        let dynless_array_field = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
+            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+        
+        assert_eq!(quote!(pub name: Dynamic<[bool; 370]>), quote!{#dynless_array_field});
+
     }
         
 
