@@ -4,6 +4,9 @@
 extern crate quote;
 extern crate dsdl_parser;
 extern crate syn;
+extern crate inflections;
+
+use inflections::Inflect;
 
 pub trait Compile<T> {
     fn compile(self) -> T;
@@ -89,7 +92,7 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                         if let Some(comment) = opt_comment {
                             current_comments.push(comment.compile());
                         }
-                        let mut field = def.compile();
+                        let mut field: syn::Field = def.compile();
                         field.attrs = current_comments.clone();
                         fields.push(field);
                         
@@ -144,6 +147,54 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
         }
     }
 }
+
+impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
+    fn compile(self) -> syn::Variant {
+        let ty = match self.array {
+            dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
+            dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
+                None, syn::Path{
+                    global: false,
+                    segments: vec![syn::PathSegment{
+                        ident: syn::Ident::from("Dynamic"),
+                        parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                            lifetimes: Vec::new(),
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), dsdl_parser::Size::from(u64::from(size) - 1).compile())],
+                            bindings: Vec::new(),
+                        })
+                    }],
+                }),
+            dsdl_parser::ArrayInfo::DynamicLeq(size) => syn::Ty::Path(
+                None, syn::Path{
+                    global: false,
+                    segments: vec![syn::PathSegment{
+                        ident: syn::Ident::from("Dynamic"),
+                        parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                            lifetimes: Vec::new(),
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), size.compile())],
+                            bindings: Vec::new(),
+                        })
+                    }],
+                }),
+            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile()), size.compile()),
+        };
+
+        syn::Variant {
+            ident: syn::Ident::from(String::from(self.name.unwrap()).to_pascal_case()),
+            attrs: Vec::new(),
+            discriminant: None,
+            data: syn::VariantData::Tuple(vec![
+                syn::Field{
+                    ident: None,
+                    vis: syn::Visibility::Inherited,
+                    attrs: Vec::new(),
+                    ty: ty,
+                }]
+            ),
+        }
+    }
+}
+
 
 impl Compile<syn::ConstExpr> for dsdl_parser::Size {
     fn compile(self) -> syn::ConstExpr {
@@ -515,10 +566,58 @@ mod tests {
             pub node_something: u7
         }), quote!{#struct_body});
     }
+    #[test]
+    fn compile_variant_def() {
+        let simple_field: syn::Variant = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
+            array: dsdl_parser::ArrayInfo::Single,
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(Name(u3)), quote!{#simple_field});
+
+        let composite_field: syn::Variant = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
+            array: dsdl_parser::ArrayInfo::Single,
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(Name(uavcan::protocol::NodeStatus)), quote!{#composite_field});
+
+        let array_field: syn::Variant = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
+            array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
+            name: Some(dsdl_parser::Ident::from("name")),
+        }.compile();
+
+        assert_eq!(quote!(Name([u3; 19])), quote!{#array_field});
+
+        let dynleq_array_field: syn::Variant = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
+            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
+            name: Some(dsdl_parser::Ident::from("long_name")),
+        }.compile();
+
+        assert_eq!(quote!(LongName(Dynamic<[i29; 191]>)), quote!{#dynleq_array_field});
+        
+        let dynless_array_field: syn::Variant = dsdl_parser::FieldDefinition{
+            cast_mode: None,
+            field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
+            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
+            name: Some(dsdl_parser::Ident::from("very_long_name")),
+        }.compile();
+        
+        assert_eq!(quote!(VeryLongName(Dynamic<[bool; 370]>)), quote!{#dynless_array_field});
+
+    }
     
     #[test]
     fn compile_field_def() {
-        let simple_field = dsdl_parser::FieldDefinition{
+        let simple_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Single,
@@ -527,7 +626,7 @@ mod tests {
 
         assert_eq!(quote!(pub name: u3), quote!{#simple_field});
 
-        let composite_field = dsdl_parser::FieldDefinition{
+        let composite_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
             array: dsdl_parser::ArrayInfo::Single,
@@ -536,7 +635,7 @@ mod tests {
 
         assert_eq!(quote!(pub name: uavcan::protocol::NodeStatus), quote!{#composite_field});
 
-        let array_field = dsdl_parser::FieldDefinition{
+        let array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
@@ -545,7 +644,7 @@ mod tests {
 
         assert_eq!(quote!(pub name: [u3; 19]), quote!{#array_field});
 
-        let dynleq_array_field = dsdl_parser::FieldDefinition{
+        let dynleq_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
@@ -554,7 +653,7 @@ mod tests {
 
         assert_eq!(quote!(pub name: Dynamic<[i29; 191]>), quote!{#dynleq_array_field});
         
-        let dynless_array_field = dsdl_parser::FieldDefinition{
+        let dynless_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
