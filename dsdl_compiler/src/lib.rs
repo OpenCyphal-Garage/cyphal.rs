@@ -70,7 +70,37 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
         
 
         if union {
-            unimplemented!("Unions are not implemented yet")
+            let mut variants = Vec::new();
+            let mut current_comments = Vec::new();
+            
+            for line in not_directives.clone() {
+                if let dsdl_parser::Line::Comment(comment) = line {
+                    current_comments.push(comment.compile());
+                } else {
+                    break
+                }
+            }
+            let attributes = current_comments.clone();
+
+            for line in not_directives {
+                match line {
+                    dsdl_parser::Line::Empty => current_comments = Vec::new(),
+                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile()),
+                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                        if let Some(comment) = opt_comment {
+                            current_comments.push(comment.compile());
+                        }
+                        let mut variant: syn::Variant = def.compile();
+                        variant.attrs = current_comments.clone();
+                        variants.push(variant);
+                        
+                        current_comments = Vec::new();
+                    },
+                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Const(_), _) => (), // const definitions is only used in the impls
+                    dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
+                }
+            }
+            (syn::Body::Enum(variants), attributes)
         } else {
             let mut fields = Vec::new();
             let mut current_comments = Vec::new();
@@ -566,6 +596,62 @@ mod tests {
             pub node_something: u7
         }), quote!{#struct_body});
     }
+
+    #[test]
+    fn compile_enum_body() {
+        let body = dsdl_parser::MessageDefinition(
+            vec![Line::Directive(dsdl_parser::Directive::Union, None),
+                 Line::Comment(Comment::from("about enum0")),
+                 Line::Comment(Comment::from("about enum1")),
+                 Line::Empty,
+                 Line::Comment(Comment::from("test comment0")),
+                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
+                     cast_mode: None,
+                     field_type: Ty::Primitive(PrimitiveType::Uint8),
+                     array: ArrayInfo::Single,
+                     name: Some(dsdl_parser::Ident::from("node_status")),
+                 }) , Some(Comment::from("test comment1"))),
+                 Line::Comment(Comment::from("ignored comment")),
+                 Line::Empty,
+                 Line::Comment(Comment::from("test comment2")),
+                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
+                     cast_mode: None,
+                     field_type: Ty::Primitive(PrimitiveType::Uint7),
+                     array: ArrayInfo::Single,
+                     name: Some(dsdl_parser::Ident::from("node_something")),
+                 }) , Some(Comment::from("test comment3"))),
+
+            ]
+        ).compile();
+
+        let enum_body = if let syn::Body::Enum(x) = body.0 {
+            x
+        } else {
+            unreachable!("This is an enum")
+        };
+
+        let struct_attributes = body.1;
+        let def0 = &enum_body[0];
+        let def1 = &enum_body[1];
+        
+        assert_eq!(quote!(
+            ///about enum0
+            ///about enum1
+        ), quote!{#(#struct_attributes)*});
+        
+        assert_eq!(quote!(
+            ///test comment0
+            ///test comment1
+            NodeStatus(u8)
+        ), quote!{#def0});
+
+        assert_eq!(quote!(
+            ///test comment2
+            ///test comment3
+            NodeSomething(u7)
+        ), quote!{#def1});
+    }
+    
     #[test]
     fn compile_variant_def() {
         let simple_field: syn::Variant = dsdl_parser::FieldDefinition{
