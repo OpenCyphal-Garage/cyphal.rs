@@ -15,7 +15,7 @@ pub trait Compile<T> {
 
 impl Compile<Vec<syn::Item>> for dsdl_parser::File {
     fn compile(self) -> Vec<syn::Item> {
-        match self.definition {
+        let mut items = match self.definition {
             dsdl_parser::TypeDefinition::Message(message) => {
                 let (body, attrs) = message.compile();
                 match body {
@@ -26,20 +26,7 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                             attrs: attrs,
                             node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
                         };
-
-                        let mut items = vec![definition];
-
-                        // put all the items into the correct namespace
-                        for mod_name in self.name.rsplit_namespace() {
-                            items = vec![syn::Item{
-                                ident: syn::Ident::from(mod_name),
-                                vis: syn::Visibility::Public,
-                                attrs: Vec::new(),
-                                node: syn::ItemKind::Mod(Some(items)),
-                            }];
-                        }
-
-                        items
+                        vec![definition]
                     },
                     syn::Body::Enum(variants) => {
                         let definition = syn::Item {
@@ -48,27 +35,27 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                             attrs: attrs,
                             node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
                         };
-                        
-                        let mut items = vec![definition];
-                        
-                        // put all the items into the correct namespace
-                        for mod_name in self.name.rsplit_namespace() {
-                            items = vec![syn::Item{
-                                ident: syn::Ident::from(mod_name),
-                                vis: syn::Visibility::Public,
-                                attrs: Vec::new(),
-                                node: syn::ItemKind::Mod(Some(items)),
-                            }];
-                        }
-
-                        items
+                        vec![definition]
                     },
+                    
                 }
             },
             dsdl_parser::TypeDefinition::Service(_service) => {
                 unimplemented!("Services are not implemented yet")
             },
+        };
+
+        // put all the items into the correct namespace
+        for mod_name in self.name.rsplit_namespace() {
+            items = vec![syn::Item{
+                ident: syn::Ident::from(mod_name),
+                vis: syn::Visibility::Public,
+                attrs: Vec::new(),
+                node: syn::ItemKind::Mod(Some(items)),
+            }];
         }
+
+        items        
     }
 }
 
