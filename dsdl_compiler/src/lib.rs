@@ -41,8 +41,27 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
 
                         items
                     },
-                    syn::Body::Enum(_variants) => {
-                        unimplemented!("Unions are not implemented yet")
+                    syn::Body::Enum(variants) => {
+                        let definition = syn::Item {
+                            ident: syn::Ident::from(self.name.name.clone()),
+                            vis: syn::Visibility::Public,
+                            attrs: attrs,
+                            node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                        };
+                        
+                        let mut items = vec![definition];
+                        
+                        // put all the items into the correct namespace
+                        for mod_name in self.name.rsplit_namespace() {
+                            items = vec![syn::Item{
+                                ident: syn::Ident::from(mod_name),
+                                vis: syn::Visibility::Public,
+                                attrs: Vec::new(),
+                                node: syn::ItemKind::Mod(Some(items)),
+                            }];
+                        }
+
+                        items
                     },
                 }
             },
@@ -498,6 +517,39 @@ mod tests {
     use dsdl_parser::Size;
     use dsdl_parser::Comment;
     use dsdl_parser::Line;
+
+
+    #[test]
+    fn compile_enum() {
+        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.param.Value")).unwrap().clone().compile();
+        
+        assert_eq!(quote!(#(#file)*), quote!{
+            pub mod uavcan {
+                pub mod protocol {
+                    pub mod param {
+                        ///
+                        /// Single parameter value.
+                        ///
+                        /// This is a union, which means that this structure can contain either one of the fields below.
+                        /// The structure is prefixed with tag - a selector value that indicates which particular field is encoded.
+                        ///
+                        pub enum Value {
+                            /// Empty field, used to represent an undefined value.
+                            Empty(Empty),
+                            IntegerValue(i64),
+                            /// 32-bit type is used to simplify implementation on low-end systems
+                            RealValue(f32),
+                            /// 8-bit value is used for alignment reasons
+                            BooleanValue(u8),
+                            /// Length prefix is exactly one byte long, which ensures proper alignment of payload
+                            StringValue(Dynamic<[u8; 128]>),
+                        }
+                    }
+                }
+            }
+        });
+    }
 
 
     #[test]
