@@ -21,6 +21,8 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
                 add_item(new_item, &mut items);
             }
         }
+        
+        // insert `pub(crate) use uavcan`
         items.insert(0,
                      syn::Item{
                          ident: syn::Ident::from(""),
@@ -33,6 +35,7 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
                      }
         );
                          
+        // insert `extern crate uavcan as uavcan_rs`
         items.insert(0,
                      syn::Item{
                          ident: syn::Ident::from("uavcan_rs"),
