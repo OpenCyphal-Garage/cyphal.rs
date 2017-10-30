@@ -10,7 +10,7 @@ pub(crate) struct InputFlags {
 
 fn options() -> Options {
     let mut opts = Options::new();
-    opts.optopt("o", "output", "set output dir name", "NAME");
+    opts.optopt("o", "output", "set output file name", "NAME");
     opts.optopt("i", "input", "set input dir/file name", "NAME");
     opts.optflag("h", "help", "print this help menu");
     opts
