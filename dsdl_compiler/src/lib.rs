@@ -12,6 +12,16 @@ pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
+impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
+    fn compile(self) -> Vec<syn::Item> {
+        let mut items = Vec::new();
+        for file in self.files() {
+            items.append(&mut file.clone().compile());
+        }
+        items
+    }
+}
+            
 
 impl Compile<Vec<syn::Item>> for dsdl_parser::File {
     fn compile(self) -> Vec<syn::Item> {
@@ -539,6 +549,12 @@ mod tests {
     use dsdl_parser::Comment;
     use dsdl_parser::Line;
 
+    #[test]
+    fn compile_dsdl() {
+        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let items = dsdl.compile();
+    }    
+    
     #[test]
     fn compile_service() {
         let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
