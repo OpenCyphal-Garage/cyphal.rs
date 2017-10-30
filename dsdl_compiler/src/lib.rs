@@ -136,6 +136,7 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
             }
         }
         let attributes = current_comments.clone();
+        let mut void_number = 0;
 
         if union {
             let mut variants = Vec::new();
@@ -149,8 +150,12 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                         if let Some(comment) = opt_comment {
                             current_comments.push(comment.compile());
                         }
-                        let mut variant: syn::Variant = def.compile();
+                        let mut variant: syn::Variant = def.clone().compile();
                         variant.attrs = current_comments.clone();
+                        if def.field_type.is_void() {
+                            variant.ident = syn::Ident::from(format!("_V{}", void_number));
+                            void_number += 1;
+                        }
                         variants.push(variant);
                         
                         current_comments = Vec::new();
@@ -172,7 +177,11 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                         if let Some(comment) = opt_comment {
                             current_comments.push(comment.compile());
                         }
-                        let mut field: syn::Field = def.compile();
+                        let mut field: syn::Field = def.clone().compile();
+                        if def.field_type.is_void() {
+                            field.ident = Some(syn::Ident::from(format!("_v{}", void_number)));
+                            void_number += 1;
+                        }
                         field.attrs = current_comments.clone();
                         fields.push(field);
                         
