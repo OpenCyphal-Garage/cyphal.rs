@@ -711,6 +711,15 @@ pub enum Ty{
     Composite(CompositeType),
 }
 
+impl Ty {
+    pub fn is_void(&self) -> bool {
+        match *self{
+            Ty::Primitive(ref x) => x.is_void(),
+            Ty::Composite(_) => false,
+        }
+    }
+}
+
 impl From<PrimitiveType> for Ty {
     fn from(t: PrimitiveType) -> Ty {
         Ty::Primitive(t)
@@ -978,7 +987,7 @@ impl FromStr for PrimitiveType {
 }
 
 impl PrimitiveType {
-    fn is_void(&self) -> bool {
+    pub fn is_void(&self) -> bool {
         match *self {
             PrimitiveType::Void1 => true,
             PrimitiveType::Void2 => true,
