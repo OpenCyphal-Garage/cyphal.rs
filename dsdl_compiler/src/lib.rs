@@ -16,10 +16,36 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
     fn compile(self) -> Vec<syn::Item> {
         let mut items = Vec::new();
         for file in self.files() {
-            items.append(&mut file.clone().compile());
+            let mut new_items = file.clone().compile();
+            for new_item in new_items {
+                add_item(new_item, &mut items);
+            }
         }
         items
     }
+}
+
+fn add_item(new_item: syn::Item, items: &mut Vec<syn::Item>) {
+    if let (module_name, syn::ItemKind::Mod(Some(new_sub_items))) = (&new_item.ident.clone(), new_item.node.clone()) {
+        match items.iter_mut().find(|x| {
+            if let syn::ItemKind::Mod(_) = x.node {
+                x.ident == module_name
+            } else {
+                false
+            }
+        }) {
+            Some(&mut syn::Item{node: syn::ItemKind::Mod(Some(ref mut module)), ..}) => {
+                for new_sub_item in new_sub_items {
+                    add_item(new_sub_item, module);
+                }
+                return
+            },
+            None => (),
+            _ => unreachable!(),
+        }
+    } 
+
+    items.push(new_item.clone());
 }
             
 
