@@ -254,7 +254,7 @@ impl Compile<syn::Attribute> for dsdl_parser::Comment {
     fn compile(self) -> syn::Attribute {
         syn::Attribute{
             style: syn::AttrStyle::Outer,
-            value: syn::MetaItem::NameValue(syn::Ident::from("doc"), syn::Lit::Str(String::from(self.as_ref()), syn::StrStyle::Raw(0))),
+            value: syn::MetaItem::NameValue(syn::Ident::from("doc"), syn::Lit::Str(String::from(self.as_ref()), syn::StrStyle::Cooked)),
             is_sugared_doc: true,
         }
     }
@@ -515,21 +515,21 @@ mod tests {
             pub mod uavcan {
                 pub mod protocol {
                     pub mod param {
-                        ///
-                        /// Single parameter value.
-                        ///
-                        /// This is a union, which means that this structure can contain either one of the fields below.
-                        /// The structure is prefixed with tag - a selector value that indicates which particular field is encoded.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Single parameter value."]
+                        #[doc = ""]
+                        #[doc = " This is a union, which means that this structure can contain either one of the fields below."]
+                        #[doc = " The structure is prefixed with tag - a selector value that indicates which particular field is encoded."]
+                        #[doc = ""]
                         pub enum Value {
-                            /// Empty field, used to represent an undefined value.
+                            #[doc = " Empty field, used to represent an undefined value."]
                             Empty(Empty),
                             IntegerValue(i64),
-                            /// 32-bit type is used to simplify implementation on low-end systems
+                            #[doc = " 32-bit type is used to simplify implementation on low-end systems"]
                             RealValue(f32),
-                            /// 8-bit value is used for alignment reasons
+                            #[doc = " 8-bit value is used for alignment reasons"]
                             BooleanValue(u8),
-                            /// Length prefix is exactly one byte long, which ensures proper alignment of payload
+                            #[doc = " Length prefix is exactly one byte long, which ensures proper alignment of payload"]
                             StringValue(Dynamic<[u8; 128]>),
                         }
                     }
@@ -547,38 +547,38 @@ mod tests {
         assert_eq!(quote!(#(#file)*), quote!{
             pub mod uavcan {
                 pub mod protocol {
-                    ///
-                    /// Abstract node status information.
-                    ///
-                    /// Any UAVCAN node is required to publish this message periodically.
-                    ///
+                    #[doc = ""]
+                    #[doc = " Abstract node status information."]
+                    #[doc = ""]
+                    #[doc = " Any UAVCAN node is required to publish this message periodically."]
+                    #[doc = ""]
                     pub struct NodeStatus {
-                        ///
-                        /// Uptime counter should never overflow.
-                        /// Other nodes may detect that a remote node has restarted when this value goes backwards.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Uptime counter should never overflow."]
+                        #[doc = " Other nodes may detect that a remote node has restarted when this value goes backwards."]
+                        #[doc = ""]
                         pub uptime_sec: u32,
-                        ///
-                        /// Abstract node health.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Abstract node health."]
+                        #[doc = ""]
                         pub health: u2,
-                        ///
-                        /// Current mode.
-                        ///
-                        /// Mode OFFLINE can be actually reported by the node to explicitly inform other network
-                        /// participants that the sending node is about to shutdown. In this case other nodes will not
-                        /// have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available.
-                        ///
-                        /// Reserved values can be used in future revisions of the specification.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Current mode."]
+                        #[doc = ""]
+                        #[doc = " Mode OFFLINE can be actually reported by the node to explicitly inform other network"]
+                        #[doc = " participants that the sending node is about to shutdown. In this case other nodes will not"]
+                        #[doc = " have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available."]
+                        #[doc = ""]
+                        #[doc = " Reserved values can be used in future revisions of the specification."]
+                        #[doc = ""]
                         pub mode: u3,
-                        ///
-                        /// Not used currently, keep zero when publishing, ignore when receiving.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Not used currently, keep zero when publishing, ignore when receiving."]
+                        #[doc = ""]
                         pub sub_mode: u3,
-                        ///
-                        /// Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.
-                        ///
+                        #[doc = ""]
+                        #[doc = " Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."]
+                        #[doc = ""]
                         pub vendor_specific_status_code: u16
                     }
                 }
@@ -622,16 +622,16 @@ mod tests {
         let struct_attributes = body.1;
 
         assert_eq!(quote!(
-            ///about struct0
-            ///about struct1
+            #[doc = "about struct0"]
+            #[doc = "about struct1"]
         ), quote!{#(#struct_attributes)*});
         
         assert_eq!(quote!({
-            ///test comment0
-            ///test comment1
+            #[doc = "test comment0"]
+            #[doc = "test comment1"]
             pub node_status: u8,
-            ///test comment2
-            ///test comment3
+            #[doc = "test comment2"]
+            #[doc = "test comment3"]
             pub node_something: u7
         }), quote!{#struct_body});
     }
@@ -674,19 +674,19 @@ mod tests {
         let def1 = &enum_body[1];
         
         assert_eq!(quote!(
-            ///about enum0
-            ///about enum1
+            #[doc = "about enum0"]
+            #[doc = "about enum1"]
         ), quote!{#(#struct_attributes)*});
         
         assert_eq!(quote!(
-            ///test comment0
-            ///test comment1
+            #[doc = "test comment0"]
+            #[doc = "test comment1"]
             NodeStatus(u8)
         ), quote!{#def0});
 
         assert_eq!(quote!(
-            ///test comment2
-            ///test comment3
+            #[doc = "test comment2"]
+            #[doc = "test comment3"]
             NodeSomething(u7)
         ), quote!{#def1});
     }
@@ -827,7 +827,7 @@ mod tests {
     #[test]
     fn compile_comment() {
         let comment = Comment::from(" test comment").compile();
-        assert_eq!(quote!{/// test comment
+        assert_eq!(quote!{#[doc = " test comment"]
         }, quote!{#comment});
     }
 }
