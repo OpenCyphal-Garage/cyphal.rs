@@ -116,22 +116,21 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                 union = true;
             }
         }
-
+        let mut current_comments = Vec::new();
         
+        for line in not_directives.clone() {
+            if let dsdl_parser::Line::Comment(comment) = line {
+                current_comments.push(comment.compile());
+            } else {
+                break
+            }
+        }
+        let attributes = current_comments.clone();
 
         if union {
             let mut variants = Vec::new();
-            let mut current_comments = Vec::new();
+            current_comments = Vec::new();
             
-            for line in not_directives.clone() {
-                if let dsdl_parser::Line::Comment(comment) = line {
-                    current_comments.push(comment.compile());
-                } else {
-                    break
-                }
-            }
-            let attributes = current_comments.clone();
-
             for line in not_directives {
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
@@ -153,17 +152,8 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
             (syn::Body::Enum(variants), attributes)
         } else {
             let mut fields = Vec::new();
-            let mut current_comments = Vec::new();
+            current_comments = Vec::new();
             
-            for line in not_directives.clone() {
-                if let dsdl_parser::Line::Comment(comment) = line {
-                    current_comments.push(comment.compile());
-                } else {
-                    break
-                }
-            }
-            let attributes = current_comments.clone();
-
             for line in not_directives {
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
