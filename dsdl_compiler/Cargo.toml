@@ -13,11 +13,15 @@ categories = ["command-lines-utilities"]
 
 license = "Apache-2.0/MIT"
 
+[features]
+default = ["binary"]
+binary = ["getopts"]
 
 [[bin]]
 doc = false
 name = "dsdlc"
 path = "src/bin/main.rs"
+required-features = ["binary"]
 
 
 [dependencies]
@@ -28,6 +32,10 @@ inflections = "1.1"
 [dependencies.syn]
 version = "^0.11.11"
 features = ["full"]
+
+[dependencies.getopts]
+version = "0.2"
+optional = true
 
 [badges]
 travis-ci = {repository = "UAVCAN/uavcan.rs", branch = "master"}
