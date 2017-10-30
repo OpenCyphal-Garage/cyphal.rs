@@ -21,6 +21,27 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
                 add_item(new_item, &mut items);
             }
         }
+        items.insert(0,
+                     syn::Item{
+                         ident: syn::Ident::from(""),
+                         vis: syn::Visibility::Crate,
+                         attrs: Vec::new(),
+                         node: syn::ItemKind::Use(Box::new(syn::ViewPath::Glob(syn::Path{global: false, segments: vec![
+                             syn::PathSegment{ident: syn::Ident::from("uavcan_rs"), parameters: syn::PathParameters::none()},
+                             syn::PathSegment{ident: syn::Ident::from("types"), parameters: syn::PathParameters::none()},
+                         ]}))),
+                     }
+        );
+                         
+        items.insert(0,
+                     syn::Item{
+                         ident: syn::Ident::from("uavcan_rs"),
+                         vis: syn::Visibility::Inherited,
+                         attrs: Vec::new(),
+                         node: syn::ItemKind::ExternCrate(Some(syn::Ident::from("uavcan"))),
+                     }
+        );
+                         
         items
     }
 }
