@@ -40,8 +40,52 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                     
                 }
             },
-            dsdl_parser::TypeDefinition::Service(_service) => {
-                unimplemented!("Services are not implemented yet")
+            dsdl_parser::TypeDefinition::Service(service) => {
+                let request_def = {
+                    let (body, attrs) = service.request.compile();
+                    match body {
+                        syn::Body::Struct(variant_data) => {
+                            syn::Item {
+                                ident: syn::Ident::from(self.name.name.clone() + "Request"),
+                                vis: syn::Visibility::Public,
+                                attrs: attrs,
+                                node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                            }
+                        },
+                        syn::Body::Enum(variants) => {
+                            syn::Item {
+                                ident: syn::Ident::from(self.name.name.clone()),
+                                vis: syn::Visibility::Public,
+                                attrs: attrs,
+                                node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                            }
+                        },
+                    }
+                };
+
+                let response_def = {
+                    let (body, attrs) = service.response.compile();
+                    match body {
+                        syn::Body::Struct(variant_data) => {
+                            syn::Item {
+                                ident: syn::Ident::from(self.name.name.clone() + "Response"),
+                                vis: syn::Visibility::Public,
+                                attrs: attrs,
+                                node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                            }
+                        },
+                        syn::Body::Enum(variants) => {
+                            syn::Item {
+                                ident: syn::Ident::from(self.name.name.clone()),
+                                vis: syn::Visibility::Public,
+                                attrs: attrs,
+                                node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
+                            }
+                        },
+                    }
+                };
+
+                vec![request_def, response_def]
             },
         };
 
@@ -505,6 +549,45 @@ mod tests {
     use dsdl_parser::Comment;
     use dsdl_parser::Line;
 
+    #[test]
+    fn compile_service() {
+        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.GetNodeInfo")).unwrap().clone().compile();
+        
+        assert_eq!(quote!(#(#file)*), quote!{
+            pub mod uavcan {
+                pub mod protocol {
+                    #[doc = ""]
+                    #[doc = " Full node info request."]
+                    #[doc = " Note that all fields of the response section are byte-aligned."]
+                    #[doc = ""]
+                    pub struct GetNodeInfoRequest {}
+
+                    pub struct GetNodeInfoResponse {
+                        #[doc = ""]
+                        #[doc = " Current node status"]
+                        #[doc = ""]
+                        pub status: NodeStatus,
+                        
+                        #[doc = ""]
+                        #[doc = " Version information shall not be changed while the node is running."]
+                        #[doc = ""]
+                        pub software_version: SoftwareVersion,
+                        pub hardware_version: HardwareVersion,
+                        
+                        #[doc = ""]
+                        #[doc = " Human readable non-empty ASCII node name."]
+                        #[doc = " Node name shall not be changed while the node is running."]
+                        #[doc = " Empty string is not a valid node name."]
+                        #[doc = " Allowed characters are: a-z (lowercase ASCII letters) 0-9 (decimal digits) . (dot) - (dash) _ (underscore)."]
+                        #[doc = " Node name is a reversed internet domain name (like Java packages), e.g. \"com.manufacturer.project.product\"."]
+                        #[doc = ""]
+                        pub name: Dynamic<[u8; 80]>
+                    }
+                }
+            }
+        });
+    }
 
     #[test]
     fn compile_enum() {
