@@ -169,8 +169,8 @@ mod tests {
         #[derive(Debug, PartialEq, UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
-            source: DynamicArray31<u8>,
-            text: DynamicArray90<u8>,
+            source: Dynamic<[u8; 31]>,
+            text: Dynamic<[u8; 90]>,
         }
 
         impl Message for LogMessage {
@@ -179,8 +179,8 @@ mod tests {
          
         let uavcan_frame = Frame::from_message(LogMessage{
             level: LogLevel{value: u3::new(0)},
-            source: DynamicArray31::with_str("test source"),
-            text: DynamicArray90::with_str("test text"),
+            source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
+            text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
         let crc = 0;
@@ -210,7 +210,7 @@ mod tests {
             data: [b'x', b't', TailByte::new(false, true, true, TransferID::new(0)).into(), 0, 0, 0, 0, 0],
         }).unwrap();
 
-        assert_eq!(uavcan_frame.body.source.length().current_length, 11);
+        assert_eq!(uavcan_frame.body.source.length(), 11);
         assert_eq!(uavcan_frame, message_builder.build().unwrap());
         
     }

@@ -192,10 +192,6 @@ mod tests {
     
     use uavcan;
 
-    use {
-        DynamicArray,
-    };
-
     use serializer::*;
     
     use types::*;
@@ -306,9 +302,9 @@ mod tests {
 
     #[test]
     fn uavcan_serialize_dynamic_array() {
-        let a1: DynamicArray4<u2> = DynamicArray4::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
-        let a2: DynamicArray6<u2> = DynamicArray6::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
-        let a3: DynamicArray4<u7> = DynamicArray4::with_data(&[u7::new(1), u7::new(2), u7::new(4), u7::new(8)]);
+        let a1 = Dynamic::<[u2; 4]>::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
+        let a2 = Dynamic::<[u2; 6]>::with_data(&[u2::new(1), u2::new(0), u2::new(1), u2::new(0), u2::new(1), u2::new(0)]);
+        let a3 = Dynamic::<[u7; 4]>::with_data(&[u7::new(1), u7::new(2), u7::new(4), u7::new(8)]);
 
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
@@ -330,7 +326,7 @@ mod tests {
 
     #[test]
     fn uavcan_serialize_dynamic_array_without_length() {
-        let a: DynamicArray6<u7> = DynamicArray6::with_data(&[u7::new(1), u7::new(1), u7::new(1), u7::new(1)]);
+        let a = Dynamic::<[u7; 6]>::with_data(&[u7::new(1), u7::new(1), u7::new(1), u7::new(1)]);
 
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);

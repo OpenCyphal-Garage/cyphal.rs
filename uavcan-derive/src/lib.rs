@@ -82,13 +82,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         for (i, field) in variant_data.fields().iter().enumerate() {
             let field_ident = &field.ident;
             let field_type = &field.ty;
-            let field_type_path_segment: &syn::Ident = {
-                if let syn::Ty::Path(_, ref path) = *field_type {
-                    &path.segments.as_slice().last().unwrap().ident
-                } else {
-                    panic!("Type name not found")
-                }
-            };
 
             if i != 0 { serialize_builder.append(quote!{ else });}
             
@@ -103,27 +96,17 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 }});                
                 field_index.append(quote!{ +1});
             } else if is_dynamic_array(field_type) {
-                let element_type = {
-                    if let syn::Ty::Path(_, ref path) = *field_type {
-                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
-                            &param_data.types[0]
-                        } else {
-                            panic!("Element type name not found")
-                        }
-                    } else {
-                        panic!("Type name not found")
-                    }
-                };
+                let array_type = array_from_dynamic(field_type);
                 
                 // check for tail optimization
                 if i == variant_data.fields().len() - 1 {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
-                        let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
+                        let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
                         if self.#field_ident.serialize(&mut skewed_bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
-                            *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
+                            *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
                             return uavcan::SerializationResult::BufferFull;
                         }                        
                     }});
@@ -165,13 +148,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         for (i, field) in variant_data.fields().iter().enumerate() {
             let field_ident = &field.ident;
             let field_type = &field.ty;
-            let field_type_path_segment: &syn::Ident = {
-                if let syn::Ty::Path(_, ref path) = *field_type {
-                    &path.segments.as_slice().last().unwrap().ident
-                } else {
-                    panic!("Type name not found")
-                }
-            };
             
             if i != 0 { deserialize_builder.append(quote!{ else });}
             
@@ -186,25 +162,20 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 }});                
                 field_index.append(quote!{ +1});
             } else if is_dynamic_array(field_type) {
-                let element_type = {
-                    if let syn::Ty::Path(_, ref path) = *field_type {
-                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
-                            &param_data.types[0]
-                        } else {
-                            panic!("Element type name not found")
-                        }
-                    } else {
-                        panic!("Type name not found")
-                    }
+                let array_type = array_from_dynamic(field_type).unwrap();
+                let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
+                    element_type
+                } else {
+                    panic!("element type name not found")
                 };
                 
                 // check for tail optimization
                 if i == variant_data.fields().len() - 1 {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                        let mut skewed_bit = *bit + #field_type_path_segment::<#element_type>::length_bit_length();
+                        let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
                         self.#field_ident.set_length( ( <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH-1 + *bit + buffer.bit_length()) / <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH );
                         self.#field_ident.deserialize(&mut skewed_bit, buffer);
-                        *bit = skewed_bit - #field_type_path_segment::<#element_type>::length_bit_length();
+                        *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
                         return uavcan::DeserializationResult::Finished;                         
                     }});
                     field_index.append(quote!{ +1});
@@ -242,31 +213,14 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         
         for (i, field) in variant_data.fields().iter().enumerate() {
             let field_type = &field.ty;
-            let field_type_path_segment: &syn::Ident = {
-                if let syn::Ty::Path(_, ref path) = *field_type {
-                    &path.segments.as_slice().last().unwrap().ident
-                } else {
-                    panic!("Type name not found")
-                }
-            };
             
             if i != 0 {bit_length_builder.append(quote!{ + });}
             
             if i == variant_data.fields().len() - 1 && is_dynamic_array(field_type) {
-                let element_type = {
-                    if let syn::Ty::Path(_, ref path) = *field_type {
-                        if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
-                            &param_data.types[0]
-                        } else {
-                            panic!("Element type name not found")
-                        }
-                    } else {
-                        panic!("Type name not found")
-                    }
-                };
-                
+                let array_type = array_from_dynamic(field_type);
+                    
                 bit_length_builder.append(bit_length(field));
-                bit_length_builder.append(quote!{ - #field_type_path_segment::<#element_type>::length_bit_length()});
+                bit_length_builder.append(quote!{ - Dynamic::<#array_type>::LENGTH_BITS});
             } else {
                 bit_length_builder.append(bit_length(field));
             }
@@ -329,57 +283,55 @@ fn is_primitive_type(type_name: &syn::Ty) -> bool {
 
 fn is_dynamic_array(type_name: &syn::Ty) -> bool {
     if let syn::Ty::Path(_, ref path) = *type_name {
-        if path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray3").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray4").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray5").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray6").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray7").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray8").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray9").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray10").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray11").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray12").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray13").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray14").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray15").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray16").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray31").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray32").expect("") ||
-            path.segments.as_slice().last().unwrap().ident == syn::parse::ident("DynamicArray90").expect("") {
-                return true;
-            }
+        if path.segments.as_slice().last().unwrap().ident == syn::parse::ident("Dynamic").expect("") {
+            return true;
+        }
     }
     false
+}
+
+fn array_from_dynamic(type_name: &syn::Ty) -> Option<syn::Ty> {
+    if let syn::Ty::Path(_, ref path) = *type_name {
+        if path.segments.as_slice().last().unwrap().ident == syn::Ident::from("Dynamic") {
+            if let syn::PathSegment{
+                parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                    ref types, ..
+                }), ..
+            } = *path.segments.as_slice().last().unwrap() {
+                return Some(types[0].clone());
+            }
+        }
+    }
+    None
 }
 
 fn bit_length(field: &syn::Field) -> Tokens {
     let field_ident = &field.ident;
     let field_type = &field.ty;
-    let field_type_path_segment: &syn::Ident = {
-        if let syn::Ty::Path(_, ref path) = *field_type {
-            &path.segments.as_slice().last().unwrap().ident
-        } else {
-            panic!("Type name not found")
-        }
-    };
 
     if is_primitive_type(field_type) {
         quote!{<#field_type as uavcan::types::PrimitiveType>::BIT_LENGTH}
     } else if is_dynamic_array(field_type) {
-        let element_type = {
-            if let syn::Ty::Path(_, ref path) = *field_type {
-                if let syn::PathParameters::AngleBracketed(ref param_data) = path.segments.as_slice().last().unwrap().parameters {
-                    &param_data.types[0]
-                } else {
-                    panic!("Element type name not found")
-                }
-            } else {
-                panic!("Type name not found")
-            }
+        let array_type = array_from_dynamic(field_type).unwrap();
+        let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
+            element_type
+        } else {
+            panic!("element type name not found")
         };
-
-        quote!{(#field_type_path_segment::<#element_type>::length_bit_length() + self.#field_ident.length().current_length * #element_type::BIT_LENGTH)}
+        
+        quote!{(Dynamic::<#array_type>::LENGTH_BITS + self.#field_ident.length() * #element_type::BIT_LENGTH)}
     } else {
         quote!{self.#field_ident.bit_length()}
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use *;
+    
+    #[test]
+    fn array_from_dynamic_test() {
+        assert_eq!(array_from_dynamic(&syn::parse::ty("Dynamic<[u7; 9]>").expect("")), Some(syn::parse::ty("[u7; 9]").expect(""))); 
     }
 }

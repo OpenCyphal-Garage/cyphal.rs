@@ -203,64 +203,6 @@ impl<T: Struct> Frame<T> {
 
 
 
-pub struct DynamicArrayLength {
-    bit_length: usize,
-    pub current_length: usize,
-}
-
-pub trait DynamicArray {
-    fn length_bit_length() -> usize where Self: Sized;
-    
-    fn length(&self) -> DynamicArrayLength;
-    fn set_length(&mut self, length: usize);
-
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-
-}
-
-
-impl DynamicArrayLength {
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-        let type_bits_remaining = self.bit_length - *bit;
-        let buffer_bits_remaining = buffer.bits_remaining();
-
-        if buffer_bits_remaining >= type_bits_remaining {
-            buffer.push_bits(type_bits_remaining, self.current_length.get_bits((*bit as u8)..(self.bit_length as u8)) as u64);
-            *bit = self.bit_length;
-            SerializationResult::Finished
-        } else {
-            buffer.push_bits(buffer_bits_remaining, self.current_length.get_bits((*bit as u8)..(*bit + buffer_bits_remaining) as u8) as u64);
-            *bit += buffer_bits_remaining;
-            SerializationResult::BufferFull
-        }
-    }
-
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-        let buffer_len = buffer.bit_length();
-        if buffer_len + *bit < self.bit_length {
-            self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
-            *bit += buffer_len;
-            DeserializationResult::BufferInsufficient
-        } else {
-            self.current_length.set_bits(*bit as u8..self.bit_length as u8, buffer.pop_bits(self.bit_length-*bit) as usize);
-            *bit += self.bit_length;
-            DeserializationResult::Finished
-        }
-    }
-        
-}
-
-
-
-
-
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {

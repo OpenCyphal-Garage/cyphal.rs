@@ -14,10 +14,7 @@ use lib::core::ops::{
     IndexMut,
 };
 
-use {
-    DynamicArray,
-    DynamicArrayLength,
-};
+use bit_field::BitField;
 
 use serializer::{
     SerializationResult,
@@ -80,84 +77,29 @@ pub trait PrimitiveType : Sized + Copy{
     }
 }
 
+/// This trait is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
+pub trait Array {
+    const LENGTH: usize;
+    type ELEMENT_TYPE;
+    
+    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
 
-macro_rules! dynamic_array_def {
-    ($i:ident, $n:expr, $log_bits:expr) => {
-
-        pub struct $i<T: PrimitiveType> {
-            current_size: usize,
-            data: [T; $n],
-        }
-        
-        impl<T: PrimitiveType + Copy> $i<T> {
-            pub fn with_data(data: &[T]) -> Self {
-                let mut data_t = [data[0]; $n];
-                data_t[0..data.len()].clone_from_slice(data);
-                Self{
-                    current_size: data.len(),
-                    data: data_t,
-                }
-            }
+macro_rules! impl_array{
+    {[$($size:expr), *]} => {$(impl_array!($size);)*};
+    {$size:expr} => {
+        impl<T: PrimitiveType> Array for [T; $size] {
+            const LENGTH: usize = $size;
+            type ELEMENT_TYPE = T;
             
-            pub fn iter(&self) -> lib::core::slice::Iter<T> {
-                self.data[0..self.current_size].iter()
-            }
-        
-            pub fn iter_mut(&mut self) -> lib::core::slice::IterMut<T> {
-                self.data[0..self.current_size].iter_mut()
-            }
-        }
-        
-        impl $i<u8>{
-            pub fn with_str(string: &str) -> Self {
-                let mut data: [u8; $n] = [0.into(); $n];
-                for (i, element) in data.iter_mut().enumerate().take(string.len()) {
-                    *element = string.as_bytes()[i].into();
-                }
-                Self{
-                    current_size: string.len(),
-                    data: data,
-                }
-            }
-        }
-
-        impl<T: PrimitiveType> Index<usize> for $i<T> {
-            type Output = T;
-            
-            fn index(&self, index: usize) -> &T {
-                &self.data[0..self.current_size][index]
-            }
-        }
-        
-        impl< T: PrimitiveType> IndexMut<usize> for $i<T> {
-            fn index_mut(&mut self, index: usize) -> &mut T {
-                &mut self.data[0..self.current_size][index]
-            }
-        }
-
-
-            
-        impl<T: PrimitiveType> DynamicArray for $i<T> {
-            fn length_bit_length() -> usize {$log_bits}
-            
-            fn length(&self) -> DynamicArrayLength {DynamicArrayLength{bit_length: $log_bits, current_length: self.current_size}}
-            fn set_length(&mut self, length: usize) {self.current_size = length;}
-
             fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                // serialize length
-                if *bit < self.length().bit_length {
-                    match self.length().serialize(bit, buffer) {
-                        SerializationResult::Finished => {
-                        },
-                        SerializationResult::BufferFull => {
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                }
+                let mut start_element = *bit / T::BIT_LENGTH;
+                let start_element_bit = *bit % T::BIT_LENGTH;
                 
-                let mut start_element = (*bit - Self::length_bit_length()) / T::BIT_LENGTH;
-                let start_element_bit = (*bit - Self::length_bit_length()) % T::BIT_LENGTH;
-
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
                     let mut bits_serialized = start_element_bit;
@@ -172,7 +114,7 @@ macro_rules! dynamic_array_def {
                     }
                     start_element += 1;
                 }
-
+                
                 for element in self.iter().skip(start_element) {
                     let mut bits_serialized = 0;
                     match element.serialize(&mut bits_serialized, buffer) {
@@ -185,27 +127,14 @@ macro_rules! dynamic_array_def {
                         },
                     }
                 }
-
+                
                 SerializationResult::Finished
             }
             
             fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 
-                // deserialize length
-                if *bit < self.length().bit_length {
-                    let mut length = self.length();
-                    match length.deserialize(bit, buffer) {
-                        DeserializationResult::Finished => {
-                            self.set_length(length.current_length); // ugly hack, fix when dispatching is mostly done static
-                        }, 
-                        DeserializationResult::BufferInsufficient => {
-                            return DeserializationResult::BufferInsufficient
-                        },
-                    }
-                }
-                
-                let mut start_element = (*bit - Self::length_bit_length()) / T::BIT_LENGTH;
-                let start_element_bit = (*bit - Self::length_bit_length()) % T::BIT_LENGTH;
+                let mut start_element = *bit / T::BIT_LENGTH;
+                let start_element_bit = *bit % T::BIT_LENGTH;
                 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
@@ -237,19 +166,232 @@ macro_rules! dynamic_array_def {
 
                 DeserializationResult::Finished
             }
-            
-            
         }
-        
-        // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: PrimitiveType + cmp::PartialEq> cmp::PartialEq for $i<T> {
-            fn eq(&self, other: &Self) -> bool {
-                if self.current_size != other.current_size {
-                    return false;
+    };
+}
+
+impl_array!([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+impl_array!([10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
+impl_array!([20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
+impl_array!([30, 31, 32, 33, 34, 35, 36, 37, 38, 39]);
+impl_array!([40, 41, 42, 43, 44, 45, 46, 47, 48, 49]);
+impl_array!([50, 51, 52, 53, 54, 55, 56, 57, 58, 59]);
+impl_array!([60, 61, 62, 63, 64, 65, 66, 67, 68, 69]);
+impl_array!([70, 71, 72, 73, 74, 75, 76, 77, 78, 79]);
+impl_array!([80, 81, 82, 83, 84, 85, 86, 87, 88, 89]);
+impl_array!([90, 91, 92, 93, 94, 95, 96, 97, 98, 99]);
+
+impl_array!([100, 101, 102, 103, 104, 105, 106, 107, 108, 109]);
+impl_array!([110, 111, 112, 113, 114, 115, 116, 117, 118, 119]);
+impl_array!([120, 121, 122, 123, 124, 125, 126, 127, 128, 129]);
+impl_array!([130, 131, 132, 133, 134, 135, 136, 137, 138, 139]);
+impl_array!([140, 141, 142, 143, 144, 145, 146, 147, 148, 149]);
+impl_array!([150, 151, 152, 153, 154, 155, 156, 157, 158, 159]);
+impl_array!([160, 161, 162, 163, 164, 165, 166, 167, 168, 169]);
+impl_array!([170, 171, 172, 173, 174, 175, 176, 177, 178, 179]);
+impl_array!([180, 181, 182, 183, 184, 185, 186, 187, 188, 189]);
+impl_array!([190, 191, 192, 193, 194, 195, 196, 197, 198, 199]);
+
+impl_array!([200, 201, 202, 203, 204, 205, 206, 207, 208, 209]);
+impl_array!([210, 211, 212, 213, 214, 215, 216, 217, 218, 219]);
+impl_array!([220, 221, 222, 223, 224, 225, 226, 227, 228, 229]);
+impl_array!([230, 231, 232, 233, 234, 235, 236, 237, 238, 239]);
+impl_array!([240, 241, 242, 243, 244, 245, 246, 247, 248, 249]);
+impl_array!([250, 251, 252, 253, 254, 255]);
+
+/// The Uavcan dynamic array type
+///
+/// # Examples
+/// ```
+/// use uavcan::types::*;
+///
+/// let dynamic_array = Dynamic::<[u8; 90]>::with_data("dynamic array".as_bytes());
+///
+/// assert_eq!(dynamic_array.length(), 13);
+///
+/// ```
+pub struct Dynamic<T> {
+    array: T,
+    current_length: usize,
+}
+
+macro_rules! impl_dynamic{
+    {[$(($size:expr, $length_bits:expr)), *]} => {$(impl_dynamic!(($size, $length_bits));)*};
+    {($size:expr, $length_bits:expr)} => {
+        impl<T: PrimitiveType> Dynamic<[T; $size]> {
+            pub const LENGTH_BITS: usize = $length_bits;
+            pub const MAX_LENGTH: usize = $size;
+
+            pub fn with_data(data: &[T]) -> Self {
+                let mut s = Self{
+                    array: [data[0]; $size],
+                    current_length: data.len(),
+                };
+                s.array[0..data.len()].clone_from_slice(data);
+                s
+            }
+
+            pub fn length(&self) -> usize {
+                self.current_length
+            }
+
+            pub fn set_length(&mut self, length: usize) {
+                self.current_length = length;
+            }
+
+            pub fn iter(&self) -> lib::core::slice::Iter<T> {
+                self.array[0..self.current_length].iter()
+            }
+            
+            pub fn iter_mut(&mut self) -> lib::core::slice::IterMut<T> {
+                self.array[0..self.current_length].iter_mut()
+            }
+
+            /// This method is only exposed so `Struct` can be derived.
+            /// It is not intended for use outside the derive macro and
+            /// must not be considered as a stable part of the API.
+            #[doc(hidden)]
+            pub fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                // serialize length
+                if *bit < Self::LENGTH_BITS {
+
+                    let type_bits_remaining = Self::LENGTH_BITS - *bit;
+                    let buffer_bits_remaining = buffer.bits_remaining();
+                    
+                    if buffer_bits_remaining >= type_bits_remaining {
+                        buffer.push_bits(type_bits_remaining, self.current_length.get_bits((*bit as u8)..(Self::LENGTH_BITS as u8)) as u64);
+                        *bit = Self::LENGTH_BITS;
+                    } else {
+                        buffer.push_bits(buffer_bits_remaining, self.current_length.get_bits((*bit as u8)..(*bit + buffer_bits_remaining) as u8) as u64);
+                        *bit += buffer_bits_remaining;
+                        return SerializationResult::BufferFull
+                    }
                 }
 
-                for i in 0..self.current_size {
-                    if self.data[i] != other.data[i] {
+                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
+                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+                
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    let mut bits_serialized = start_element_bit;
+                    match self[start_element].serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
+                        },
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
+                        },
+                    }
+                    start_element += 1;
+                }
+                
+                for element in self.iter().skip(start_element) {
+                    let mut bits_serialized = 0;
+                    match element.serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
+                        },
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
+                        },
+                    }
+                }
+                
+                SerializationResult::Finished
+            }
+
+            /// This method is only exposed so `Struct` can be derived.
+            /// It is not intended for use outside the derive macro and
+            /// must not be considered as a stable part of the API.
+            #[doc(hidden)]
+            pub fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                // deserialize length
+                if *bit < Self::LENGTH_BITS {
+                    
+                    let buffer_len = buffer.bit_length();
+                    if buffer_len + *bit < Self::LENGTH_BITS {
+                        self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
+                        *bit += buffer_len;
+                        return DeserializationResult::BufferInsufficient
+                    } else {
+                        self.current_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
+                        *bit = Self::LENGTH_BITS;
+                    }
+                }
+
+                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
+                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    let mut bits_deserialized = start_element_bit;
+                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                    start_element += 1;
+                }
+                
+                for element in self.iter_mut().skip(start_element) {
+                    let mut bits_deserialized = start_element_bit;
+                    match element.deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                }
+
+                DeserializationResult::Finished
+            }
+            
+        }
+
+        impl<T: PrimitiveType> Index<usize> for Dynamic<[T; $size]> {
+            type Output = T;
+            
+            fn index(&self, index: usize) -> &T {
+                &self.array[0..self.current_length][index]
+            }
+        }
+        
+        impl< T: PrimitiveType> IndexMut<usize> for Dynamic<[T; $size]> {
+            fn index_mut(&mut self, index: usize) -> &mut T {
+                &mut self.array[0..self.current_length][index]
+            }
+        }
+
+        impl<T> AsRef<[T]> for Dynamic<[T; $size]> {
+            fn as_ref(&self) -> &[T] {
+                &self.array[0..self.current_length]
+            }
+        }
+
+        impl<T> AsMut<[T]> for Dynamic<[T; $size]> {
+            fn as_mut(&mut self) -> &mut [T] {
+                &mut self.array[0..self.current_length]
+            }
+        }
+
+        // This is needed since it can't be derived for arrays larger than 32 yet
+        impl<T: PrimitiveType + cmp::PartialEq> cmp::PartialEq for Dynamic<[T; $size]> {
+            fn eq(&self, other: &Self) -> bool {
+                if self.current_length != other.current_length {
+                    return false;
+                }
+                
+                for i in 0..self.current_length {
+                    if self.array[i] != other.array[i] {
                         return false;
                     }
                 }
@@ -257,13 +399,13 @@ macro_rules! dynamic_array_def {
                 true
             }
         }
-            
+        
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: PrimitiveType + fmt::Debug> fmt::Debug for $i<T> {
+        impl<T: PrimitiveType + fmt::Debug> fmt::Debug for Dynamic<[T; $size]> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "$i<T> {{ data: [")?;
-                for i in 0..self.current_size {
-                    write!(f, "{:?}, ", self.data[i])?;
+                for i in 0..self.current_length {
+                    write!(f, "{:?}, ", self.array[i])?;
                 }
                 write!(f, "]}}")
             }
@@ -271,6 +413,36 @@ macro_rules! dynamic_array_def {
         
     };
 }
+
+impl_dynamic!([(1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3), (7, 3), (8, 4), (9, 4)]);
+impl_dynamic!([(10, 4), (11, 4), (12, 4), (13, 4), (14, 4), (15, 4), (16, 5), (17, 5), (18, 5), (19, 5)]);
+impl_dynamic!([(20, 5), (21, 5), (22, 5), (23, 5), (24, 5), (25, 5), (26, 5), (27, 5), (28, 5), (29, 5)]);
+impl_dynamic!([(30, 5), (31, 5), (32, 6), (33, 6), (34, 6), (35, 6), (36, 6), (37, 6), (38, 6), (39, 6)]);
+impl_dynamic!([(40, 6), (41, 6), (42, 6), (43, 6), (44, 6), (45, 6), (46, 6), (47, 6), (48, 6), (49, 6)]);
+impl_dynamic!([(50, 6), (51, 6), (52, 6), (53, 6), (54, 6), (55, 6), (56, 6), (57, 6), (58, 6), (59, 6)]);
+impl_dynamic!([(60, 6), (61, 6), (62, 6), (63, 6), (64, 7), (65, 7), (66, 7), (67, 7), (68, 7), (69, 7)]);
+impl_dynamic!([(70, 7), (71, 7), (72, 7), (73, 7), (74, 7), (75, 7), (76, 7), (77, 7), (78, 7), (79, 7)]);
+impl_dynamic!([(80, 7), (81, 7), (82, 7), (83, 7), (84, 7), (85, 7), (86, 7), (87, 7), (88, 7), (89, 7)]);
+impl_dynamic!([(90, 7), (91, 7), (92, 7), (93, 7), (94, 7), (95, 7), (96, 7), (97, 7), (98, 7), (99, 7)]);
+
+impl_dynamic!([(100, 7), (101, 7), (102, 7), (103, 7), (104, 7), (105, 7), (106, 7), (107, 7), (108, 7), (109, 7)]);
+impl_dynamic!([(110, 7), (111, 7), (112, 7), (113, 7), (114, 7), (115, 7), (116, 7), (117, 7), (118, 7), (119, 7)]);
+impl_dynamic!([(120, 7), (121, 7), (122, 7), (123, 7), (124, 7), (125, 7), (126, 7), (127, 7), (128, 8), (129, 8)]);
+impl_dynamic!([(130, 8), (131, 8), (132, 8), (133, 8), (134, 8), (135, 8), (136, 8), (137, 8), (138, 8), (139, 8)]);
+impl_dynamic!([(140, 8), (141, 8), (142, 8), (143, 8), (144, 8), (145, 8), (146, 8), (147, 8), (148, 8), (149, 8)]);
+impl_dynamic!([(150, 8), (151, 8), (152, 8), (153, 8), (154, 8), (155, 8), (156, 8), (157, 8), (158, 8), (159, 8)]);
+impl_dynamic!([(160, 8), (161, 8), (162, 8), (163, 8), (164, 8), (165, 8), (166, 8), (167, 8), (168, 8), (169, 8)]);
+impl_dynamic!([(170, 8), (171, 8), (172, 8), (173, 8), (174, 8), (175, 8), (176, 8), (177, 8), (178, 8), (179, 8)]);
+impl_dynamic!([(180, 8), (181, 8), (182, 8), (183, 8), (184, 8), (185, 8), (186, 8), (187, 8), (188, 8), (189, 8)]);
+impl_dynamic!([(190, 8), (191, 8), (192, 8), (193, 8), (194, 8), (195, 8), (196, 8), (197, 8), (198, 8), (199, 8)]);
+
+impl_dynamic!([(200, 8), (201, 8), (202, 8), (203, 8), (204, 8), (205, 8), (206, 8), (207, 8), (208, 8), (209, 8)]);
+impl_dynamic!([(210, 8), (211, 8), (212, 8), (213, 8), (214, 8), (215, 8), (216, 8), (217, 8), (218, 8), (219, 8)]);
+impl_dynamic!([(220, 8), (221, 8), (222, 8), (223, 8), (224, 8), (225, 8), (226, 8), (227, 8), (228, 8), (229, 8)]);
+impl_dynamic!([(230, 8), (231, 8), (232, 8), (233, 8), (234, 8), (235, 8), (236, 8), (237, 8), (238, 8), (239, 8)]);
+impl_dynamic!([(240, 8), (241, 8), (242, 8), (243, 8), (244, 8), (245, 8), (246, 8), (247, 8), (248, 8), (249, 8)]);
+impl_dynamic!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8)]);
+
 
 
 macro_rules! impl_primitive_types_ux{
@@ -470,22 +642,3 @@ impl PrimitiveType for bool {
         }
     }
 }
-
-
-dynamic_array_def!(DynamicArray3, 3, 2);
-dynamic_array_def!(DynamicArray4, 4, 3);
-dynamic_array_def!(DynamicArray5, 5, 3);
-dynamic_array_def!(DynamicArray6, 6, 3);
-dynamic_array_def!(DynamicArray7, 7, 3);
-dynamic_array_def!(DynamicArray8, 8, 4);
-dynamic_array_def!(DynamicArray9, 9, 4);
-dynamic_array_def!(DynamicArray10, 10, 4);
-dynamic_array_def!(DynamicArray11, 11, 4);
-dynamic_array_def!(DynamicArray12, 12, 4);
-dynamic_array_def!(DynamicArray13, 13, 4);
-dynamic_array_def!(DynamicArray14, 14, 4);
-dynamic_array_def!(DynamicArray15, 15, 4);
-dynamic_array_def!(DynamicArray16, 16, 5);
-dynamic_array_def!(DynamicArray31, 31, 5);
-dynamic_array_def!(DynamicArray32, 32, 6);
-dynamic_array_def!(DynamicArray90, 90, 7);
