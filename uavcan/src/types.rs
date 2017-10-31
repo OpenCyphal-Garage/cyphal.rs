@@ -247,7 +247,10 @@ macro_rules! impl_dynamic{
                 self.array[0..self.current_length].iter_mut()
             }
 
-            
+            /// This method is only exposed so `Struct` can be derived.
+            /// It is not intended for use outside the derive macro and
+            /// must not be considered as a stable part of the API.
+            #[doc(hidden)]
             pub fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
                 // serialize length
                 if *bit < Self::LENGTH_BITS {
@@ -298,7 +301,11 @@ macro_rules! impl_dynamic{
                 
                 SerializationResult::Finished
             }
-            
+
+            /// This method is only exposed so `Struct` can be derived.
+            /// It is not intended for use outside the derive macro and
+            /// must not be considered as a stable part of the API.
+            #[doc(hidden)]
             pub fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 // deserialize length
                 if *bit < Self::LENGTH_BITS {
