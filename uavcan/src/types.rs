@@ -543,6 +543,21 @@ macro_rules! impl_primitive_types_ix{
     };
 }
 
+macro_rules! impl_primitive_types_vx{
+    {[$(($type:ident, $bits:expr)),*]} => {$(impl_primitive_types_vx!($type, $bits);)*};
+    ($type:ident, $bits:expr) => {
+        impl PrimitiveType for $type {
+            const BIT_LENGTH: usize = $bits;
+            fn from_bits(_v: u64) -> Self {
+                $type{}
+            }
+            fn to_bits(self) -> u64 {
+                0
+            }
+        }
+    };
+}
+
 impl_primitive_types_ux!([(u2, 2), (u3, 3), (u4, 4), (u5, 5), (u6, 6), (u7, 7)], u8);
 
 impl_primitive_types_ux!([(u9, 9), (u10, 10), (u11, 11), (u12, 12), (u13, 13), (u14, 14), (u15, 15)], u16);
@@ -568,6 +583,18 @@ impl_primitive_types_ix!([(i33, 33), (i34, 34), (i35, 35), (i36, 36), (i37, 37),
                           (i41, 41), (i42, 42), (i43, 43), (i44, 44), (i45, 45), (i46, 46), (i47, 47), (i48, 48),
                           (i49, 49), (i50, 50), (i51, 51), (i52, 52), (i53, 53), (i54, 54), (i55, 55), (i56, 56),
                           (i57, 57), (i58, 58), (i59, 59), (i60, 60), (i61, 61), (i62, 62), (i63, 63)], i64);
+
+impl_primitive_types_vx!([(void2, 2), (void3, 3), (void4, 4), (void5, 5), (void6, 6), (void7, 7), (void8, 8)]);
+
+impl_primitive_types_vx!([(void9, 9), (void10, 10), (void11, 11), (void12, 12), (void13, 13), (void14, 14), (void15, 15), (void16, 16)]);
+
+impl_primitive_types_vx!([(void17, 17), (void18, 18), (void19, 19), (void20, 20), (void21, 21), (void22, 22), (void23, 23), (void24, 24),
+                          (void25, 25), (void26, 26), (void27, 27), (void28, 28), (void29, 29), (void30, 30), (void31, 31), (void32, 32)]);
+
+impl_primitive_types_vx!([(void33, 33), (void34, 34), (void35, 35), (void36, 36), (void37, 37), (void38, 38), (void39, 39), (void40, 40),
+                          (void41, 41), (void42, 42), (void43, 43), (void44, 44), (void45, 45), (void46, 46), (void47, 47), (void48, 48),
+                          (void49, 49), (void50, 50), (void51, 51), (void52, 52), (void53, 53), (void54, 54), (void55, 55), (void56, 56),
+                          (void57, 57), (void58, 58), (void59, 59), (void60, 60), (void61, 61), (void62, 62), (void63, 63), (void64, 64)]);
 
 
 impl PrimitiveType for u8 {
