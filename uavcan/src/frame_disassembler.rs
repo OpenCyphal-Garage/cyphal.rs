@@ -142,8 +142,8 @@ mod tests {
         #[DataTypeSignature = "0xd654a48e0c049d75"]
         struct LogMessage {
             level: LogLevel,
-            source: DynamicArray31<u8>,
-            text: DynamicArray90<u8>,
+            source: Dynamic<[u8; 31]>,
+            text: Dynamic<[u8; 90]>,
         }
 
         impl Message for LogMessage {
@@ -152,8 +152,8 @@ mod tests {
         
         let uavcan_frame = Frame::from_message(LogMessage{
             level: LogLevel{value: u3::new(0)},
-            source: DynamicArray31::with_str("test source"),
-            text: DynamicArray90::with_str("test text"),
+            source: Dynamic::<[u8; 31]>::with_str("test source"),
+            text: Dynamic::<[u8; 90]>::with_str("test text"),
         }, 0, NodeID::new(32));
 
         assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);

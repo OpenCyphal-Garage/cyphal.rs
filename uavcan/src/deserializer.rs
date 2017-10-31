@@ -122,8 +122,8 @@ mod tests {
         #[derive(UavcanStruct)]
         struct TestMessage {
             pad: u5,
-            text1: DynamicArray7<u8>,
-            text2: DynamicArray8<u8>,
+            text1: Dynamic<[u8; 7]>,
+            text2: Dynamic<[u8; 8]>,
         }
         
         let mut deserializer: Deserializer<TestMessage> = Deserializer::new();
@@ -132,9 +132,9 @@ mod tests {
         
         let parsed_message = deserializer.into_structure().unwrap();
 
-        assert_eq!(parsed_message.text1.length().current_length, 4);
-        assert_eq!(parsed_message.text1, DynamicArray7::with_str("test"));
-        assert_eq!(parsed_message.text2.length().current_length, 3);
-        assert_eq!(parsed_message.text2, DynamicArray8::with_str("lol"));
+        assert_eq!(parsed_message.text1.length(), 4);
+        assert_eq!(parsed_message.text1, Dynamic::<[u8; 7]>::with_str("test"));
+        assert_eq!(parsed_message.text2.length(), 3);
+        assert_eq!(parsed_message.text2, Dynamic::<[u8; 8]>::with_str("lol"));
     }
 }
