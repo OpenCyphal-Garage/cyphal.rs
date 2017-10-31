@@ -1,10 +1,12 @@
 #![recursion_limit="128"]
 
+extern crate regex;
 extern crate proc_macro;
 extern crate syn;
 #[macro_use]
 extern crate quote;
 
+use regex::Regex;
 use proc_macro::TokenStream;
 use syn::Body;
 use syn::Ident;
@@ -265,20 +267,35 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     }
 }
 
+fn is_primitive_type(ty: &syn::Ty) -> bool {
+    is_unsigned_primitive_type(ty) || is_signed_primitive_type(ty) || is_void_primitive_type(ty)
+}
 
-fn is_primitive_type(type_name: &syn::Ty) -> bool {
-    if *type_name == syn::parse::ty("u2").expect("") ||
-        *type_name == syn::parse::ty("u3").expect("") ||
-        *type_name == syn::parse::ty("u4").expect("") ||
-        *type_name == syn::parse::ty("u5").expect("") ||
-        *type_name == syn::parse::ty("u7").expect("") ||
-        *type_name == syn::parse::ty("u8").expect("") ||
-        *type_name == syn::parse::ty("u16").expect("") ||
-        *type_name == syn::parse::ty("u32").expect("") ||
-        *type_name == syn::parse::ty("f16").expect("") {
-            return true;
-        }
-    false
+fn is_unsigned_primitive_type(ty: &syn::Ty) -> bool {
+    if let syn::Ty::Path(_, ref path) = *ty {
+        let re = Regex::new(r"u([2-9]|[1-5][0-9]|6[0-4])").unwrap();
+        re.is_match(path.segments.as_slice().last().unwrap().ident.as_ref())
+    } else {
+        false
+    }
+}
+
+fn is_signed_primitive_type(ty: &syn::Ty) -> bool {
+    if let syn::Ty::Path(_, ref path) = *ty {
+        let re = Regex::new(r"i([2-9]|[1-5][0-9]|6[0-4])").unwrap();
+        re.is_match(path.segments.as_slice().last().unwrap().ident.as_ref())
+    } else {
+        false
+    }
+}
+
+fn is_void_primitive_type(ty: &syn::Ty) -> bool {
+    if let syn::Ty::Path(_, ref path) = *ty {
+        let re = Regex::new(r"i([2-9]|[1-5][0-9]|6[0-4])").unwrap();
+        re.is_match(path.segments.as_slice().last().unwrap().ident.as_ref())
+    } else {
+        false
+    }
 }
 
 fn is_dynamic_array(type_name: &syn::Ty) -> bool {

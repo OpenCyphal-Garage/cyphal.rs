@@ -17,3 +17,4 @@ proc-macro = true
 [dependencies]
 syn = "0.11.11"
 quote = "0.3.10"
+regex = "0.2"
