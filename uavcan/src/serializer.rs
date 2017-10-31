@@ -378,6 +378,30 @@ mod tests {
         
     }
 
+    #[test]
+    fn uavcan_serialize_static_array() {
+
+        #[derive(UavcanStruct)]
+        struct Message {
+            a: [u16; 4],
+        }
+
+
+        let message = Message{
+            a: [5, 6, 7, 8],
+        };
+
+        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut array: [u8; 8] = [0; 8];
+
+        
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
+        serializer.serialize(&mut buffer);
+
+        assert_eq!(buffer.data, [5, 0, 6, 0, 7, 0, 8, 0]);
+        
+    }
+
 
     #[test]
     fn uavcan_parse_test_misaligned() {
