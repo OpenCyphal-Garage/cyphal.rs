@@ -353,6 +353,18 @@ macro_rules! impl_dynamic{
             }
         }
 
+        impl<T> AsRef<[T]> for Dynamic<[T; $size]> {
+            fn as_ref(&self) -> &[T] {
+                &self.array[0..self.current_length]
+            }
+        }
+
+        impl<T> AsMut<[T]> for Dynamic<[T; $size]> {
+            fn as_mut(&mut self) -> &mut [T] {
+                &mut self.array[0..self.current_length]
+            }
+        }
+
         // This is needed since it can't be derived for arrays larger than 32 yet
         impl<T: PrimitiveType + cmp::PartialEq> cmp::PartialEq for Dynamic<[T; $size]> {
             fn eq(&self, other: &Self) -> bool {
