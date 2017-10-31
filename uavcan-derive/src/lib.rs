@@ -95,9 +95,20 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             if i != 0 { serialize_builder.append(quote!{ else });}
             
             match classify_type(field_type) {
-                UavcanType::PrimitiveType | UavcanType::StaticArray => {
+                UavcanType::PrimitiveType => {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
                         if uavcan::types::PrimitiveType::serialize(&self.#field_ident, bit, buffer) == uavcan::SerializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            return uavcan::SerializationResult::BufferFull;
+                        }
+                    }});
+                    field_index.append(quote!{ +1});
+                },
+                UavcanType::StaticArray => {
+                    serialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if uavcan::types::Array::serialize(&self.#field_ident, bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
@@ -164,9 +175,20 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             if i != 0 { deserialize_builder.append(quote!{ else });}
 
             match classify_type(field_type) {
-                UavcanType::PrimitiveType | UavcanType::StaticArray => {
+                UavcanType::PrimitiveType => {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
                         if uavcan::types::PrimitiveType::deserialize(&mut self.#field_ident, bit, buffer) == uavcan::DeserializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            return uavcan::DeserializationResult::BufferInsufficient;
+                        }
+                    }});                
+                    field_index.append(quote!{ +1});
+                },
+                UavcanType::StaticArray => {
+                    deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if uavcan::types::Array::deserialize(&mut self.#field_ident, bit, buffer) == uavcan::DeserializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
@@ -286,6 +308,8 @@ fn classify_type(ty: &syn::Ty) -> UavcanType {
         UavcanType::PrimitiveType
     } else if is_dynamic_array(ty) {
         UavcanType::DynamicArray
+    } else if is_static_array(ty) {
+        UavcanType::StaticArray
     } else {
         UavcanType::Struct
     }
@@ -322,6 +346,14 @@ fn is_void_primitive_type(ty: &syn::Ty) -> bool {
     }
 }
 
+fn is_static_array(ty: &syn::Ty) -> bool {
+    if let syn::Ty::Array(_, _) = *ty {
+        true
+    } else {
+        false
+    }
+}
+
 fn is_dynamic_array(type_name: &syn::Ty) -> bool {
     if let syn::Ty::Path(_, ref path) = *type_name {
         if path.segments.as_slice().last().unwrap().ident == syn::parse::ident("Dynamic").expect("") {
@@ -350,19 +382,20 @@ fn bit_length(field: &syn::Field) -> Tokens {
     let field_ident = &field.ident;
     let field_type = &field.ty;
 
-    if is_primitive_type(field_type) {
-        quote!{<#field_type as uavcan::types::PrimitiveType>::BIT_LENGTH}
-    } else if is_dynamic_array(field_type) {
-        let array_type = array_from_dynamic(field_type).unwrap();
-        let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
-            element_type
-        } else {
-            panic!("element type name not found")
-        };
+    match classify_type(field_type) {
+        UavcanType::PrimitiveType => quote!{<#field_type as uavcan::types::PrimitiveType>::BIT_LENGTH},
+        UavcanType::StaticArray => quote!(<#field_type as uavcan::types::Array>::BIT_LENGTH),
+        UavcanType::DynamicArray => {
+            let array_type = array_from_dynamic(field_type).unwrap();
+            let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
+                element_type
+            } else {
+                panic!("element type name not found")
+            };
         
-        quote!{(Dynamic::<#array_type>::LENGTH_BITS + self.#field_ident.length() * #element_type::BIT_LENGTH)}
-    } else {
-        quote!{self.#field_ident.bit_length()}
+            quote!{(Dynamic::<#array_type>::LENGTH_BITS + self.#field_ident.length() * #element_type::BIT_LENGTH)}
+        },
+        UavcanType::Struct => quote!{self.#field_ident.bit_length()},   
     }
 }
 
