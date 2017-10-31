@@ -83,6 +83,7 @@ pub trait PrimitiveType : Sized + Copy{
 #[doc(hidden)]
 pub trait Array {
     const LENGTH: usize;
+    const BIT_LENGTH: usize;
     type ELEMENT_TYPE;
     
     fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
@@ -94,6 +95,7 @@ macro_rules! impl_array{
     {$size:expr} => {
         impl<T: PrimitiveType> Array for [T; $size] {
             const LENGTH: usize = $size;
+            const BIT_LENGTH: usize = $size * T::BIT_LENGTH;
             type ELEMENT_TYPE = T;
             
             fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
