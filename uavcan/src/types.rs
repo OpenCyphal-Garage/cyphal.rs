@@ -191,6 +191,11 @@ impl_array!([170, 171, 172, 173, 174, 175, 176, 177, 178, 179]);
 impl_array!([180, 181, 182, 183, 184, 185, 186, 187, 188, 189]);
 impl_array!([190, 191, 192, 193, 194, 195, 196, 197, 198, 199]);
 
+pub struct Dynamic<T: Array> {
+    array: T,
+    current_length: usize,
+}
+
 
 macro_rules! dynamic_array_def {
     ($i:ident, $n:expr, $log_bits:expr) => {
