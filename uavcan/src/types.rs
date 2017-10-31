@@ -199,7 +199,18 @@ impl_array!([230, 231, 232, 233, 234, 235, 236, 237, 238, 239]);
 impl_array!([240, 241, 242, 243, 244, 245, 246, 247, 248, 249]);
 impl_array!([250, 251, 252, 253, 254, 255]);
 
-pub struct Dynamic<T: Array> {
+/// The Uavcan dynamic array type
+///
+/// # Examples
+/// ```
+/// use uavcan::types::*;
+///
+/// let dynamic_array = Dynamic::<[u8; 90]>::with_data("dynamic array".as_bytes());
+///
+/// assert_eq!(dynamic_array.length(), 13);
+///
+/// ```
+pub struct Dynamic<T> {
     array: T,
     current_length: usize,
 }
