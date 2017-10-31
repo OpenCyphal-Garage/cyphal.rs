@@ -133,8 +133,8 @@ mod tests {
         let parsed_message = deserializer.into_structure().unwrap();
 
         assert_eq!(parsed_message.text1.length(), 4);
-        assert_eq!(parsed_message.text1, Dynamic::<[u8; 7]>::with_str("test"));
+        assert_eq!(parsed_message.text1, Dynamic::<[u8; 7]>::with_data("test".as_bytes()));
         assert_eq!(parsed_message.text2.length(), 3);
-        assert_eq!(parsed_message.text2, Dynamic::<[u8; 8]>::with_str("lol"));
+        assert_eq!(parsed_message.text2, Dynamic::<[u8; 8]>::with_data("lol".as_bytes()));
     }
 }

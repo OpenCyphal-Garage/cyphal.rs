@@ -335,19 +335,6 @@ macro_rules! impl_dynamic{
             
         }
 
-        impl Dynamic<[u8; $size]> {
-            pub fn with_str(string: &str) -> Self {
-                let mut data: [u8; $size] = [0.into(); $size];
-                for (i, element) in data.iter_mut().enumerate().take(string.len()) {
-                    *element = string.as_bytes()[i].into();
-                }
-                Self{
-                    array: data,
-                    current_length: string.len(),
-                }
-            }
-        }
-
         impl<T: PrimitiveType> Index<usize> for Dynamic<[T; $size]> {
             type Output = T;
             

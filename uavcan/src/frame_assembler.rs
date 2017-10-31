@@ -179,8 +179,8 @@ mod tests {
          
         let uavcan_frame = Frame::from_message(LogMessage{
             level: LogLevel{value: u3::new(0)},
-            source: Dynamic::<[u8; 31]>::with_str("test source"),
-            text: Dynamic::<[u8; 90]>::with_str("test text"),
+            source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
+            text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
         let crc = 0;
