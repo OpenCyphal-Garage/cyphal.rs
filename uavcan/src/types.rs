@@ -77,6 +77,10 @@ pub trait PrimitiveType : Sized + Copy{
     }
 }
 
+/// This trait is only exposed so `Struct` can be derived.
+/// It is not intended for use outside the derive macro and
+/// must not be considered as a stable part of the API.
+#[doc(hidden)]
 pub trait Array {
     const LENGTH: usize;
     type ELEMENT_TYPE;
