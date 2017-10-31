@@ -446,6 +446,72 @@ impl_dynamic!([(240, 8), (241, 8), (242, 8), (243, 8), (244, 8), (245, 8), (246,
 impl_dynamic!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8)]);
 
 
+#[allow(non_camel_case_types)] pub struct void1{}
+#[allow(non_camel_case_types)] pub struct void2{}
+#[allow(non_camel_case_types)] pub struct void3{}
+#[allow(non_camel_case_types)] pub struct void4{}
+#[allow(non_camel_case_types)] pub struct void5{}
+#[allow(non_camel_case_types)] pub struct void6{}
+#[allow(non_camel_case_types)] pub struct void7{}
+#[allow(non_camel_case_types)] pub struct void8{}
+#[allow(non_camel_case_types)] pub struct void9{}
+#[allow(non_camel_case_types)] pub struct void10{}
+#[allow(non_camel_case_types)] pub struct void11{}
+#[allow(non_camel_case_types)] pub struct void12{}
+#[allow(non_camel_case_types)] pub struct void13{}
+#[allow(non_camel_case_types)] pub struct void14{}
+#[allow(non_camel_case_types)] pub struct void15{}
+#[allow(non_camel_case_types)] pub struct void16{}
+#[allow(non_camel_case_types)] pub struct void17{}
+#[allow(non_camel_case_types)] pub struct void18{}
+#[allow(non_camel_case_types)] pub struct void19{}
+#[allow(non_camel_case_types)] pub struct void20{}
+#[allow(non_camel_case_types)] pub struct void21{}
+#[allow(non_camel_case_types)] pub struct void22{}
+#[allow(non_camel_case_types)] pub struct void23{}
+#[allow(non_camel_case_types)] pub struct void24{}
+#[allow(non_camel_case_types)] pub struct void25{}
+#[allow(non_camel_case_types)] pub struct void26{}
+#[allow(non_camel_case_types)] pub struct void27{}
+#[allow(non_camel_case_types)] pub struct void28{}
+#[allow(non_camel_case_types)] pub struct void29{}
+#[allow(non_camel_case_types)] pub struct void30{}
+#[allow(non_camel_case_types)] pub struct void31{}
+#[allow(non_camel_case_types)] pub struct void32{}
+
+#[allow(non_camel_case_types)] pub struct void33{}
+#[allow(non_camel_case_types)] pub struct void34{}
+#[allow(non_camel_case_types)] pub struct void35{}
+#[allow(non_camel_case_types)] pub struct void36{}
+#[allow(non_camel_case_types)] pub struct void37{}
+#[allow(non_camel_case_types)] pub struct void38{}
+#[allow(non_camel_case_types)] pub struct void39{}
+#[allow(non_camel_case_types)] pub struct void40{}
+#[allow(non_camel_case_types)] pub struct void41{}
+#[allow(non_camel_case_types)] pub struct void42{}
+#[allow(non_camel_case_types)] pub struct void43{}
+#[allow(non_camel_case_types)] pub struct void44{}
+#[allow(non_camel_case_types)] pub struct void45{}
+#[allow(non_camel_case_types)] pub struct void46{}
+#[allow(non_camel_case_types)] pub struct void47{}
+#[allow(non_camel_case_types)] pub struct void48{}
+#[allow(non_camel_case_types)] pub struct void49{}
+#[allow(non_camel_case_types)] pub struct void50{}
+#[allow(non_camel_case_types)] pub struct void51{}
+#[allow(non_camel_case_types)] pub struct void52{}
+#[allow(non_camel_case_types)] pub struct void53{}
+#[allow(non_camel_case_types)] pub struct void54{}
+#[allow(non_camel_case_types)] pub struct void55{}
+#[allow(non_camel_case_types)] pub struct void56{}
+#[allow(non_camel_case_types)] pub struct void57{}
+#[allow(non_camel_case_types)] pub struct void58{}
+#[allow(non_camel_case_types)] pub struct void59{}
+#[allow(non_camel_case_types)] pub struct void60{}
+#[allow(non_camel_case_types)] pub struct void61{}
+#[allow(non_camel_case_types)] pub struct void62{}
+#[allow(non_camel_case_types)] pub struct void63{}
+#[allow(non_camel_case_types)] pub struct void64{}
+
 
 macro_rules! impl_primitive_types_ux{
     {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_primitive_types_ux!($type, $bits, $underlying_type);)*};
