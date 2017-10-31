@@ -339,7 +339,7 @@ fn is_signed_primitive_type(ty: &syn::Ty) -> bool {
 
 fn is_void_primitive_type(ty: &syn::Ty) -> bool {
     if let syn::Ty::Path(_, ref path) = *ty {
-        let re = Regex::new(r"i([2-9]|[1-5][0-9]|6[0-4])").unwrap();
+        let re = Regex::new(r"void([1-9]|[1-5][0-9]|6[0-4])").unwrap();
         re.is_match(path.segments.as_slice().last().unwrap().ident.as_ref())
     } else {
         false
