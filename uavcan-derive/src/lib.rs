@@ -12,6 +12,13 @@ use syn::Body;
 use syn::Ident;
 use quote::Tokens;
 
+enum UavcanType {
+    PrimitiveType,
+    DynamicArray,
+    StaticArray,
+    Struct,
+}
+
 
 #[proc_macro_derive(UavcanStruct, attributes(DSDLSignature, DataTypeSignature))]
 pub fn uavcan_sized(input: TokenStream) -> TokenStream {
@@ -65,10 +72,10 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             if i != 0 {
                 flattened_fields_builder.append(quote!{+});
             }
-            if is_primitive_type(field_type) || is_dynamic_array(field_type) {
-                flattened_fields_builder.append(quote!{1});
-            } else {
-                flattened_fields_builder.append(quote!{#field_type::FLATTENED_FIELDS_NUMBER});
+            
+            match classify_type(field_type) {
+                UavcanType::PrimitiveType | UavcanType::DynamicArray | UavcanType::StaticArray => flattened_fields_builder.append(quote!{1}),
+                UavcanType::Struct => flattened_fields_builder.append(quote!{#field_type::FLATTENED_FIELDS_NUMBER}),
             }
         }
 
@@ -87,35 +94,10 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
             if i != 0 { serialize_builder.append(quote!{ else });}
             
-            if is_primitive_type(field_type) {
-                serialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if uavcan::types::PrimitiveType::serialize(&self.#field_ident, bit, buffer) == uavcan::SerializationResult::Finished {
-                        *flattened_field += 1;
-                        *bit = 0;
-                    } else {
-                        return uavcan::SerializationResult::BufferFull;
-                    }
-                }});                
-                field_index.append(quote!{ +1});
-            } else if is_dynamic_array(field_type) {
-                let array_type = array_from_dynamic(field_type);
-                
-                // check for tail optimization
-                if i == variant_data.fields().len() - 1 {
+            match classify_type(field_type) {
+                UavcanType::PrimitiveType | UavcanType::StaticArray => {
                     serialize_builder.append(quote!{if *flattened_field == #field_index {
-                        let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
-                        if self.#field_ident.serialize(&mut skewed_bit, buffer) == uavcan::SerializationResult::Finished {
-                            *flattened_field += 1;
-                            *bit = 0;
-                        } else {
-                            *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
-                            return uavcan::SerializationResult::BufferFull;
-                        }                        
-                    }});
-                    field_index.append(quote!{ +1});
-                } else {
-                    serialize_builder.append(quote!{if *flattened_field == #field_index {
-                        if self.#field_ident.serialize(bit, buffer) == uavcan::SerializationResult::Finished {
+                        if uavcan::types::PrimitiveType::serialize(&self.#field_ident, bit, buffer) == uavcan::SerializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
@@ -123,19 +105,47 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         }
                     }});
                     field_index.append(quote!{ +1});
-                }
-            } else {                
-                serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
-                    let mut current_field = *flattened_field - #field_index;
-                    if self.#field_ident.serialize(&mut current_field, bit, buffer) == uavcan::SerializationResult::Finished {
-                        *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
-                        *bit = 0;
+                },
+                UavcanType::DynamicArray => {
+                    let array_type = array_from_dynamic(field_type);
+                
+                    // check for tail optimization
+                    if i == variant_data.fields().len() - 1 {
+                        serialize_builder.append(quote!{if *flattened_field == #field_index {
+                            let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
+                            if self.#field_ident.serialize(&mut skewed_bit, buffer) == uavcan::SerializationResult::Finished {
+                                *flattened_field += 1;
+                                *bit = 0;
+                            } else {
+                                *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
+                                return uavcan::SerializationResult::BufferFull;
+                            }                        
+                        }});
                     } else {
-                        *flattened_field = #field_index + current_field;
-                        return uavcan::SerializationResult::BufferFull;
+                        serialize_builder.append(quote!{if *flattened_field == #field_index {
+                            if self.#field_ident.serialize(bit, buffer) == uavcan::SerializationResult::Finished {
+                                *flattened_field += 1;
+                                *bit = 0;
+                            } else {
+                                return uavcan::SerializationResult::BufferFull;
+                            }
+                        }});
                     }
-                }});
-                field_index.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER});
+                    field_index.append(quote!{ +1});
+                },
+                UavcanType::Struct => {
+                    serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
+                        let mut current_field = *flattened_field - #field_index;
+                        if self.#field_ident.serialize(&mut current_field, bit, buffer) == uavcan::SerializationResult::Finished {
+                            *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
+                            *bit = 0;
+                        } else {
+                            *flattened_field = #field_index + current_field;
+                            return uavcan::SerializationResult::BufferFull;
+                        }
+                    }});
+                    field_index.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER});
+                },
             }
         }
         serialize_builder
@@ -152,62 +162,66 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             let field_type = &field.ty;
             
             if i != 0 { deserialize_builder.append(quote!{ else });}
-            
-            if is_primitive_type(field_type) {
-                deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                    if uavcan::types::PrimitiveType::deserialize(&mut self.#field_ident, bit, buffer) == uavcan::DeserializationResult::Finished {
-                        *flattened_field += 1;
-                        *bit = 0;
-                    } else {
-                        return uavcan::DeserializationResult::BufferInsufficient;
-                    }
-                }});                
-                field_index.append(quote!{ +1});
-            } else if is_dynamic_array(field_type) {
-                let array_type = array_from_dynamic(field_type).unwrap();
-                let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
-                    element_type
-                } else {
-                    panic!("element type name not found")
-                };
-                
-                // check for tail optimization
-                if i == variant_data.fields().len() - 1 {
+
+            match classify_type(field_type) {
+                UavcanType::PrimitiveType | UavcanType::StaticArray => {
                     deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                        let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
-                        self.#field_ident.set_length( ( <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH-1 + *bit + buffer.bit_length()) / <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH );
-                        self.#field_ident.deserialize(&mut skewed_bit, buffer);
-                        *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
-                        return uavcan::DeserializationResult::Finished;                         
-                    }});
-                    field_index.append(quote!{ +1});
-                } else {
-                    deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                        if self.#field_ident.deserialize(bit, buffer) == uavcan::DeserializationResult::Finished {
+                        if uavcan::types::PrimitiveType::deserialize(&mut self.#field_ident, bit, buffer) == uavcan::DeserializationResult::Finished {
                             *flattened_field += 1;
                             *bit = 0;
                         } else {
                             return uavcan::DeserializationResult::BufferInsufficient;
                         }
-                    }});
+                    }});                
                     field_index.append(quote!{ +1});
-                }
-            } else {                
-                deserialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
-                    let mut current_field = *flattened_field - #field_index;
-                    if self.#field_ident.deserialize(&mut current_field, bit, buffer) == uavcan::DeserializationResult::Finished {
-                        *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
-                        *bit = 0;
+                },
+                UavcanType::DynamicArray => {
+                    let array_type = array_from_dynamic(field_type).unwrap();
+                    let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
+                        element_type
                     } else {
-                        *flattened_field = #field_index + current_field;
-                        return uavcan::DeserializationResult::BufferInsufficient;
+                        panic!("element type name not found")
+                    };
+                
+                    // check for tail optimization
+                    if i == variant_data.fields().len() - 1 {
+                        deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                            let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
+                            self.#field_ident.set_length( ( <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH-1 + *bit + buffer.bit_length()) / <#element_type as uavcan::types::PrimitiveType>::BIT_LENGTH );
+                            self.#field_ident.deserialize(&mut skewed_bit, buffer);
+                            *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
+                            return uavcan::DeserializationResult::Finished;                         
+                        }});
+                        field_index.append(quote!{ +1});
+                    } else {
+                        deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                            if self.#field_ident.deserialize(bit, buffer) == uavcan::DeserializationResult::Finished {
+                                *flattened_field += 1;
+                                *bit = 0;
+                            } else {
+                                return uavcan::DeserializationResult::BufferInsufficient;
+                            }
+                        }});
+                        field_index.append(quote!{ +1});
                     }
-                }});
-                field_index.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER});
-            }
+                },
+                UavcanType::Struct => {
+                    deserialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
+                        let mut current_field = *flattened_field - #field_index;
+                        if self.#field_ident.deserialize(&mut current_field, bit, buffer) == uavcan::DeserializationResult::Finished {
+                            *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
+                            *bit = 0;
+                        } else {
+                            *flattened_field = #field_index + current_field;
+                            return uavcan::DeserializationResult::BufferInsufficient;
+                        }
+                    }});
+                    field_index.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER});
+                },
+            }            
         }
         deserialize_builder
-
+            
     };
 
     let bit_length_body = {
@@ -264,6 +278,16 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
         }
 
+    }
+}
+
+fn classify_type(ty: &syn::Ty) -> UavcanType {
+    if is_primitive_type(ty) {
+        UavcanType::PrimitiveType
+    } else if is_dynamic_array(ty) {
+        UavcanType::DynamicArray
+    } else {
+        UavcanType::Struct
     }
 }
 
