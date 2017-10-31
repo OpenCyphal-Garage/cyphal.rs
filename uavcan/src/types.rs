@@ -14,6 +14,8 @@ use lib::core::ops::{
     IndexMut,
 };
 
+use bit_field::BitField;
+
 use {
     DynamicArray,
     DynamicArrayLength,
@@ -203,7 +205,201 @@ pub struct Dynamic<T: Array> {
     current_length: usize,
 }
 
+macro_rules! impl_dynamic{
+    {[$(($size:expr, $length_bits:expr)), *]} => {$(impl_dynamic!(($size, $length_bits));)*};
+    {($size:expr, $length_bits:expr)} => {
+        impl<T: PrimitiveType> Dynamic<[T; $size]> {
+            pub const LENGTH_BITS: usize = $length_bits;
+            pub const MAX_LENGTH: usize = $size;
 
+            pub fn with_data(data: &[T]) -> Self {
+                let mut s = Self{
+                    array: [data[0]; $size],
+                    current_length: data.len(),
+                };
+                s.array[0..data.len()].clone_from_slice(data);
+                s
+            }
+
+            pub fn length(&self) -> usize {
+                self.current_length
+            }
+
+            pub fn set_length(&mut self, length: usize) {
+                self.current_length = length;
+            }
+
+            pub fn iter(&self) -> lib::core::slice::Iter<T> {
+                self.array[0..self.current_length].iter()
+            }
+            
+            pub fn iter_mut(&mut self) -> lib::core::slice::IterMut<T> {
+                self.array[0..self.current_length].iter_mut()
+            }
+
+            
+            pub fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                // serialize length
+                if *bit < Self::LENGTH_BITS {
+
+                    let type_bits_remaining = Self::LENGTH_BITS - *bit;
+                    let buffer_bits_remaining = buffer.bits_remaining();
+                    
+                    if buffer_bits_remaining >= type_bits_remaining {
+                        buffer.push_bits(type_bits_remaining, self.current_length.get_bits((*bit as u8)..(Self::LENGTH_BITS as u8)) as u64);
+                        *bit = Self::LENGTH_BITS;
+                    } else {
+                        buffer.push_bits(buffer_bits_remaining, self.current_length.get_bits((*bit as u8)..(*bit + buffer_bits_remaining) as u8) as u64);
+                        *bit += buffer_bits_remaining;
+                        return SerializationResult::BufferFull
+                    }
+                }
+
+                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
+                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+                
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    let mut bits_serialized = start_element_bit;
+                    match self[start_element].serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
+                        },
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
+                        },
+                    }
+                    start_element += 1;
+                }
+                
+                for element in self.iter().skip(start_element) {
+                    let mut bits_serialized = 0;
+                    match element.serialize(&mut bits_serialized, buffer) {
+                        SerializationResult::Finished => {
+                            *bit += bits_serialized;
+                        },
+                        SerializationResult::BufferFull => {
+                            *bit += bits_serialized;
+                            return SerializationResult::BufferFull;
+                        },
+                    }
+                }
+                
+                SerializationResult::Finished
+            }
+            
+            pub fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                // deserialize length
+                if *bit < Self::LENGTH_BITS {
+                    
+                    let buffer_len = buffer.bit_length();
+                    if buffer_len + *bit < Self::LENGTH_BITS {
+                        self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
+                        *bit += buffer_len;
+                        return DeserializationResult::BufferInsufficient
+                    } else {
+                        self.current_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
+                        *bit = Self::LENGTH_BITS;
+                    }
+                }
+
+                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
+                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+
+                // first get rid of the odd bits
+                if start_element_bit != 0 {
+                    let mut bits_deserialized = start_element_bit;
+                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                    start_element += 1;
+                }
+                
+                for element in self.iter_mut().skip(start_element) {
+                    let mut bits_deserialized = start_element_bit;
+                    match element.deserialize(&mut bits_deserialized, buffer) {
+                        DeserializationResult::Finished => {
+                            *bit += bits_deserialized;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *bit += bits_deserialized;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                }
+
+                DeserializationResult::Finished
+            }
+            
+        }
+
+        impl Dynamic<[u8; $size]> {
+            pub fn with_str(string: &str) -> Self {
+                let mut data: [u8; $size] = [0.into(); $size];
+                for (i, element) in data.iter_mut().enumerate().take(string.len()) {
+                    *element = string.as_bytes()[i].into();
+                }
+                Self{
+                    array: data,
+                    current_length: string.len(),
+                }
+            }
+        }
+
+        impl<T: PrimitiveType> Index<usize> for Dynamic<[T; $size]> {
+            type Output = T;
+            
+            fn index(&self, index: usize) -> &T {
+                &self.array[0..self.current_length][index]
+            }
+        }
+        
+        impl< T: PrimitiveType> IndexMut<usize> for Dynamic<[T; $size]> {
+            fn index_mut(&mut self, index: usize) -> &mut T {
+                &mut self.array[0..self.current_length][index]
+            }
+        }
+    };
+}
+
+impl_dynamic!([(1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3), (7, 3), (8, 4), (9, 4)]);
+impl_dynamic!([(10, 4), (11, 4), (12, 4), (13, 4), (14, 4), (15, 4), (16, 5), (17, 5), (18, 5), (19, 5)]);
+impl_dynamic!([(20, 5), (21, 5), (22, 5), (23, 5), (24, 5), (25, 5), (26, 5), (27, 5), (28, 5), (29, 5)]);
+impl_dynamic!([(30, 5), (31, 5), (32, 6), (33, 6), (34, 6), (35, 6), (36, 6), (37, 6), (38, 6), (39, 6)]);
+impl_dynamic!([(40, 6), (41, 6), (42, 6), (43, 6), (44, 6), (45, 6), (46, 6), (47, 6), (48, 6), (49, 6)]);
+impl_dynamic!([(50, 6), (51, 6), (52, 6), (53, 6), (54, 6), (55, 6), (56, 6), (57, 6), (58, 6), (59, 6)]);
+impl_dynamic!([(60, 6), (61, 6), (62, 6), (63, 6), (64, 7), (65, 7), (66, 7), (67, 7), (68, 7), (69, 7)]);
+impl_dynamic!([(70, 7), (71, 7), (72, 7), (73, 7), (74, 7), (75, 7), (76, 7), (77, 7), (78, 7), (79, 7)]);
+impl_dynamic!([(80, 7), (81, 7), (82, 7), (83, 7), (84, 7), (85, 7), (86, 7), (87, 7), (88, 7), (89, 7)]);
+impl_dynamic!([(90, 7), (91, 7), (92, 7), (93, 7), (94, 7), (95, 7), (96, 7), (97, 7), (98, 7), (99, 7)]);
+
+impl_dynamic!([(100, 7), (101, 7), (102, 7), (103, 7), (104, 7), (105, 7), (106, 7), (107, 7), (108, 7), (109, 7)]);
+impl_dynamic!([(110, 7), (111, 7), (112, 7), (113, 7), (114, 7), (115, 7), (116, 7), (117, 7), (118, 7), (119, 7)]);
+impl_dynamic!([(120, 7), (121, 7), (122, 7), (123, 7), (124, 7), (125, 7), (126, 7), (127, 7), (128, 8), (129, 8)]);
+impl_dynamic!([(130, 8), (131, 8), (132, 8), (133, 8), (134, 8), (135, 8), (136, 8), (137, 8), (138, 8), (139, 8)]);
+impl_dynamic!([(140, 8), (141, 8), (142, 8), (143, 8), (144, 8), (145, 8), (146, 8), (147, 8), (148, 8), (149, 8)]);
+impl_dynamic!([(150, 8), (151, 8), (152, 8), (153, 8), (154, 8), (155, 8), (156, 8), (157, 8), (158, 8), (159, 8)]);
+impl_dynamic!([(160, 8), (161, 8), (162, 8), (163, 8), (164, 8), (165, 8), (166, 8), (167, 8), (168, 8), (169, 8)]);
+impl_dynamic!([(170, 8), (171, 8), (172, 8), (173, 8), (174, 8), (175, 8), (176, 8), (177, 8), (178, 8), (179, 8)]);
+impl_dynamic!([(180, 8), (181, 8), (182, 8), (183, 8), (184, 8), (185, 8), (186, 8), (187, 8), (188, 8), (189, 8)]);
+impl_dynamic!([(190, 8), (191, 8), (192, 8), (193, 8), (194, 8), (195, 8), (196, 8), (197, 8), (198, 8), (199, 8)]);
+
+impl_dynamic!([(200, 8), (201, 8), (202, 8), (203, 8), (204, 8), (205, 8), (206, 8), (207, 8), (208, 8), (209, 8)]);
+impl_dynamic!([(210, 8), (211, 8), (212, 8), (213, 8), (214, 8), (215, 8), (216, 8), (217, 8), (218, 8), (219, 8)]);
+impl_dynamic!([(220, 8), (221, 8), (222, 8), (223, 8), (224, 8), (225, 8), (226, 8), (227, 8), (228, 8), (229, 8)]);
+impl_dynamic!([(230, 8), (231, 8), (232, 8), (233, 8), (234, 8), (235, 8), (236, 8), (237, 8), (238, 8), (239, 8)]);
+impl_dynamic!([(240, 8), (241, 8), (242, 8), (243, 8), (244, 8), (245, 8), (246, 8), (247, 8), (248, 8), (249, 8)]);
+impl_dynamic!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8)]);
+
+
+/*
 macro_rules! dynamic_array_def {
     ($i:ident, $n:expr, $log_bits:expr) => {
 
