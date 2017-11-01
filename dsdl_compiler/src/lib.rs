@@ -40,7 +40,7 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
                      syn::Item{
                          ident: syn::Ident::from("uavcan_rs"),
                          vis: syn::Visibility::Inherited,
-                         attrs: Vec::new(),
+                         attrs: vec![syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::Word(syn::Ident::from("macro_use"))}],
                          node: syn::ItemKind::ExternCrate(Some(syn::Ident::from("uavcan"))),
                      }
         );
@@ -185,12 +185,19 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                 break
             }
         }
-        let attributes = current_comments.clone();
+        let mut attributes = current_comments.clone();
         let mut void_number = 0;
 
         if union {
             let mut variants = Vec::new();
             current_comments = Vec::new();
+
+            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
+            ])});
+
             
             for line in not_directives {
                 match line {
@@ -218,6 +225,13 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
         } else {
             let mut fields = Vec::new();
             current_comments = Vec::new();
+            
+            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Default"))),
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
+                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
+            ])});
             
             for line in not_directives {
                 match line {
