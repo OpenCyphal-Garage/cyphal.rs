@@ -70,17 +70,20 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     }
 
     
-    let tail_array_optimizable = is_dynamic_array(&variant_data.fields().last().unwrap().ty);        
+    let tail_array_optimizable = if let Some(last_field) = variant_data.fields().last() {
+        is_dynamic_array(&last_field.ty)
+    } else {
+        false // the empty type is never tail array optimizable
+    };
 
     let number_of_flattened_fields = {
         let mut flattened_fields_builder = Tokens::new();
+        flattened_fields_builder.append(quote!{0});
 
-        for (i, field) in variant_data.fields().iter().enumerate() {
+        for field in variant_data.fields().iter() {
             let field_type = &field.ty;
             
-            if i != 0 {
-                flattened_fields_builder.append(quote!{+});
-            }
+            flattened_fields_builder.append(quote!{+});
             
             match classify_type(field_type) {
                 UavcanType::PrimitiveType | UavcanType::DynamicArray | UavcanType::StaticArray => flattened_fields_builder.append(quote!{1}),
