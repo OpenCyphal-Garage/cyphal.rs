@@ -435,6 +435,36 @@ mod tests {
         
     }
 
+    #[test]
+    fn uavcan_parse_padded() {
+
+        #[derive(UavcanStruct)]
+        struct Message {
+            v1: u8,
+            v2: void32,
+            v3: u16,
+            v4: u8,
+        }
+
+
+        let message = Message{
+            v1: 17,
+            v2: void32{},
+            v3: 21,
+            v4: 23,
+        };
+
+        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut array: [u8; 8] = [0; 8];
+
+        
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
+        serializer.serialize(&mut buffer);
+
+        assert_eq!(buffer.data, [17, 0, 0, 0, 0, 21, 0, 23]);
+        
+    }
+
     
 }
 
