@@ -438,10 +438,10 @@ mod tests {
     #[test]
     fn uavcan_parse_padded() {
 
-        #[derive(UavcanStruct)]
+        #[derive(UavcanStruct, Default)]
         struct Message {
             v1: u8,
-            v2: void32,
+            _v2: void32,
             v3: u16,
             v4: u8,
         }
@@ -449,9 +449,9 @@ mod tests {
 
         let message = Message{
             v1: 17,
-            v2: void32{},
             v3: 21,
             v4: 23,
+            .. Default::default()
         };
 
         let mut serializer: Serializer<Message> = Serializer::from_structure(message);
