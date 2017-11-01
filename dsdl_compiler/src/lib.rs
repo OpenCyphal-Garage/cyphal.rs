@@ -293,7 +293,7 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
             dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
             dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
                 None, syn::Path{
-                    global: false,
+                    global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
@@ -305,7 +305,7 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
                 }),
             dsdl_parser::ArrayInfo::DynamicLeq(size) => syn::Ty::Path(
                 None, syn::Path{
-                    global: false,
+                    global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
