@@ -70,12 +70,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     }
 
     
-    let tail_array_optimizable = if let Some(last_field) = variant_data.fields().last() {
-        is_dynamic_array(&last_field.ty)
-    } else {
-        false // the empty type is never tail array optimizable
-    };
-
     let number_of_flattened_fields = {
         let mut flattened_fields_builder = Tokens::new();
         flattened_fields_builder.append(quote!{0});
@@ -296,7 +290,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     
     quote!{
         impl ::#crate_name::Struct for #name {
-            const TAIL_ARRAY_OPTIMIZABLE: bool = #tail_array_optimizable;
             const FLATTENED_FIELDS_NUMBER: usize = #number_of_flattened_fields;
 
             const DSDL_SIGNATURE: u64 = #dsdl_signature;

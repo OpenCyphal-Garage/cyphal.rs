@@ -85,7 +85,6 @@ pub use deserializer::{
 };
 
 pub trait Struct: Sized {
-    const TAIL_ARRAY_OPTIMIZABLE: bool;
     const FLATTENED_FIELDS_NUMBER: usize;
 
     const DSDL_SIGNATURE: u64;
