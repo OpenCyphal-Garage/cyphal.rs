@@ -416,7 +416,7 @@ macro_rules! impl_dynamic{
         }
 
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: PrimitiveType + cmp::PartialEq> cmp::PartialEq for Dynamic<[T; $size]> {
+        impl<T: cmp::PartialEq> cmp::PartialEq for Dynamic<[T; $size]> {
             fn eq(&self, other: &Self) -> bool {
                 if self.current_length != other.current_length {
                     return false;
@@ -433,7 +433,7 @@ macro_rules! impl_dynamic{
         }
         
         // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: PrimitiveType + fmt::Debug> fmt::Debug for Dynamic<[T; $size]> {
+        impl<T: fmt::Debug> fmt::Debug for Dynamic<[T; $size]> {
             fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 write!(f, "$i<T> {{ data: [")?;
                 for i in 0..self.current_length {
