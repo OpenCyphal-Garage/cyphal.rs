@@ -128,4 +128,36 @@ mod tests {
         assert_eq!(parsed_message.text2.length(), 3);
         assert_eq!(parsed_message.text2, Dynamic::<[u8; 8]>::with_data("lol".as_bytes()));
     }
+
+    #[test]
+    fn tail_array_optimization_struct() {
+        #[derive(Debug, PartialEq, UavcanStruct, Clone)]
+        struct DynamicArrayStruct {
+            value: Dynamic<[u8; 255]>,
+        }
+        
+        #[derive(Debug, PartialEq, UavcanStruct, Clone)]
+        struct TestStruct {
+            t1: DynamicArrayStruct, // this array should not be tail array optimized (should encode length)
+            t2: DynamicArrayStruct, // this array should be tail array optimized (should not encode length)
+        }
+        
+        assert_eq!(DynamicArrayStruct::FLATTENED_FIELDS_NUMBER, 1);
+        assert_eq!(TestStruct::FLATTENED_FIELDS_NUMBER, 2);
+        
+        let dynamic_array_struct = DynamicArrayStruct{value: Dynamic::<[u8; 255]>::with_data(&[4u8, 5u8, 6u8])};
+        
+        let test_struct = TestStruct{
+            t1: dynamic_array_struct.clone(),
+            t2: dynamic_array_struct.clone(),
+        };
+        
+        let mut deserializer: Deserializer<TestStruct> = Deserializer::new();
+        deserializer.deserialize(&mut [3, 4, 5, 6, 4, 5, 6]);
+        let parsed_struct = deserializer.into_structure().unwrap();
+        
+        assert_eq!(parsed_struct, test_struct);                   
+
+    }
+
 }
