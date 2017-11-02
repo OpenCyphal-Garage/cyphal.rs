@@ -465,6 +465,41 @@ mod tests {
         
     }
 
-    
+
+    #[test]
+    fn tail_array_optimization_struct() {
+        #[derive(UavcanStruct, Clone)]
+        struct DynamicArrayStruct {
+            value: Dynamic<[u8; 255]>,
+        }
+
+        
+        #[derive(UavcanStruct)]
+        struct TestStruct {
+            t1: DynamicArrayStruct, // this array should not be tail array optimized (should encode length)
+            t2: DynamicArrayStruct, // this array should be tail array optimized (should not encode length)
+        }
+
+        assert_eq!(DynamicArrayStruct::FLATTENED_FIELDS_NUMBER, 1);
+        assert_eq!(TestStruct::FLATTENED_FIELDS_NUMBER, 2);
+
+        let dynamic_array_struct = DynamicArrayStruct{value: Dynamic::<[u8; 255]>::with_data(&[4u8, 5u8, 6u8])};
+        
+        let test_struct = TestStruct{
+            t1: dynamic_array_struct.clone(),
+            t2: dynamic_array_struct.clone(),
+        };
+
+        
+
+        let mut serializer: Serializer<TestStruct> = Serializer::from_structure(test_struct);
+        let mut array: [u8; 8] = [0; 8];
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
+
+        serializer.serialize(&mut buffer);
+        assert_eq!(buffer.data, [3, 4, 5, 6, 4, 5, 6, 0]);                   
+
+    }
+
 }
 
