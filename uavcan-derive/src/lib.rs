@@ -297,7 +297,16 @@ fn classify_type(ty: &syn::Ty) -> UavcanType {
 }
 
 fn is_primitive_type(ty: &syn::Ty) -> bool {
-    is_unsigned_primitive_type(ty) || is_signed_primitive_type(ty) || is_void_primitive_type(ty) || is_float_primitive_type(ty)
+    is_unsigned_primitive_type(ty) || is_signed_primitive_type(ty) || is_void_primitive_type(ty) || is_float_primitive_type(ty) || is_bool_primitive_type(ty)
+}
+
+fn is_bool_primitive_type(ty: &syn::Ty) -> bool {
+    if let syn::Ty::Path(_, ref path) = *ty {
+        let re = Regex::new(r"bool").unwrap();
+        re.is_match(path.segments.as_slice().last().unwrap().ident.as_ref())
+    } else {
+        false
+    }
 }
 
 fn is_unsigned_primitive_type(ty: &syn::Ty) -> bool {
