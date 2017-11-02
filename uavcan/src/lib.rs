@@ -113,6 +113,28 @@ pub trait Struct: Sized {
     /// assert_eq!(OuterStruct::FLATTENED_FIELDS_NUMBER, 4);
     /// # }
     /// ```
+    /// ## Flattening of enum
+    /// ```
+    /// # #[macro_use]
+    /// # extern crate uavcan;
+    /// # use uavcan::Struct;
+    /// #[derive(UavcanStruct)]
+    /// enum InnerEnum {
+    ///     V1(u8),
+    ///     V2(u8),
+    /// }
+    ///
+    /// #[derive(UavcanStruct)]
+    /// enum OuterEnum {
+    ///     V1(InnerEnum),
+    ///     V2(InnerEnum),
+    /// }
+    ///
+    /// # fn main() {
+    /// assert_eq!(InnerEnum::FLATTENED_FIELDS_NUMBER, 2);
+    /// assert_eq!(OuterEnum::FLATTENED_FIELDS_NUMBER, 4);
+    /// # }
+    /// ```
     const FLATTENED_FIELDS_NUMBER: usize;
 
     const DSDL_SIGNATURE: u64;
