@@ -90,7 +90,6 @@ pub trait Struct: Sized {
     const DSDL_SIGNATURE: u64;
     const DATA_TYPE_SIGNATURE: u64;
 
-    fn bit_length(&self) -> usize;
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult;
 }

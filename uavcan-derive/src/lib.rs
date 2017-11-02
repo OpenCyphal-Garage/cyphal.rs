@@ -216,41 +216,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         deserialize_builder
             
     };
-
-    let bit_length_body = {
-        let mut bit_length_builder = Tokens::new();
-        
-        for (i, field) in variant_data.fields().iter().enumerate() {
-            let field_type = &field.ty;
-            let field_ident = &field.ident;
-            
-            if i != 0 {bit_length_builder.append(quote!{ + });}
-            
-            match classify_type(field_type) {
-                UavcanType::PrimitiveType => bit_length_builder.append(quote!{<#field_type as ::#crate_name::types::PrimitiveType>::BIT_LENGTH}),
-                UavcanType::StaticArray => bit_length_builder.append(quote!(<#field_type as ::#crate_name::types::Array>::BIT_LENGTH)),
-                UavcanType::DynamicArray => {
-                    let array_type = array_from_dynamic(field_type).unwrap();
-                    let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
-                        element_type
-                    } else {
-                        panic!("element type name not found")
-                    };
-                    
-                    bit_length_builder.append(quote!{(Dynamic::<#array_type>::LENGTH_BITS + self.#field_ident.length() * #element_type::BIT_LENGTH)});
-                },
-                UavcanType::Struct => bit_length_builder.append(quote!{self.#field_ident.bit_length()}),   
-            }
-
-            // tail array optimization
-            if i == variant_data.fields().len() - 1 && is_dynamic_array(field_type) {
-                let array_type = array_from_dynamic(field_type);
-                bit_length_builder.append(quote!{ - ::#crate_name::types::Dynamic::<#array_type>::LENGTH_BITS});
-            }
-        }
-        
-        bit_length_builder
-    };
     
     
     quote!{
@@ -259,10 +224,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
             const DSDL_SIGNATURE: u64 = #dsdl_signature;
             const DATA_TYPE_SIGNATURE: u64 = #data_type_signature;
-
-            fn bit_length(&self) -> usize {
-                #bit_length_body
-            }
 
             #[allow(unused_comparisons)]
             #[allow(unused_variables)]

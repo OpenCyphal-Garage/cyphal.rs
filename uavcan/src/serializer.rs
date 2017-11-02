@@ -150,8 +150,10 @@ impl<T: Struct> Serializer<T> {
         self.structure.serialize(&mut self.field_index, &mut self.bit_index, true, buffer)
     }
 
-    pub fn single_frame_transfer(&self) -> bool {
-        self.structure.bit_length() <= 8*8
+    pub fn peek_serialize(&self, buffer: &mut SerializationBuffer) -> SerializationResult {
+        let mut field_index = self.field_index;
+        let mut bit_index = self.bit_index;
+        self.structure.serialize(&mut field_index, &mut bit_index, true, buffer)
     }
 
     pub fn crc(&mut self, data_type_signature: u64) -> u16 {

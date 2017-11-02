@@ -45,7 +45,16 @@ impl<S: Struct> FrameDisassembler<S> {
         let mut transport_frame = T::new(self.id);
         transport_frame.set_data_length(max_data_length);
         
-        let first_of_multi_frame = !self.started && !self.serializer.single_frame_transfer();
+        let first_of_multi_frame = if !self.started {
+            let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
+            if let SerializationResult::Finished = self.serializer.peek_serialize(&mut buffer) {
+                false
+            } else {
+                true
+            }                
+        } else {
+            false
+        };
 
         if self.finished {
             return None;
