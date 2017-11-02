@@ -212,6 +212,7 @@ impl_array!([250, 251, 252, 253, 254, 255]);
 /// assert_eq!(dynamic_array.length(), 13);
 ///
 /// ```
+#[derive(Clone)]
 pub struct Dynamic<T> {
     array: T,
     current_length: usize,
