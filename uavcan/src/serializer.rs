@@ -147,8 +147,7 @@ impl<T: Struct> Serializer<T> {
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
     pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
-        let last_field = self.field_index == T::FLATTENED_FIELDS_NUMBER-1;
-        self.structure.serialize(&mut self.field_index, &mut self.bit_index, last_field, buffer)
+        self.structure.serialize(&mut self.field_index, &mut self.bit_index, true, buffer)
     }
 
     pub fn single_frame_transfer(&self) -> bool {
