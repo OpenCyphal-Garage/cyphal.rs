@@ -135,13 +135,13 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     field_index.append(quote!{ +1});
                 },
                 UavcanType::Struct => {
-                    serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
-                        let mut current_field = *flattened_field - #field_index;
+                    serialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_type::FLATTENED_FIELDS_NUMBER {
+                        let mut current_field = *flattened_field - (#field_index);
                         if self.#field_ident.serialize(&mut current_field, bit, last_field && *flattened_field == Self::FLATTENED_FIELDS_NUMBER, buffer) == ::#crate_name::SerializationResult::Finished {
-                            *flattened_field = #field_index + current_field;
+                            *flattened_field = (#field_index) + current_field;
                             *bit = 0;
                         } else {
-                            *flattened_field = #field_index + current_field;
+                            *flattened_field = (#field_index) + current_field;
                             return ::#crate_name::SerializationResult::BufferFull;
                         }
                     }});
