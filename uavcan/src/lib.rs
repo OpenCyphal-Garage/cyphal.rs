@@ -85,6 +85,34 @@ pub use deserializer::{
 };
 
 pub trait Struct: Sized {
+    /// Number of primitive fields after flattening of data type.
+    ///
+    /// Flattening of a struct consists of replacing all structs with its fields.
+    /// Flattening of an enum consists of putting all fields in order
+    ///
+    /// # Examples
+    /// ## Flattening of struct
+    /// ```
+    /// # #[macro_use]
+    /// # extern crate uavcan;
+    /// # use uavcan::Struct;
+    /// #[derive(UavcanStruct)]
+    /// struct InnerStruct {
+    ///     v1: u8,
+    ///     v2: u8,
+    /// }
+    ///
+    /// #[derive(UavcanStruct)]
+    /// struct OuterStruct {
+    ///     v1: InnerStruct,
+    ///     v2: InnerStruct,
+    /// }
+    ///
+    /// # fn main() {
+    /// assert_eq!(InnerStruct::FLATTENED_FIELDS_NUMBER, 2);
+    /// assert_eq!(OuterStruct::FLATTENED_FIELDS_NUMBER, 4);
+    /// # }
+    /// ```
     const FLATTENED_FIELDS_NUMBER: usize;
 
     const DSDL_SIGNATURE: u64;
