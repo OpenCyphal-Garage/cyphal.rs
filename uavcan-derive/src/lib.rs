@@ -124,37 +124,21 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     field_index.append(quote!{ +1});
                 },
                 UavcanType::DynamicArray => {
-                    let array_type = array_from_dynamic(field_type);
-                
-                    // check for tail optimization
-                    if i == variant_data.fields().len() - 1 {
-                        serialize_builder.append(quote!{if *flattened_field == #field_index {
-                            let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
-                            if self.#field_ident.serialize(&mut skewed_bit, buffer) == ::#crate_name::SerializationResult::Finished {
-                                *flattened_field += 1;
-                                *bit = 0;
-                            } else {
-                                *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
-                                return ::#crate_name::SerializationResult::BufferFull;
-                            }                        
-                        }});
-                    } else {
-                        serialize_builder.append(quote!{if *flattened_field == #field_index {
-                            if self.#field_ident.serialize(bit, buffer) == ::#crate_name::SerializationResult::Finished {
-                                *flattened_field += 1;
-                                *bit = 0;
-                            } else {
-                                return ::#crate_name::SerializationResult::BufferFull;
-                            }
-                        }});
-                    }
+                    serialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if self.#field_ident.serialize(bit, last_field, buffer) == ::#crate_name::SerializationResult::Finished {
+                            *flattened_field += 1;
+                            *bit = 0;
+                        } else {
+                            return ::#crate_name::SerializationResult::BufferFull;
+                        }
+                    }});
                     field_index.append(quote!{ +1});
                 },
                 UavcanType::Struct => {
                     serialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
                         let mut current_field = *flattened_field - #field_index;
-                        if self.#field_ident.serialize(&mut current_field, bit, buffer) == ::#crate_name::SerializationResult::Finished {
-                            *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
+                        if self.#field_ident.serialize(&mut current_field, bit, last_field && *flattened_field == Self::FLATTENED_FIELDS_NUMBER, buffer) == ::#crate_name::SerializationResult::Finished {
+                            *flattened_field = #field_index + current_field;
                             *bit = 0;
                         } else {
                             *flattened_field = #field_index + current_field;
@@ -300,7 +284,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             }
 
             #[allow(unused_comparisons)]
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut ::#crate_name::SerializationBuffer) -> ::#crate_name::SerializationResult {
+            #[allow(unused_variables)]
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut ::#crate_name::SerializationBuffer) -> ::#crate_name::SerializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
                     #serialize_body
@@ -317,7 +302,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 ::#crate_name::DeserializationResult::Finished
             }
 
-        }
+
+       }
 
     }
 }

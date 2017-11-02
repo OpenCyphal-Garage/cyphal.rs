@@ -253,12 +253,21 @@ macro_rules! impl_dynamic{
             /// It is not intended for use outside the derive macro and
             /// must not be considered as a stable part of the API.
             #[doc(hidden)]
-            pub fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                // serialize length
-                if *bit < Self::LENGTH_BITS {
+            pub fn serialize(&self, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+
+                let buffer_bits_remaining = buffer.bits_remaining();
+
+                if buffer_bits_remaining == 0 {
+                    return SerializationResult::BufferFull;
+                }                
+                
+                // check for tail optimization
+                let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
+                
+                // serialize length unless tail array optimization kicks in
+                if *bit < Self::LENGTH_BITS && !tail_array_optimization {
 
                     let type_bits_remaining = Self::LENGTH_BITS - *bit;
-                    let buffer_bits_remaining = buffer.bits_remaining();
                     
                     if buffer_bits_remaining >= type_bits_remaining {
                         buffer.push_bits(type_bits_remaining, self.current_length.get_bits((*bit as u8)..(Self::LENGTH_BITS as u8)) as u64);
@@ -270,8 +279,11 @@ macro_rules! impl_dynamic{
                     }
                 }
 
-                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
-                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+                let (mut start_element, start_element_bit) = if tail_array_optimization {
+                    (*bit / T::BIT_LENGTH, *bit % T::BIT_LENGTH)
+                } else {
+                    ((*bit - Self::LENGTH_BITS) / T::BIT_LENGTH, (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH)
+                };
                 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {

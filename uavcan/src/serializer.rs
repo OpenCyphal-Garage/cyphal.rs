@@ -147,7 +147,8 @@ impl<T: Struct> Serializer<T> {
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
     pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
-        self.structure.serialize(&mut self.field_index, &mut self.bit_index, buffer)
+        let last_field = self.field_index == T::FLATTENED_FIELDS_NUMBER-1;
+        self.structure.serialize(&mut self.field_index, &mut self.bit_index, last_field, buffer)
     }
 
     pub fn single_frame_transfer(&self) -> bool {
@@ -310,16 +311,16 @@ mod tests {
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         let mut bits_serialized = 0;
-        assert_eq!(a1.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
+        assert_eq!(a1.serialize(&mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(bits_serialized, 11);
         assert_eq!(buffer.data, [0b10001001, 0, 0, 0]);
 
         buffer.stop_bit_index = 0;
-        a2.serialize(&mut 0, &mut buffer);
+        a2.serialize(&mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b11001001, 0b00001000, 0, 0]);
             
         buffer.stop_bit_index = 0;
-        a3.serialize(&mut 0, &mut buffer);
+        a3.serialize(&mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b10000001, 0b00000010, 0b00000100, 0b00010000]);
 
     }
@@ -331,19 +332,19 @@ mod tests {
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
-        a.serialize(&mut 3, &mut buffer);
+        a.serialize(&mut 3, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000011]);
         
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 11, &mut buffer);
+        a.serialize(&mut 11, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 19, &mut buffer);
+        a.serialize(&mut 19, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 27, &mut buffer);
+        a.serialize(&mut 27, false, &mut buffer);
         assert_eq!(buffer.data[0].get_bits((8 - buffer.stop_bit_index as u8)..8), 0b00000000);
 
     }
