@@ -198,6 +198,10 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
             ])});
 
+            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
+                syn::Ident::from("UavcanCrateName"),
+                syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
+            )});
             
             for line in not_directives {
                 match line {
@@ -232,6 +236,11 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
             ])});
+
+            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
+                syn::Ident::from("UavcanCrateName"),
+                syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
+            )});
             
             for line in not_directives {
                 match line {
