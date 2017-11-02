@@ -321,9 +321,13 @@ macro_rules! impl_dynamic{
             /// It is not intended for use outside the derive macro and
             /// must not be considered as a stable part of the API.
             #[doc(hidden)]
-            pub fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            pub fn deserialize(&mut self, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+
+                // check for tail optimization
+                let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
+
                 // deserialize length
-                if *bit < Self::LENGTH_BITS {
+                if *bit < Self::LENGTH_BITS && !tail_array_optimization {
                     
                     let buffer_len = buffer.bit_length();
                     if buffer_len + *bit < Self::LENGTH_BITS {
@@ -336,8 +340,15 @@ macro_rules! impl_dynamic{
                     }
                 }
 
-                let mut start_element = (*bit - Self::LENGTH_BITS) / T::BIT_LENGTH;
-                let start_element_bit = (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH;
+                if tail_array_optimization {
+                    self.set_length(Self::MAX_LENGTH);
+                }
+                
+                let (mut start_element, start_element_bit) = if tail_array_optimization {
+                    (*bit / T::BIT_LENGTH, *bit % T::BIT_LENGTH)
+                } else {
+                    ((*bit - Self::LENGTH_BITS) / T::BIT_LENGTH, (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH)
+                };
 
                 // first get rid of the odd bits
                 if start_element_bit != 0 {
@@ -348,13 +359,16 @@ macro_rules! impl_dynamic{
                         },
                         DeserializationResult::BufferInsufficient => {
                             *bit += bits_deserialized;
+                            if tail_array_optimization {
+                                self.current_length = start_element;
+                            }
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
                     start_element += 1;
                 }
                 
-                for element in self.iter_mut().skip(start_element) {
+                for (index, element) in self.array[0..self.current_length].iter_mut().enumerate().skip(start_element) {
                     let mut bits_deserialized = start_element_bit;
                     match element.deserialize(&mut bits_deserialized, buffer) {
                         DeserializationResult::Finished => {
@@ -362,6 +376,9 @@ macro_rules! impl_dynamic{
                         },
                         DeserializationResult::BufferInsufficient => {
                             *bit += bits_deserialized;
+                            if tail_array_optimization {
+                                self.current_length = index;
+                            }
                             return DeserializationResult::BufferInsufficient;
                         },
                     }

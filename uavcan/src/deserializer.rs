@@ -31,7 +31,7 @@ impl<T: Struct> Deserializer<T> {
 
     pub fn deserialize(&mut self, input: &mut [u8]) -> DeserializationResult {
         let mut buffer = DeserializationBuffer::with_full_buffer(input);
-        self.structure.deserialize(&mut self.field_index, &mut self.bit_index, &mut buffer)
+        self.structure.deserialize(&mut self.field_index, &mut self.bit_index, true, &mut buffer)
     }
 
     pub fn into_structure(self) -> Result<T, ()> {

@@ -188,43 +188,24 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     field_index.append(quote!{ +1});
                 },
                 UavcanType::DynamicArray => {
-                    let array_type = array_from_dynamic(field_type).unwrap();
-                    let element_type = if let syn::Ty::Array(ref element_type, _) = array_type {
-                        element_type
-                    } else {
-                        panic!("element type name not found")
-                    };
-                
-                    // check for tail optimization
-                    if i == variant_data.fields().len() - 1 {
-                        deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                            let mut skewed_bit = *bit + Dynamic::<#array_type>::LENGTH_BITS;
-                            self.#field_ident.set_length( ( <#element_type as ::#crate_name::types::PrimitiveType>::BIT_LENGTH-1 + *bit + buffer.bit_length()) / <#element_type as ::#crate_name::types::PrimitiveType>::BIT_LENGTH );
-                            self.#field_ident.deserialize(&mut skewed_bit, buffer);
-                            *bit = skewed_bit - Dynamic::<#array_type>::LENGTH_BITS;
-                            return ::#crate_name::DeserializationResult::Finished;                         
-                        }});
-                        field_index.append(quote!{ +1});
-                    } else {
-                        deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                            if self.#field_ident.deserialize(bit, buffer) == ::#crate_name::DeserializationResult::Finished {
-                                *flattened_field += 1;
-                                *bit = 0;
-                            } else {
-                                return ::#crate_name::DeserializationResult::BufferInsufficient;
-                            }
-                        }});
-                        field_index.append(quote!{ +1});
-                    }
-                },
-                UavcanType::Struct => {
-                    deserialize_builder.append(quote!{if *flattened_field >= #field_index && *flattened_field < #field_index + #field_type::FLATTENED_FIELDS_NUMBER {
-                        let mut current_field = *flattened_field - #field_index;
-                        if self.#field_ident.deserialize(&mut current_field, bit, buffer) == ::#crate_name::DeserializationResult::Finished {
-                            *flattened_field = #field_index + #field_type::FLATTENED_FIELDS_NUMBER;
+                    deserialize_builder.append(quote!{if *flattened_field == #field_index {
+                        if self.#field_ident.deserialize(bit, last_field && *flattened_field == (Self::FLATTENED_FIELDS_NUMBER-1), buffer) == ::#crate_name::DeserializationResult::Finished {
+                            *flattened_field += 1;
                             *bit = 0;
                         } else {
-                            *flattened_field = #field_index + current_field;
+                            return ::#crate_name::DeserializationResult::BufferInsufficient;
+                        }
+                    }});
+                    field_index.append(quote!{ +1});
+                },
+                UavcanType::Struct => {
+                    deserialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_type::FLATTENED_FIELDS_NUMBER {
+                        let mut current_field = *flattened_field - (#field_index);
+                        if self.#field_ident.deserialize(&mut current_field, bit, last_field && *flattened_field == (Self::FLATTENED_FIELDS_NUMBER-1), buffer) == ::#crate_name::DeserializationResult::Finished {
+                            *flattened_field = (#field_index) + current_field;
+                            *bit = 0;
+                        } else {
+                            *flattened_field = (#field_index) + current_field;
                             return ::#crate_name::DeserializationResult::BufferInsufficient;
                         }
                     }});
@@ -295,7 +276,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             }
 
             #[allow(unused_comparisons)]
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut ::#crate_name::DeserializationBuffer) -> ::#crate_name::DeserializationResult {
+            #[allow(unused_variables)]
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut ::#crate_name::DeserializationBuffer) -> ::#crate_name::DeserializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
                     assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
