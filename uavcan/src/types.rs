@@ -614,7 +614,7 @@ impl_primitive_types_ix!([(i33, 33), (i34, 34), (i35, 35), (i36, 36), (i37, 37),
                           (i49, 49), (i50, 50), (i51, 51), (i52, 52), (i53, 53), (i54, 54), (i55, 55), (i56, 56),
                           (i57, 57), (i58, 58), (i59, 59), (i60, 60), (i61, 61), (i62, 62), (i63, 63)], i64);
 
-impl_primitive_types_vx!([(void2, 2), (void3, 3), (void4, 4), (void5, 5), (void6, 6), (void7, 7), (void8, 8)]);
+impl_primitive_types_vx!([(void1, 1), (void2, 2), (void3, 3), (void4, 4), (void5, 5), (void6, 6), (void7, 7), (void8, 8)]);
 
 impl_primitive_types_vx!([(void9, 9), (void10, 10), (void11, 11), (void12, 12), (void13, 13), (void14, 14), (void15, 15), (void16, 16)]);
 
