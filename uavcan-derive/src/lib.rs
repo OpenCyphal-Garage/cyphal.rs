@@ -288,6 +288,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut ::#crate_name::SerializationBuffer) -> ::#crate_name::SerializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
+                    assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                     #serialize_body
                 }
                 ::#crate_name::SerializationResult::Finished
@@ -297,6 +298,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
             fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut ::#crate_name::DeserializationBuffer) -> ::#crate_name::DeserializationResult {
                 assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                 while *flattened_field != Self::FLATTENED_FIELDS_NUMBER{
+                    assert!(*flattened_field < Self::FLATTENED_FIELDS_NUMBER);
                     #deserialize_body
                 }
                 ::#crate_name::DeserializationResult::Finished
