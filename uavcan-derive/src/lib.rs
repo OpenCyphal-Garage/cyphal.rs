@@ -66,7 +66,27 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
     
     let number_of_flattened_fields = match ast.body {
-        Body::Enum(_) => panic!("UavcanSized is not derivable for enum"),
+        Body::Enum(ref variants) => {
+            let mut flattened_fields_builder = Tokens::new();
+            
+            flattened_fields_builder.append(quote!{0});
+            
+            for variant in variants {
+                if variant.data.fields().len() != 1 {
+                    panic!("Enum variants must have exactly one field");
+                } else if let Some(field) = variant.data.fields().first() {
+                    let field_type = &field.ty;
+                    
+                    match classify_type(field_type) {
+                        UavcanType::PrimitiveType | UavcanType::DynamicArray | UavcanType::StaticArray => flattened_fields_builder.append(quote!{ + 1}),
+                        UavcanType::Struct => flattened_fields_builder.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER}),
+                    }
+                }
+            }
+            
+            flattened_fields_builder
+                
+        },
         Body::Struct(syn::VariantData::Struct(ref fields)) => {
             let mut flattened_fields_builder = Tokens::new();
             
@@ -90,7 +110,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     };
     
     let serialize_body = match ast.body {
-        Body::Enum(_) => panic!("UavcanSized is not derivable for enum"),
+        Body::Enum(_) => quote!(unimplemented!("UavcanSized is not derivable for enum yet")),
         Body::Struct(syn::VariantData::Struct(ref fields)) => {
             
             let mut serialize_builder = Tokens::new();
@@ -160,7 +180,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
     };
     
     let deserialize_body = match ast.body {
-        Body::Enum(_) => panic!("UavcanSized is not derivable for enum"),
+        Body::Enum(_) => quote!(unimplemented!("UavcanSized is not derivable for enum yet")),
         Body::Struct(syn::VariantData::Struct(ref fields)) => {
             let mut deserialize_builder = Tokens::new();
             let mut field_index = Tokens::new();
