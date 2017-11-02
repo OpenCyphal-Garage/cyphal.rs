@@ -6,7 +6,7 @@ use {
     Struct,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum DeserializationResult {
     Finished,
     BufferInsufficient,

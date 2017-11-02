@@ -8,7 +8,7 @@ use bit_field::{
     BitField,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SerializationResult {
     BufferFull,
     Finished,
