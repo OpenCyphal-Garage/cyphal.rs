@@ -96,7 +96,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 let field_type = &field.ty;
                 
                 match classify_type(field_type) {
-                    UavcanType::PrimitiveType | UavcanType::StaticArray => flattened_fields_builder.append(quote!{ + 1}),
+                    UavcanType::PrimitiveType => flattened_fields_builder.append(quote!{ + 1}),
+                    UavcanType::StaticArray => flattened_fields_builder.append(quote!{ + <#field_type as ::#crate_name::types::Array>::FLATTENED_FIELDS_NUMBER}),
                     UavcanType::DynamicArray => {
                         let array_type = array_from_dynamic(field_type);
                         flattened_fields_builder.append(quote!{ + Dynamic::<#array_type>::FLATTENED_FIELDS_NUMBER});
@@ -143,15 +144,17 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         field_index.append(quote!{ +1});
                     },
                     UavcanType::StaticArray => {
-                        serialize_builder.append(quote!{if *flattened_field == #field_index {
-                            if ::#crate_name::types::Array::serialize(&self.#field_ident, bit, buffer) == ::#crate_name::SerializationResult::Finished {
-                                *flattened_field += 1;
+                        serialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + <#field_type as ::#crate_name::types::Array>::FLATTENED_FIELDS_NUMBER {
+                            let mut current_field = *flattened_field - (#field_index);
+                            if ::#crate_name::types::Array::serialize(&self.#field_ident, &mut current_field, bit, buffer) == ::#crate_name::SerializationResult::Finished {
+                                *flattened_field = (#field_index) + current_field;
                                 *bit = 0;
                             } else {
+                                *flattened_field = (#field_index) + current_field;
                                 return ::#crate_name::SerializationResult::BufferFull;
                             }
                         }});
-                        field_index.append(quote!{ +1});
+                        field_index.append(quote!{ + <#field_type as ::#crate_name::types::Array>::FLATTENED_FIELDS_NUMBER});
                     },
                     UavcanType::DynamicArray => {
                         let array_type = array_from_dynamic(field_type);
@@ -221,15 +224,17 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         field_index.append(quote!{ +1});
                     },
                     UavcanType::StaticArray => {
-                        deserialize_builder.append(quote!{if *flattened_field == #field_index {
-                            if ::#crate_name::types::Array::deserialize(&mut self.#field_ident, bit, buffer) == ::#crate_name::DeserializationResult::Finished {
-                                *flattened_field += 1;
+                        deserialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + <#field_type as ::#crate_name::types::Array>::FLATTENED_FIELDS_NUMBER {
+                            let mut current_field = *flattened_field - (#field_index);
+                            if ::#crate_name::types::Array::deserialize(&mut self.#field_ident, &mut current_field, bit, buffer) == ::#crate_name::DeserializationResult::Finished {
+                                *flattened_field = (#field_index) + current_field;
                                 *bit = 0;
                             } else {
+                                *flattened_field = (#field_index) + current_field;
                                 return ::#crate_name::DeserializationResult::BufferInsufficient;
                             }
-                        }});                
-                        field_index.append(quote!{ +1});
+                        }});
+                        field_index.append(quote!{ + <#field_type as ::#crate_name::types::Array>::FLATTENED_FIELDS_NUMBER});
                     },
                     UavcanType::DynamicArray => {
                         let array_type = array_from_dynamic(field_type);

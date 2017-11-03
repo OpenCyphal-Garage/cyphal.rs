@@ -82,90 +82,57 @@ pub trait PrimitiveType : Sized + Copy{
 /// must not be considered as a stable part of the API.
 #[doc(hidden)]
 pub trait Array {
+    const FLATTENED_FIELDS_NUMBER: usize;
     const LENGTH: usize;
     const BIT_LENGTH: usize;
     type ELEMENT_TYPE;
     
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+    fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
+    fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
 }
 
 macro_rules! impl_array{
     {[$($size:expr), *]} => {$(impl_array!($size);)*};
     {$size:expr} => {
         impl<T: PrimitiveType> Array for [T; $size] {
+            const FLATTENED_FIELDS_NUMBER: usize = $size;
             const LENGTH: usize = $size;
             const BIT_LENGTH: usize = $size * T::BIT_LENGTH;
             type ELEMENT_TYPE = T;
             
-            fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                let mut start_element = *bit / T::BIT_LENGTH;
-                let start_element_bit = *bit % T::BIT_LENGTH;
-                
-                // first get rid of the odd bits
-                if start_element_bit != 0 {
-                    let mut bits_serialized = start_element_bit;
-                    match self[start_element].serialize(&mut bits_serialized, buffer) {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
+                    match self[*flattened_field].serialize(bit, buffer) {
                         SerializationResult::Finished => {
-                            *bit += bits_serialized;
+                            *flattened_field += 1;
+                            *bit = 0;
                         },
                         SerializationResult::BufferFull => {
-                            *bit += bits_serialized;
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                    start_element += 1;
-                }
-                
-                for element in self.iter().skip(start_element) {
-                    let mut bits_serialized = 0;
-                    match element.serialize(&mut bits_serialized, buffer) {
-                        SerializationResult::Finished => {
-                            *bit += bits_serialized;
-                        },
-                        SerializationResult::BufferFull => {
-                            *bit += bits_serialized;
                             return SerializationResult::BufferFull;
                         },
                     }
                 }
                 
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
                 SerializationResult::Finished
             }
             
-            fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-                
-                let mut start_element = *bit / T::BIT_LENGTH;
-                let start_element_bit = *bit % T::BIT_LENGTH;
-                
-                // first get rid of the odd bits
-                if start_element_bit != 0 {
-                    let mut bits_deserialized = start_element_bit;
-                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
+                    match self[*flattened_field].deserialize(bit, buffer) {
                         DeserializationResult::Finished => {
-                            *bit += bits_deserialized;
+                            *flattened_field += 1;
+                            *bit = 0;
                         },
                         DeserializationResult::BufferInsufficient => {
-                            *bit += bits_deserialized;
-                            return DeserializationResult::BufferInsufficient;
-                        },
-                    }
-                    start_element += 1;
-                }
-                
-                for element in self.iter_mut().skip(start_element) {
-                    let mut bits_deserialized = start_element_bit;
-                    match element.deserialize(&mut bits_deserialized, buffer) {
-                        DeserializationResult::Finished => {
-                            *bit += bits_deserialized;
-                        },
-                        DeserializationResult::BufferInsufficient => {
-                            *bit += bits_deserialized;
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
                 }
-
+                
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
                 DeserializationResult::Finished
             }
         }
