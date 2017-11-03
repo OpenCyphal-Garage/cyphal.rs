@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn deserialize_dynamic_array() {
 
-        #[derive(UavcanStruct)]
+        #[derive(PartialEq, Debug, UavcanStruct)]
         struct TestMessage {
             pad: u5,
             text1: Dynamic<[u8; 7]>,
@@ -123,10 +123,13 @@ mod tests {
         
         let parsed_message = deserializer.into_structure().unwrap();
 
-        assert_eq!(parsed_message.text1.length(), 4);
-        assert_eq!(parsed_message.text1, Dynamic::<[u8; 7]>::with_data("test".as_bytes()));
-        assert_eq!(parsed_message.text2.length(), 3);
-        assert_eq!(parsed_message.text2, Dynamic::<[u8; 8]>::with_data("lol".as_bytes()));
+        assert_eq!(parsed_message,
+                   TestMessage{
+                       pad: u5::new(0),
+                       text1: Dynamic::<[u8; 7]>::with_data("test".as_bytes()),
+                       text2: Dynamic::<[u8; 8]>::with_data("lol".as_bytes()),
+                   }
+        );
     }
 
     #[test]
