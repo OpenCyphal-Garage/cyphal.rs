@@ -311,17 +311,18 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
-        let mut bits_serialized = 0;
-        assert_eq!(a1.serialize(&mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 11);
+        let (mut field, mut bit) = (0, 0);
+        assert_eq!(a1.serialize(&mut field, &mut bit, false, &mut buffer), SerializationResult::Finished);
+        assert_eq!(field, 5);
+        assert_eq!(bit, 0);
         assert_eq!(buffer.data, [0b10001001, 0, 0, 0]);
 
         buffer.stop_bit_index = 0;
-        a2.serialize(&mut 0, false, &mut buffer);
+        a2.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b11001001, 0b00001000, 0, 0]);
             
         buffer.stop_bit_index = 0;
-        a3.serialize(&mut 0, false, &mut buffer);
+        a3.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b10000001, 0b00000010, 0b00000100, 0b00010000]);
 
     }
@@ -333,19 +334,22 @@ mod tests {
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
-        a.serialize(&mut 3, false, &mut buffer);
+        let (mut field, mut bit) = (1, 0);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
+        assert_eq!(field, 2);
+        assert_eq!(bit, 1);
         assert_eq!(buffer.data, [0b00000011]);
         
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 11, false, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 19, false, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 27, false, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data[0].get_bits((8 - buffer.stop_bit_index as u8)..8), 0b00000000);
 
     }

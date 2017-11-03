@@ -222,6 +222,7 @@ macro_rules! impl_dynamic{
     {[$(($size:expr, $length_bits:expr)), *]} => {$(impl_dynamic!(($size, $length_bits));)*};
     {($size:expr, $length_bits:expr)} => {
         impl<T: PrimitiveType> Dynamic<[T; $size]> {
+            pub const FLATTENED_FIELDS_NUMBER: usize = $size + 1;
             pub const LENGTH_BITS: usize = $length_bits;
             pub const MAX_LENGTH: usize = $size;
 
@@ -254,7 +255,7 @@ macro_rules! impl_dynamic{
             /// It is not intended for use outside the derive macro and
             /// must not be considered as a stable part of the API.
             #[doc(hidden)]
-            pub fn serialize(&self, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+            pub fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
 
                 let buffer_bits_remaining = buffer.bits_remaining();
 
@@ -263,16 +264,18 @@ macro_rules! impl_dynamic{
                 }                
                 
                 // check for tail optimization
-                let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
+                if last_field && (T::BIT_LENGTH >= 8) && *flattened_field == 0 {
+                    *flattened_field = 1;
+                }
                 
-                // serialize length unless tail array optimization kicks in
-                if *bit < Self::LENGTH_BITS && !tail_array_optimization {
-
+                if *flattened_field == 0 {
+                    
                     let type_bits_remaining = Self::LENGTH_BITS - *bit;
                     
                     if buffer_bits_remaining >= type_bits_remaining {
                         buffer.push_bits(type_bits_remaining, self.current_length.get_bits((*bit as u8)..(Self::LENGTH_BITS as u8)) as u64);
-                        *bit = Self::LENGTH_BITS;
+                        *flattened_field = 1;
+                        *bit = 0;
                     } else {
                         buffer.push_bits(buffer_bits_remaining, self.current_length.get_bits((*bit as u8)..(*bit + buffer_bits_remaining) as u8) as u64);
                         *bit += buffer_bits_remaining;
@@ -280,40 +283,20 @@ macro_rules! impl_dynamic{
                     }
                 }
 
-                let (mut start_element, start_element_bit) = if tail_array_optimization {
-                    (*bit / T::BIT_LENGTH, *bit % T::BIT_LENGTH)
-                } else {
-                    ((*bit - Self::LENGTH_BITS) / T::BIT_LENGTH, (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH)
-                };
-                
-                // first get rid of the odd bits
-                if start_element_bit != 0 {
-                    let mut bits_serialized = start_element_bit;
-                    match self[start_element].serialize(&mut bits_serialized, buffer) {
+                while *flattened_field - 1 < self.current_length {
+                    match self[*flattened_field -1].serialize(bit, buffer) {
                         SerializationResult::Finished => {
-                            *bit += bits_serialized;
+                            *flattened_field += 1;
+                            *bit = 0;
                         },
                         SerializationResult::BufferFull => {
-                            *bit += bits_serialized;
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                    start_element += 1;
-                }
-                
-                for element in self.iter().skip(start_element) {
-                    let mut bits_serialized = 0;
-                    match element.serialize(&mut bits_serialized, buffer) {
-                        SerializationResult::Finished => {
-                            *bit += bits_serialized;
-                        },
-                        SerializationResult::BufferFull => {
-                            *bit += bits_serialized;
                             return SerializationResult::BufferFull;
                         },
                     }
                 }
-                
+
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
                 SerializationResult::Finished
             }
 

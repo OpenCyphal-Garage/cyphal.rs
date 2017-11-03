@@ -148,15 +148,18 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         field_index.append(quote!{ +1});
                     },
                     UavcanType::DynamicArray => {
+                        let array_type = array_from_dynamic(field_type);
                         serialize_builder.append(quote!{if *flattened_field == #field_index {
-                            if self.#field_ident.serialize(bit, last_field && *flattened_field == (Self::FLATTENED_FIELDS_NUMBER-1), buffer) == ::#crate_name::SerializationResult::Finished {
-                                *flattened_field += 1;
+                            let mut current_field = *flattened_field - (#field_index);
+                            if self.#field_ident.serialize(&mut current_field, bit, last_field && *flattened_field == (Self::FLATTENED_FIELDS_NUMBER-1), buffer) == ::#crate_name::SerializationResult::Finished {
+                                *flattened_field = (#field_index) + current_field;
                                 *bit = 0;
                             } else {
+                                *flattened_field = (#field_index) + current_field;
                                 return ::#crate_name::SerializationResult::BufferFull;
                             }
                         }});
-                        field_index.append(quote!{ +1});
+                        field_index.append(quote!{ + Dynamic::<#array_type>::FLATTENED_FIELDS_NUMBER});
                     },
                     UavcanType::Struct => {
                         serialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_type::FLATTENED_FIELDS_NUMBER {
