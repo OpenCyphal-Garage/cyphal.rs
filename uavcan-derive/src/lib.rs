@@ -361,3 +361,18 @@ fn is_dynamic_array(type_name: &syn::Ty) -> bool {
     }
     false
 }
+
+fn array_from_dynamic(type_name: &syn::Ty) -> Option<syn::Ty> {
+    if let syn::Ty::Path(_, ref path) = *type_name {
+        if path.segments.as_slice().last().unwrap().ident == syn::Ident::from("Dynamic") {
+            if let syn::PathSegment{
+                parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
+                    ref types, ..
+                }), ..
+            } = *path.segments.as_slice().last().unwrap() {
+                return Some(types[0].clone());
+            }
+        }
+    }
+    None
+}
