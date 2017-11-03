@@ -145,8 +145,8 @@ mod tests {
             t2: DynamicArrayStruct, // this array should be tail array optimized (should not encode length)
         }
         
-        assert_eq!(DynamicArrayStruct::FLATTENED_FIELDS_NUMBER, 1);
-        assert_eq!(TestStruct::FLATTENED_FIELDS_NUMBER, 2);
+        assert_eq!(DynamicArrayStruct::FLATTENED_FIELDS_NUMBER, 256);
+        assert_eq!(TestStruct::FLATTENED_FIELDS_NUMBER, 512);
         
         let dynamic_array_struct = DynamicArrayStruct{value: Dynamic::<[u8; 255]>::with_data(&[4u8, 5u8, 6u8])};
         

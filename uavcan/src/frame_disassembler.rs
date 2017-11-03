@@ -165,8 +165,6 @@ mod tests {
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
-        assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
-        
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
         let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);

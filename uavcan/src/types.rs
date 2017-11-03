@@ -304,13 +304,17 @@ macro_rules! impl_dynamic{
             /// It is not intended for use outside the derive macro and
             /// must not be considered as a stable part of the API.
             #[doc(hidden)]
-            pub fn deserialize(&mut self, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            pub fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
 
                 // check for tail optimization
                 let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
 
+                if tail_array_optimization && *flattened_field == 0 {
+                    *flattened_field = 1;
+                }
+                
                 // deserialize length
-                if *bit < Self::LENGTH_BITS && !tail_array_optimization {
+                if *flattened_field == 0 {
                     
                     let buffer_len = buffer.bit_length();
                     if buffer_len + *bit < Self::LENGTH_BITS {
@@ -319,7 +323,8 @@ macro_rules! impl_dynamic{
                         return DeserializationResult::BufferInsufficient
                     } else {
                         self.current_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
-                        *bit = Self::LENGTH_BITS;
+                        *flattened_field = 1;
+                        *bit = 0;
                     }
                 }
 
@@ -327,46 +332,23 @@ macro_rules! impl_dynamic{
                     self.set_length(Self::MAX_LENGTH);
                 }
                 
-                let (mut start_element, start_element_bit) = if tail_array_optimization {
-                    (*bit / T::BIT_LENGTH, *bit % T::BIT_LENGTH)
-                } else {
-                    ((*bit - Self::LENGTH_BITS) / T::BIT_LENGTH, (*bit - Self::LENGTH_BITS) % T::BIT_LENGTH)
-                };
-
-                // first get rid of the odd bits
-                if start_element_bit != 0 {
-                    let mut bits_deserialized = start_element_bit;
-                    match self[start_element].deserialize(&mut bits_deserialized, buffer) {
+                while *flattened_field - 1 < self.current_length {
+                    match self.array[*flattened_field - 1].deserialize(bit, buffer) {
                         DeserializationResult::Finished => {
-                            *bit += bits_deserialized;
+                            *flattened_field += 1;
+                            *bit = 0;
                         },
                         DeserializationResult::BufferInsufficient => {
-                            *bit += bits_deserialized;
                             if tail_array_optimization {
-                                self.current_length = start_element;
+                                self.current_length = *flattened_field - 1;
                             }
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
-                    start_element += 1;
                 }
                 
-                for (index, element) in self.array[0..self.current_length].iter_mut().enumerate().skip(start_element) {
-                    let mut bits_deserialized = start_element_bit;
-                    match element.deserialize(&mut bits_deserialized, buffer) {
-                        DeserializationResult::Finished => {
-                            *bit += bits_deserialized;
-                        },
-                        DeserializationResult::BufferInsufficient => {
-                            *bit += bits_deserialized;
-                            if tail_array_optimization {
-                                self.current_length = index;
-                            }
-                            return DeserializationResult::BufferInsufficient;
-                        },
-                    }
-                }
-
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
                 DeserializationResult::Finished
             }
             
