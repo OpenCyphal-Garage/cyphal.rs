@@ -163,4 +163,30 @@ mod tests {
 
     }
 
+    #[test]
+    fn deserialize_static_array() {
+
+        #[derive(PartialEq, Debug, UavcanStruct)]
+        struct Message {
+            a: [u16; 4],
+        }
+        
+        
+        let message = Message{
+            a: [5, 6, 7, 8],
+        };
+        
+        let mut deserializer: Deserializer<Message> = Deserializer::new();
+        deserializer.deserialize(&mut [5, 0, 6, 0, 7, 0, 8, 0]);
+        let parsed = deserializer.into_structure().unwrap();
+
+        assert_eq!(parsed,
+                   Message{
+                       a: [5, 6, 7, 8],
+                   }
+        );
+        
+    }
+
+
 }
