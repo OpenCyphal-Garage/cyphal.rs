@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn serialize_node_status_frame() {
 
-        #[derive(UavcanStruct, Default)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -142,12 +142,12 @@ mod tests {
     #[test]
     fn serialize_multi_frame() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct LogLevel {
             value: u3,
         }
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         #[DataTypeSignature = "0xd654a48e0c049d75"]
         struct LogMessage {
             level: LogLevel,

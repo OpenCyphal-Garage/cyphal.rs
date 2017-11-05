@@ -357,7 +357,7 @@ mod tests {
     #[test]
     fn uavcan_serialize_test_byte_aligned() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             v1: u8,
             v2: u32,
@@ -387,7 +387,7 @@ mod tests {
     #[test]
     fn uavcan_serialize_static_array() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             a: [u16; 4],
         }
@@ -413,7 +413,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -444,7 +444,7 @@ mod tests {
     #[test]
     fn uavcan_parse_padded() {
 
-        #[derive(UavcanStruct, Default)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             v1: u8,
             _v2: void32,
@@ -474,13 +474,13 @@ mod tests {
 
     #[test]
     fn tail_array_optimization_struct() {
-        #[derive(UavcanStruct, Clone)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct DynamicArrayStruct {
             value: Dynamic<[u8; 255]>,
         }
 
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct TestStruct {
             t1: DynamicArrayStruct, // this array should not be tail array optimized (should encode length)
             t2: DynamicArrayStruct, // this array should be tail array optimized (should not encode length)

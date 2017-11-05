@@ -54,7 +54,7 @@ mod tests {
     #[test]
     fn uavcan_parse_test_byte_aligned() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             v1: u8,
             v2: u32,
@@ -82,7 +82,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -110,7 +110,7 @@ mod tests {
     #[test]
     fn deserialize_dynamic_array() {
 
-        #[derive(PartialEq, Debug, UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct TestMessage {
             pad: u5,
             text1: Dynamic<[u8; 7]>,
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn deserialize_static_array() {
 
-        #[derive(PartialEq, Debug, UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             a: [u16; 4],
         }

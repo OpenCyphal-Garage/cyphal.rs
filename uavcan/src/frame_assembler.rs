@@ -130,7 +130,7 @@ mod tests {
     #[test]
     fn parse_from_can_frames_simple() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -161,12 +161,12 @@ mod tests {
     #[test]
     fn deserialize_multi_frame() {
         
-        #[derive(Debug, PartialEq, UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct LogLevel {
             value: u3,
         }
         
-        #[derive(Debug, PartialEq, UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct LogMessage {
             level: LogLevel,
             source: Dynamic<[u8; 31]>,
