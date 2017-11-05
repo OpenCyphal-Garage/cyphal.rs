@@ -85,6 +85,9 @@ pub use deserializer::{
 };
 
 pub trait Serializable {
+    const BIT_LENGTH_MAX: usize;
+    const BIT_LENGTH_MIN: usize;
+    
     /// Number of primitive fields after flattening of data type.
     ///
     /// Flattening of a struct consists of replacing all structs with its fields.
@@ -141,10 +144,6 @@ pub trait Serializable {
 
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-}
-
-pub trait UavcanSized {
-    const BIT_LENGTH: usize;
 }
 
 pub trait Struct: Sized + Serializable {

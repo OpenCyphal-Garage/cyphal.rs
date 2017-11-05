@@ -16,8 +16,6 @@ use lib::core::ops::{
 
 use bit_field::BitField;
 
-use UavcanSized;
-
 use serializer::{
     SerializationResult,
     SerializationBuffer,
@@ -63,11 +61,9 @@ macro_rules! impl_dynamic{
     {($size:expr, $length_bits:expr)} => {
 
         // first implement static arrays
-        impl<T: ::UavcanSized> ::UavcanSized for [T; $size] {
-            const BIT_LENGTH: usize = $size * T::BIT_LENGTH;
-        }
-
         impl<T: ::Serializable> ::Serializable for [T; $size] {
+            const BIT_LENGTH_MAX: usize = $size * T::BIT_LENGTH_MAX;
+            const BIT_LENGTH_MIN: usize = $size * T::BIT_LENGTH_MIN;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER;
             
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
@@ -144,7 +140,9 @@ macro_rules! impl_dynamic{
 
         }
 
-        impl<T: ::Serializable + ::UavcanSized> ::Serializable for Dynamic<[T; $size]> {
+        impl<T: ::Serializable> ::Serializable for Dynamic<[T; $size]> {
+            const BIT_LENGTH_MAX: usize = $size * T::BIT_LENGTH_MAX + Self::LENGTH_BITS;
+            const BIT_LENGTH_MIN: usize = 0;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER + 1;
             
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
@@ -156,7 +154,7 @@ macro_rules! impl_dynamic{
                 }                
                 
                 // check for tail optimization
-                if T::BIT_LENGTH >= 8 && last_field && *flattened_field == 0 {
+                if T::BIT_LENGTH_MIN >= 8 && last_field && *flattened_field == 0 {
                     *flattened_field = 1;
                 }
                 
@@ -197,7 +195,7 @@ macro_rules! impl_dynamic{
             fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
 
                 // check for tail optimization
-                let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
+                let tail_array_optimization = last_field && (T::BIT_LENGTH_MIN >= 8);
 
                 if tail_array_optimization && *flattened_field == 0 {
                     *flattened_field = 1;
@@ -402,16 +400,15 @@ impl_dynamic!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8), (256,
 
 macro_rules! impl_serializeable {
     {$type:ident, $bits:expr} => {
-        impl ::UavcanSized for $type {
-            const BIT_LENGTH: usize = $bits;
-        }
-        
         impl ::Serializable for $type {
+            const BIT_LENGTH_MAX: usize = $bits;
+            const BIT_LENGTH_MIN: usize = $bits;
+
             const FLATTENED_FIELDS_NUMBER: usize = 1;
             
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
                 assert_eq!(*flattened_field, 0);
-                let type_bits_remaining = Self::BIT_LENGTH - *bit;
+                let type_bits_remaining = $bits - *bit;
                 let buffer_bits_remaining = buffer.bits_remaining();
                 
                 if type_bits_remaining == 0 {
@@ -446,7 +443,7 @@ macro_rules! impl_serializeable {
                     *bit += buffer_len;
                     DeserializationResult::BufferInsufficient
                 } else {
-                    *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit));
+                    *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits($bits-*bit) << *bit));
                     *bit = 0;
                     *flattened_field = 1;
                     DeserializationResult::Finished
