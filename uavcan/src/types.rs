@@ -16,6 +16,8 @@ use lib::core::ops::{
 
 use bit_field::BitField;
 
+use UavcanSized;
+
 use serializer::{
     SerializationResult,
     SerializationBuffer,
@@ -30,143 +32,14 @@ use deserializer::{
 /// It is not intended for use outside the derive macro and
 /// must not be considered as a stable part of the API.
 #[doc(hidden)]
-pub trait PrimitiveType : Sized + Copy{
-    const BIT_LENGTH: usize;
-    
+trait PrimitiveType : Sized + Copy + ::Serializable {
     /// Mask bits exceeding `BIT_LENGTH`
     fn from_bits(v: u64) -> Self;
     
     /// Zeroes bits exceeding `BIT_LENGTH`
     fn to_bits(self) -> u64;
-
-    fn serialize(&self, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {            
-        let type_bits_remaining = Self::BIT_LENGTH - *bit;
-        let buffer_bits_remaining = buffer.bits_remaining();
-        
-        if type_bits_remaining == 0 {
-            SerializationResult::Finished
-        } else if buffer_bits_remaining == 0 {
-            SerializationResult::BufferFull
-        } else if buffer_bits_remaining >= type_bits_remaining {
-            buffer.push_bits(type_bits_remaining, (self.to_bits() >> *bit));
-            *bit = Self::BIT_LENGTH;
-            SerializationResult::Finished
-        } else {
-            buffer.push_bits(buffer_bits_remaining, (self.to_bits() >> *bit));
-            *bit += buffer_bits_remaining;
-            SerializationResult::BufferFull
-        }
-    }
-
-    fn deserialize(&mut self, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-        let buffer_len = buffer.bit_length();
-        if buffer_len == 0 && *bit == Self::BIT_LENGTH {
-            DeserializationResult::Finished
-        } else if buffer_len == 0 && *bit != Self::BIT_LENGTH {
-            DeserializationResult::BufferInsufficient
-        } else if buffer_len < Self::BIT_LENGTH - *bit {
-            *self = Self::from_bits(self.to_bits() | (buffer.pop_bits(buffer_len) << *bit));
-            *bit += buffer_len;
-            DeserializationResult::BufferInsufficient
-        } else {
-            *self = Self::from_bits(self.to_bits() | (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit));
-            *bit += Self::BIT_LENGTH;
-            DeserializationResult::Finished
-        }
-        
-    }
 }
-
-/// This trait is only exposed so `Struct` can be derived.
-/// It is not intended for use outside the derive macro and
-/// must not be considered as a stable part of the API.
-#[doc(hidden)]
-pub trait Array {
-    const FLATTENED_FIELDS_NUMBER: usize;
-    const LENGTH: usize;
-    const BIT_LENGTH: usize;
-    type ELEMENT_TYPE;
     
-    fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult;
-}
-
-macro_rules! impl_array{
-    {[$($size:expr), *]} => {$(impl_array!($size);)*};
-    {$size:expr} => {
-        impl<T: PrimitiveType> Array for [T; $size] {
-            const FLATTENED_FIELDS_NUMBER: usize = $size;
-            const LENGTH: usize = $size;
-            const BIT_LENGTH: usize = $size * T::BIT_LENGTH;
-            type ELEMENT_TYPE = T;
-            
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut SerializationBuffer) -> SerializationResult {
-                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
-                    match self[*flattened_field].serialize(bit, buffer) {
-                        SerializationResult::Finished => {
-                            *flattened_field += 1;
-                            *bit = 0;
-                        },
-                        SerializationResult::BufferFull => {
-                            return SerializationResult::BufferFull;
-                        },
-                    }
-                }
-                
-                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
-                *bit = 0;
-                SerializationResult::Finished
-            }
-            
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, buffer: &mut DeserializationBuffer) -> DeserializationResult {
-                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
-                    match self[*flattened_field].deserialize(bit, buffer) {
-                        DeserializationResult::Finished => {
-                            *flattened_field += 1;
-                            *bit = 0;
-                        },
-                        DeserializationResult::BufferInsufficient => {
-                            return DeserializationResult::BufferInsufficient;
-                        },
-                    }
-                }
-                
-                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
-                *bit = 0;
-                DeserializationResult::Finished
-            }
-        }
-    };
-}
-
-impl_array!([1, 2, 3, 4, 5, 6, 7, 8, 9]);
-impl_array!([10, 11, 12, 13, 14, 15, 16, 17, 18, 19]);
-impl_array!([20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
-impl_array!([30, 31, 32, 33, 34, 35, 36, 37, 38, 39]);
-impl_array!([40, 41, 42, 43, 44, 45, 46, 47, 48, 49]);
-impl_array!([50, 51, 52, 53, 54, 55, 56, 57, 58, 59]);
-impl_array!([60, 61, 62, 63, 64, 65, 66, 67, 68, 69]);
-impl_array!([70, 71, 72, 73, 74, 75, 76, 77, 78, 79]);
-impl_array!([80, 81, 82, 83, 84, 85, 86, 87, 88, 89]);
-impl_array!([90, 91, 92, 93, 94, 95, 96, 97, 98, 99]);
-
-impl_array!([100, 101, 102, 103, 104, 105, 106, 107, 108, 109]);
-impl_array!([110, 111, 112, 113, 114, 115, 116, 117, 118, 119]);
-impl_array!([120, 121, 122, 123, 124, 125, 126, 127, 128, 129]);
-impl_array!([130, 131, 132, 133, 134, 135, 136, 137, 138, 139]);
-impl_array!([140, 141, 142, 143, 144, 145, 146, 147, 148, 149]);
-impl_array!([150, 151, 152, 153, 154, 155, 156, 157, 158, 159]);
-impl_array!([160, 161, 162, 163, 164, 165, 166, 167, 168, 169]);
-impl_array!([170, 171, 172, 173, 174, 175, 176, 177, 178, 179]);
-impl_array!([180, 181, 182, 183, 184, 185, 186, 187, 188, 189]);
-impl_array!([190, 191, 192, 193, 194, 195, 196, 197, 198, 199]);
-
-impl_array!([200, 201, 202, 203, 204, 205, 206, 207, 208, 209]);
-impl_array!([210, 211, 212, 213, 214, 215, 216, 217, 218, 219]);
-impl_array!([220, 221, 222, 223, 224, 225, 226, 227, 228, 229]);
-impl_array!([230, 231, 232, 233, 234, 235, 236, 237, 238, 239]);
-impl_array!([240, 241, 242, 243, 244, 245, 246, 247, 248, 249]);
-impl_array!([250, 251, 252, 253, 254, 255, 256]);
 
 /// The Uavcan dynamic array type
 ///
@@ -188,12 +61,63 @@ pub struct Dynamic<T> {
 macro_rules! impl_dynamic{
     {[$(($size:expr, $length_bits:expr)), *]} => {$(impl_dynamic!(($size, $length_bits));)*};
     {($size:expr, $length_bits:expr)} => {
-        impl<T: PrimitiveType> Dynamic<[T; $size]> {
-            pub const FLATTENED_FIELDS_NUMBER: usize = $size + 1;
+
+        // first implement static arrays
+        impl<T: ::UavcanSized> ::UavcanSized for [T; $size] {
+            const BIT_LENGTH: usize = $size * T::BIT_LENGTH;
+        }
+
+        impl<T: ::Serializable> ::Serializable for [T; $size] {
+            const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER;
+            
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
+                    let element = *flattened_field  / T::FLATTENED_FIELDS_NUMBER;
+                    let mut element_field = *flattened_field % T::FLATTENED_FIELDS_NUMBER;
+                    match self[element].serialize(&mut element_field, bit, false, buffer) {
+                        SerializationResult::Finished => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + element_field;
+                        },
+                        SerializationResult::BufferFull => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + element_field;
+                            return SerializationResult::BufferFull;
+                        },
+                    }
+                }
+                
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
+                SerializationResult::Finished
+            }
+            
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
+                    let element = *flattened_field / T::FLATTENED_FIELDS_NUMBER;
+                    let mut element_field = *flattened_field % T::FLATTENED_FIELDS_NUMBER;
+                    match self[element].deserialize(&mut element_field, bit, false, buffer) {
+                        DeserializationResult::Finished => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + element_field;
+                        },
+                        DeserializationResult::BufferInsufficient => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + element_field;
+                            return DeserializationResult::BufferInsufficient;
+                        },
+                    }
+                }
+                
+                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                *bit = 0;
+                DeserializationResult::Finished
+            }
+        }
+
+
+        
+        impl<T: ::Serializable> Dynamic<[T; $size]> {
             pub const LENGTH_BITS: usize = $length_bits;
             pub const MAX_LENGTH: usize = $size;
-
-            pub fn with_data(data: &[T]) -> Self {
+            
+            pub fn with_data(data: &[T]) -> Self where T: Copy {
                 let mut s = Self{
                     array: [data[0]; $size],
                     current_length: data.len(),
@@ -218,11 +142,12 @@ macro_rules! impl_dynamic{
                 self.array[0..self.current_length].iter_mut()
             }
 
-            /// This method is only exposed so `Struct` can be derived.
-            /// It is not intended for use outside the derive macro and
-            /// must not be considered as a stable part of the API.
-            #[doc(hidden)]
-            pub fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+        }
+
+        impl<T: ::Serializable + ::UavcanSized> ::Serializable for Dynamic<[T; $size]> {
+            const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER + 1;
+            
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
 
                 let buffer_bits_remaining = buffer.bits_remaining();
 
@@ -231,7 +156,7 @@ macro_rules! impl_dynamic{
                 }                
                 
                 // check for tail optimization
-                if last_field && (T::BIT_LENGTH >= 8) && *flattened_field == 0 {
+                if T::BIT_LENGTH >= 8 && last_field && *flattened_field == 0 {
                     *flattened_field = 1;
                 }
                 
@@ -251,12 +176,14 @@ macro_rules! impl_dynamic{
                 }
 
                 while *flattened_field - 1 < self.current_length {
-                    match self[*flattened_field -1].serialize(bit, buffer) {
+                    let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
+                    let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
+                    match self[element].serialize(&mut element_field, bit, false, buffer) {
                         SerializationResult::Finished => {
-                            *flattened_field += 1;
-                            *bit = 0;
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
                         },
                         SerializationResult::BufferFull => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
                             return SerializationResult::BufferFull;
                         },
                     }
@@ -267,11 +194,7 @@ macro_rules! impl_dynamic{
                 SerializationResult::Finished
             }
 
-            /// This method is only exposed so `Struct` can be derived.
-            /// It is not intended for use outside the derive macro and
-            /// must not be considered as a stable part of the API.
-            #[doc(hidden)]
-            pub fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
 
                 // check for tail optimization
                 let tail_array_optimization = last_field && (T::BIT_LENGTH >= 8);
@@ -300,12 +223,14 @@ macro_rules! impl_dynamic{
                 }
                 
                 while *flattened_field - 1 < self.current_length {
-                    match self.array[*flattened_field - 1].deserialize(bit, buffer) {
+                    let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
+                    let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
+                    match self.array[*flattened_field - 1].deserialize(&mut element_field, bit, false, buffer) {
                         DeserializationResult::Finished => {
-                            *flattened_field += 1;
-                            *bit = 0;
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
                         },
                         DeserializationResult::BufferInsufficient => {
+                            *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
                             if tail_array_optimization {
                                 self.current_length = *flattened_field - 1;
                             }
@@ -321,7 +246,7 @@ macro_rules! impl_dynamic{
             
         }
 
-        impl<T: PrimitiveType> Index<usize> for Dynamic<[T; $size]> {
+        impl<T> Index<usize> for Dynamic<[T; $size]> {
             type Output = T;
             
             fn index(&self, index: usize) -> &T {
@@ -329,7 +254,7 @@ macro_rules! impl_dynamic{
             }
         }
         
-        impl< T: PrimitiveType> IndexMut<usize> for Dynamic<[T; $size]> {
+        impl<T> IndexMut<usize> for Dynamic<[T; $size]> {
             fn index_mut(&mut self, index: usize) -> &mut T {
                 &mut self.array[0..self.current_length][index]
             }
@@ -475,11 +400,68 @@ impl_dynamic!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8), (256,
 #[allow(non_camel_case_types)] #[derive(Copy, Clone, Default, Debug, PartialEq, Eq)] pub struct void64{}
 
 
-macro_rules! impl_primitive_types_ux{
-    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_primitive_types_ux!($type, $bits, $underlying_type);)*};
+macro_rules! impl_serializeable {
+    {$type:ident, $bits:expr} => {
+        impl ::UavcanSized for $type {
+            const BIT_LENGTH: usize = $bits;
+        }
+        
+        impl ::Serializable for $type {
+            const FLATTENED_FIELDS_NUMBER: usize = 1;
+            
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+                assert_eq!(*flattened_field, 0);
+                let type_bits_remaining = Self::BIT_LENGTH - *bit;
+                let buffer_bits_remaining = buffer.bits_remaining();
+                
+                if type_bits_remaining == 0 {
+                    *bit = 0;
+                    *flattened_field = 1;
+                    SerializationResult::Finished
+                } else if buffer_bits_remaining == 0 {
+                    SerializationResult::BufferFull
+                } else if buffer_bits_remaining >= type_bits_remaining {
+                    buffer.push_bits(type_bits_remaining, (PrimitiveType::to_bits(*self) >> *bit));
+                    *bit = 0;
+                    *flattened_field = 1;
+                    SerializationResult::Finished
+                } else {
+                    buffer.push_bits(buffer_bits_remaining, (PrimitiveType::to_bits(*self) >> *bit));
+                    *bit += buffer_bits_remaining;
+                    SerializationResult::BufferFull
+                }
+            }
+            
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+                assert_eq!(*flattened_field, 0);
+                let buffer_len = buffer.bit_length();
+                if buffer_len == 0 && *bit == $bits {
+                    *bit = 0;
+                    *flattened_field = 1;
+                    DeserializationResult::Finished
+                } else if buffer_len == 0 && *bit != $bits {
+                    DeserializationResult::BufferInsufficient
+                } else if buffer_len < $bits - *bit {
+                    *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits(buffer_len) << *bit));
+                    *bit += buffer_len;
+                    DeserializationResult::BufferInsufficient
+                } else {
+                    *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits(Self::BIT_LENGTH-*bit) << *bit));
+                    *bit = 0;
+                    *flattened_field = 1;
+                    DeserializationResult::Finished
+                }
+            }
+            
+        }
+
+    };
+}
+
+macro_rules! impl_ux{
+    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_ux!($type, $bits, $underlying_type);)*};
     ($type:ident, $bits:expr, $underlying_type:ident) => {
         impl PrimitiveType for $type {
-            const BIT_LENGTH: usize = $bits;
             fn from_bits(v: u64) -> Self {
                 $type::new(v as $underlying_type)
             }
@@ -487,14 +469,14 @@ macro_rules! impl_primitive_types_ux{
                 u64::from(self)
             }
         }
+        impl_serializeable!($type, $bits);
     };
 }
 
-macro_rules! impl_primitive_types_ix{
-    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_primitive_types_ix!($type, $bits, $underlying_type);)*};
+macro_rules! impl_ix{
+    {[$(($type:ident, $bits:expr)),*], $underlying_type:ident} => {$(impl_ix!($type, $bits, $underlying_type);)*};
     ($type:ident, $bits:expr, $underlying_type:ident) => {
         impl PrimitiveType for $type {
-            const BIT_LENGTH: usize = $bits;
             fn from_bits(v: u64) -> Self {
                 $type::new(v as $underlying_type)
             }
@@ -502,14 +484,14 @@ macro_rules! impl_primitive_types_ix{
                 i64::from(self) as u64
             }
         }
+        impl_serializeable!($type, $bits);
     };
 }
 
-macro_rules! impl_primitive_types_vx{
-    {[$(($type:ident, $bits:expr)),*]} => {$(impl_primitive_types_vx!($type, $bits);)*};
+macro_rules! impl_vx{
+    {[$(($type:ident, $bits:expr)),*]} => {$(impl_vx!($type, $bits);)*};
     ($type:ident, $bits:expr) => {
         impl PrimitiveType for $type {
-            const BIT_LENGTH: usize = $bits;
             fn from_bits(_v: u64) -> Self {
                 $type{}
             }
@@ -517,50 +499,50 @@ macro_rules! impl_primitive_types_vx{
                 0
             }
         }
+        impl_serializeable!($type, $bits);
     };
 }
 
-impl_primitive_types_ux!([(u2, 2), (u3, 3), (u4, 4), (u5, 5), (u6, 6), (u7, 7)], u8);
+impl_ux!([(u2, 2), (u3, 3), (u4, 4), (u5, 5), (u6, 6), (u7, 7)], u8);
 
-impl_primitive_types_ux!([(u9, 9), (u10, 10), (u11, 11), (u12, 12), (u13, 13), (u14, 14), (u15, 15)], u16);
+impl_ux!([(u9, 9), (u10, 10), (u11, 11), (u12, 12), (u13, 13), (u14, 14), (u15, 15)], u16);
 
-impl_primitive_types_ux!([(u17, 17), (u18, 18), (u19, 19), (u20, 20), (u21, 21), (u22, 22), (u23, 23), (u24, 24),
-                          (u25, 25), (u26, 26), (u27, 27), (u28, 28), (u29, 29), (u30, 30), (u31, 31)], u32);
+impl_ux!([(u17, 17), (u18, 18), (u19, 19), (u20, 20), (u21, 21), (u22, 22), (u23, 23), (u24, 24),
+          (u25, 25), (u26, 26), (u27, 27), (u28, 28), (u29, 29), (u30, 30), (u31, 31)], u32);
 
-impl_primitive_types_ux!([(u33, 33), (u34, 34), (u35, 35), (u36, 36), (u37, 37), (u38, 38), (u39, 39), (u40, 40),
-                          (u41, 41), (u42, 42), (u43, 43), (u44, 44), (u45, 45), (u46, 46), (u47, 47), (u48, 48),
-                          (u49, 49), (u50, 50), (u51, 51), (u52, 52), (u53, 53), (u54, 54), (u55, 55), (u56, 56),
-                          (u57, 57), (u58, 58), (u59, 59), (u60, 60), (u61, 61), (u62, 62), (u63, 63)], u64);
+impl_ux!([(u33, 33), (u34, 34), (u35, 35), (u36, 36), (u37, 37), (u38, 38), (u39, 39), (u40, 40),
+          (u41, 41), (u42, 42), (u43, 43), (u44, 44), (u45, 45), (u46, 46), (u47, 47), (u48, 48),
+          (u49, 49), (u50, 50), (u51, 51), (u52, 52), (u53, 53), (u54, 54), (u55, 55), (u56, 56),
+          (u57, 57), (u58, 58), (u59, 59), (u60, 60), (u61, 61), (u62, 62), (u63, 63)], u64);
 
 
 
-impl_primitive_types_ix!([(i2, 2), (i3, 3), (i4, 4), (i5, 5), (i6, 6), (i7, 7)], i8);
+impl_ix!([(i2, 2), (i3, 3), (i4, 4), (i5, 5), (i6, 6), (i7, 7)], i8);
 
-impl_primitive_types_ix!([(i9, 9), (i10, 10), (i11, 11), (i12, 12), (i13, 13), (i14, 14), (i15, 15)], i16);
+impl_ix!([(i9, 9), (i10, 10), (i11, 11), (i12, 12), (i13, 13), (i14, 14), (i15, 15)], i16);
 
-impl_primitive_types_ix!([(i17, 17), (i18, 18), (i19, 19), (i20, 20), (i21, 21), (i22, 22), (i23, 23), (i24, 24),
-                          (i25, 25), (i26, 26), (i27, 27), (i28, 28), (i29, 29), (i30, 30), (i31, 31)], i32);
+impl_ix!([(i17, 17), (i18, 18), (i19, 19), (i20, 20), (i21, 21), (i22, 22), (i23, 23), (i24, 24),
+          (i25, 25), (i26, 26), (i27, 27), (i28, 28), (i29, 29), (i30, 30), (i31, 31)], i32);
 
-impl_primitive_types_ix!([(i33, 33), (i34, 34), (i35, 35), (i36, 36), (i37, 37), (i38, 38), (i39, 39), (i40, 40),
-                          (i41, 41), (i42, 42), (i43, 43), (i44, 44), (i45, 45), (i46, 46), (i47, 47), (i48, 48),
-                          (i49, 49), (i50, 50), (i51, 51), (i52, 52), (i53, 53), (i54, 54), (i55, 55), (i56, 56),
-                          (i57, 57), (i58, 58), (i59, 59), (i60, 60), (i61, 61), (i62, 62), (i63, 63)], i64);
+impl_ix!([(i33, 33), (i34, 34), (i35, 35), (i36, 36), (i37, 37), (i38, 38), (i39, 39), (i40, 40),
+          (i41, 41), (i42, 42), (i43, 43), (i44, 44), (i45, 45), (i46, 46), (i47, 47), (i48, 48),
+          (i49, 49), (i50, 50), (i51, 51), (i52, 52), (i53, 53), (i54, 54), (i55, 55), (i56, 56),
+          (i57, 57), (i58, 58), (i59, 59), (i60, 60), (i61, 61), (i62, 62), (i63, 63)], i64);
 
-impl_primitive_types_vx!([(void1, 1), (void2, 2), (void3, 3), (void4, 4), (void5, 5), (void6, 6), (void7, 7), (void8, 8)]);
+impl_vx!([(void1, 1), (void2, 2), (void3, 3), (void4, 4), (void5, 5), (void6, 6), (void7, 7), (void8, 8)]);
 
-impl_primitive_types_vx!([(void9, 9), (void10, 10), (void11, 11), (void12, 12), (void13, 13), (void14, 14), (void15, 15), (void16, 16)]);
+impl_vx!([(void9, 9), (void10, 10), (void11, 11), (void12, 12), (void13, 13), (void14, 14), (void15, 15), (void16, 16)]);
 
-impl_primitive_types_vx!([(void17, 17), (void18, 18), (void19, 19), (void20, 20), (void21, 21), (void22, 22), (void23, 23), (void24, 24),
-                          (void25, 25), (void26, 26), (void27, 27), (void28, 28), (void29, 29), (void30, 30), (void31, 31), (void32, 32)]);
+impl_vx!([(void17, 17), (void18, 18), (void19, 19), (void20, 20), (void21, 21), (void22, 22), (void23, 23), (void24, 24),
+          (void25, 25), (void26, 26), (void27, 27), (void28, 28), (void29, 29), (void30, 30), (void31, 31), (void32, 32)]);
 
-impl_primitive_types_vx!([(void33, 33), (void34, 34), (void35, 35), (void36, 36), (void37, 37), (void38, 38), (void39, 39), (void40, 40),
+impl_vx!([(void33, 33), (void34, 34), (void35, 35), (void36, 36), (void37, 37), (void38, 38), (void39, 39), (void40, 40),
                           (void41, 41), (void42, 42), (void43, 43), (void44, 44), (void45, 45), (void46, 46), (void47, 47), (void48, 48),
                           (void49, 49), (void50, 50), (void51, 51), (void52, 52), (void53, 53), (void54, 54), (void55, 55), (void56, 56),
                           (void57, 57), (void58, 58), (void59, 59), (void60, 60), (void61, 61), (void62, 62), (void63, 63), (void64, 64)]);
 
 
 impl PrimitiveType for u8 {
-    const BIT_LENGTH: usize =  8;
     fn from_bits(v: u64) -> Self {
         v as u8
     }
@@ -568,9 +550,9 @@ impl PrimitiveType for u8 {
         u64::from(self)
     }
 }
+impl_serializeable!(u8, 8);
 
 impl PrimitiveType for u16 {
-    const BIT_LENGTH: usize = 16;
     fn from_bits(v: u64) -> Self {
         v as u16
     }
@@ -578,9 +560,9 @@ impl PrimitiveType for u16 {
         u64::from(self)
     }
 }
+impl_serializeable!(u16, 16);
     
 impl PrimitiveType for u32 {
-    const BIT_LENGTH: usize = 32;
     fn from_bits(v: u64) -> Self {
         v as u32
     }
@@ -588,9 +570,9 @@ impl PrimitiveType for u32 {
         u64::from(self)
     }
 }
+impl_serializeable!(u32, 32);
 
 impl PrimitiveType for u64 {
-    const BIT_LENGTH: usize = 64;
     fn from_bits(v: u64) -> Self {
         v
     }
@@ -598,9 +580,9 @@ impl PrimitiveType for u64 {
         self
     }
 }
+impl_serializeable!(u64, 64);
 
 impl PrimitiveType for i8 {
-    const BIT_LENGTH: usize = 8;
     fn from_bits(v: u64) -> Self {
         v as i8
     }
@@ -608,9 +590,9 @@ impl PrimitiveType for i8 {
         self as u64
     }
 }
+impl_serializeable!(i8, 8);
 
 impl PrimitiveType for i16 {
-    const BIT_LENGTH: usize = 16;
     fn from_bits(v: u64) -> Self {
         v as i16
     }
@@ -618,9 +600,9 @@ impl PrimitiveType for i16 {
         self as u64
     }
 }
+impl_serializeable!(i16, 16);
     
 impl PrimitiveType for i32 {
-    const BIT_LENGTH: usize = 32;
     fn from_bits(v: u64) -> Self {
         v as i32
     }
@@ -628,9 +610,9 @@ impl PrimitiveType for i32 {
         self as u64
     }
 }
+impl_serializeable!(i32, 32);
 
 impl PrimitiveType for i64 {
-    const BIT_LENGTH: usize = 64;
     fn from_bits(v: u64) -> Self {
         v as i64
     }
@@ -638,9 +620,9 @@ impl PrimitiveType for i64 {
         self as u64
     }
 }
+impl_serializeable!(i64, 64);
 
 impl PrimitiveType for f16 {
-    const BIT_LENGTH: usize = 16;
     fn from_bits(v: u64) -> Self {
         f16::from_bits(v as u16)
     }
@@ -648,9 +630,9 @@ impl PrimitiveType for f16 {
         u64::from(f16::as_bits(self))
     }
 }
+impl_serializeable!(f16, 16);
 
 impl PrimitiveType for f32 {
-    const BIT_LENGTH: usize = 32;
     
     #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(v: u64) -> Self {
@@ -668,9 +650,9 @@ impl PrimitiveType for f32 {
             
     }
 }
+impl_serializeable!(f32, 32);
 
 impl PrimitiveType for f64 {
-    const BIT_LENGTH: usize = 64;
     
     #[cfg_attr(feature="clippy", allow(transmute_int_to_float))]
     fn from_bits(mut v: u64) -> Self {
@@ -685,9 +667,9 @@ impl PrimitiveType for f64 {
         unsafe { lib::core::mem::transmute(self) }
     }
 }
+impl_serializeable!(f64, 64);
 
 impl PrimitiveType for bool {
-    const BIT_LENGTH: usize = 1;
     fn from_bits(v: u64) -> Self {
         v & 1 == 1
     }
@@ -699,3 +681,4 @@ impl PrimitiveType for bool {
         }
     }
 }
+impl_serializeable!(bool, 1);

@@ -84,7 +84,7 @@ pub use deserializer::{
     DeserializationBuffer,
 };
 
-pub trait Struct: Sized {
+pub trait Serializable {
     /// Number of primitive fields after flattening of data type.
     ///
     /// Flattening of a struct consists of replacing all structs with its fields.
@@ -96,6 +96,7 @@ pub trait Struct: Sized {
     /// # #[macro_use]
     /// # extern crate uavcan;
     /// # use uavcan::Struct;
+    /// # use uavcan::Serializable;
     /// #[derive(UavcanStruct)]
     /// struct InnerStruct {
     ///     v1: u8,
@@ -118,6 +119,7 @@ pub trait Struct: Sized {
     /// # #[macro_use]
     /// # extern crate uavcan;
     /// # use uavcan::Struct;
+    /// # use uavcan::Serializable;
     /// #[derive(UavcanStruct)]
     /// enum InnerEnum {
     ///     V1(u8),
@@ -137,11 +139,17 @@ pub trait Struct: Sized {
     /// ```
     const FLATTENED_FIELDS_NUMBER: usize;
 
-    const DSDL_SIGNATURE: u64;
-    const DATA_TYPE_SIGNATURE: u64;
-
     fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult;
     fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+}
+
+pub trait UavcanSized {
+    const BIT_LENGTH: usize;
+}
+
+pub trait Struct: Sized + Serializable {
+    const DSDL_SIGNATURE: u64;
+    const DATA_TYPE_SIGNATURE: u64;
 }
 
 pub trait Message: Struct {

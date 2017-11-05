@@ -192,10 +192,9 @@ impl<T: Struct> Serializer<T> {
 #[cfg(test)]
 mod tests {
     
+    use *;    
     use uavcan;
-
     use serializer::*;
-    
     use types::*;
 
     #[test]
@@ -256,47 +255,44 @@ mod tests {
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         let mut bits_serialized = 0;
-        assert_eq!(uint2.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 2);
+        assert_eq!(uint2.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [0b01000000, 0, 0, 0]);
 
         buffer.stop_bit_index = 0;
         bits_serialized = 0;
-        assert_eq!(uint8.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 8);
+        assert_eq!(uint8.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [128, 0, 0, 0]);
             
         buffer.stop_bit_index = 0;
         bits_serialized = 0;
-        assert_eq!(uint16.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 16);
+        assert_eq!(uint16.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [1, 1, 0, 0]);
             
-        uint2.serialize(&mut 0, &mut buffer);
+        uint2.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 0b01000000, 0]);
             
-        uint8.serialize(&mut 0, &mut buffer);
+        uint8.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 0b01000000, 0b10000000]);
 
         buffer.stop_bit_index = 0;
-        int16.serialize(&mut 0, &mut buffer);
+        int16.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0..2], [0xff, 0xff]);
 
         buffer.stop_bit_index = 0;
         buffer.data[0] = 0;
-        int7.serialize(&mut 0, &mut buffer);
+        int7.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0], (-64i8 as u8) << 1);
         
         buffer.stop_bit_index = 0;
-        float16.serialize(&mut 0, &mut buffer);
+        float16.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0..2], [f16::from_f32(3.141592).as_bits() as u8, (f16::from_f32(3.141592).as_bits() >> 8) as u8]);
             
         buffer.stop_bit_index = 0;
-        float32.serialize(&mut 0, &mut buffer);
+        float32.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0x00, 0x00, 0x80, 0x3f]);
             
         buffer.stop_bit_index = 0;
-        float64.serialize(&mut 0, &mut buffer);
+        float64.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0x69, 0x57, 0x14, 0x8b]);
             
 
