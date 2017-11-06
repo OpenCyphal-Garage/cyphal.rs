@@ -1,0 +1,13 @@
+[package]
+name = "dsdl"
+version = "0.0.0"
+authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
+
+build = "build.rs"
+
+[dependencies]
+uavcan = {path = "../uavcan"}
+
+[build-dependencies]
+quote = "0.3"
+dsdl_compiler = {path = "../dsdl_compiler"}
