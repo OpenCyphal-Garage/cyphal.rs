@@ -85,7 +85,6 @@ pub use deserializer::{
 };
 
 pub trait Serializable {
-    const BIT_LENGTH_MAX: usize;
     const BIT_LENGTH_MIN: usize;
     
     /// Number of primitive fields after flattening of data type.

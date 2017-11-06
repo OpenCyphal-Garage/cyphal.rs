@@ -64,24 +64,20 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         }
     }
 
-    let (bit_length_min, bit_length_max) = match ast.body {
+    let bit_length_min = match ast.body {
         Body::Enum(ref _variants) => {
             let mut bit_length_min_builder = Tokens::new();
-            let mut bit_length_max_builder = Tokens::new();
             
             bit_length_min_builder.append(quote!{0});
-            bit_length_max_builder.append(quote!{0});
 
             // MIN and MAX bit length for enums is not implemented yet
                 
-            (bit_length_min_builder, bit_length_max_builder)                
+            bit_length_min_builder                
         },
         Body::Struct(syn::VariantData::Struct(ref fields)) => {
             let mut bit_length_min_builder = Tokens::new();
-            let mut bit_length_max_builder = Tokens::new();
             
             bit_length_min_builder.append(quote!{0});
-            bit_length_max_builder.append(quote!{0});
 
             for field in fields {
                 let field_type = &field.ty;
@@ -95,23 +91,14 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     },
                     UavcanType::Struct => bit_length_min_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
                 }
-                match classify_type(field_type) {
-                    UavcanType::PrimitiveType => bit_length_max_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MAX}),
-                    UavcanType::StaticArray => bit_length_max_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MAX}),
-                    UavcanType::DynamicArray => {
-                        let array_type = array_from_dynamic(field_type);
-                        bit_length_max_builder.append(quote!{ + <::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::BIT_LENGTH_MAX});
-                    },
-                    UavcanType::Struct => bit_length_max_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MAX}),
-                }
             }
             
-            (bit_length_min_builder, bit_length_max_builder)
+            bit_length_min_builder
         },
-        Body::Struct(syn::VariantData::Unit) => (quote!{0}, quote!{0}),
+        Body::Struct(syn::VariantData::Unit) => quote!{0},
         _ => panic!("UavcanStruct is only derivable for enums and named structs"),
     };
-
+    
     
     let number_of_flattened_fields = match ast.body {
         Body::Enum(ref variants) => {
@@ -264,7 +251,6 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         }
 
         impl ::#crate_name::Serializable for #name {
-            const BIT_LENGTH_MAX: usize = #bit_length_max;
             const BIT_LENGTH_MIN: usize = #bit_length_min;
             const FLATTENED_FIELDS_NUMBER: usize = #number_of_flattened_fields;
             #[allow(unused_comparisons)]

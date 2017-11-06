@@ -58,7 +58,6 @@ macro_rules! impl_array{
 
         // first implement static arrays
         impl<T: ::Serializable> ::Serializable for [T; $size] {
-            const BIT_LENGTH_MAX: usize = $size * T::BIT_LENGTH_MAX;
             const BIT_LENGTH_MIN: usize = $size * T::BIT_LENGTH_MIN;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER;
             
@@ -137,7 +136,6 @@ macro_rules! impl_array{
         }
 
         impl<T: ::Serializable> ::Serializable for Dynamic<[T; $size]> {
-            const BIT_LENGTH_MAX: usize = $size * T::BIT_LENGTH_MAX + Self::LENGTH_BITS;
             const BIT_LENGTH_MIN: usize = 0;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER + 1;
             
@@ -397,7 +395,6 @@ impl_array!([(250, 8), (251, 8), (252, 8), (253, 8), (254, 8), (255, 8), (256, 9
 macro_rules! impl_serializeable {
     {$type:ident, $bits:expr} => {
         impl ::Serializable for $type {
-            const BIT_LENGTH_MAX: usize = $bits;
             const BIT_LENGTH_MIN: usize = $bits;
 
             const FLATTENED_FIELDS_NUMBER: usize = 1;
