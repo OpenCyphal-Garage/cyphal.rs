@@ -8,11 +8,13 @@ extern crate inflections;
 
 use inflections::Inflect;
 
+pub use dsdl_parser::DSDL;
+
 pub trait Compile<T> {
     fn compile(self) -> T;
 }
 
-impl Compile<Vec<syn::Item>> for dsdl_parser::DSDL {
+impl Compile<Vec<syn::Item>> for DSDL {
     fn compile(self) -> Vec<syn::Item> {
         let mut items = Vec::new();
         for file in self.files() {
