@@ -136,7 +136,7 @@ macro_rules! impl_array{
         }
 
         impl<T: ::Serializable> ::Serializable for Dynamic<[T; $size]> {
-            const BIT_LENGTH_MIN: usize = 0;
+            const BIT_LENGTH_MIN: usize = $length_bits;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER + 1;
             
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
