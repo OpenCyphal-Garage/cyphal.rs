@@ -84,6 +84,11 @@ pub use deserializer::{
     DeserializationBuffer,
 };
 
+
+/// The trait that needs to be implemented for all types that will be sent over Uavcan
+///
+/// The (de)serialization is based on flattening all structures to primitive fields
+/// The serializer will then iterate over all fields and bits
 pub trait Serializable {
     
     /// The minimum bit length an uavcan type can have
