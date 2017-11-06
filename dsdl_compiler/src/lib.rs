@@ -232,7 +232,6 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
             
             attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Default"))),
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
             ])});
