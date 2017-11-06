@@ -8,7 +8,7 @@ use bit_field::{
     BitField,
 };
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SerializationResult {
     BufferFull,
     Finished,
@@ -147,11 +147,13 @@ impl<T: Struct> Serializer<T> {
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
     pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
-        self.structure.serialize(&mut self.field_index, &mut self.bit_index, buffer)
+        self.structure.serialize(&mut self.field_index, &mut self.bit_index, true, buffer)
     }
 
-    pub fn single_frame_transfer(&self) -> bool {
-        self.structure.bit_length() <= 8*8
+    pub fn peek_serialize(&self, buffer: &mut SerializationBuffer) -> SerializationResult {
+        let mut field_index = self.field_index;
+        let mut bit_index = self.bit_index;
+        self.structure.serialize(&mut field_index, &mut bit_index, true, buffer)
     }
 
     pub fn crc(&mut self, data_type_signature: u64) -> u16 {
@@ -190,10 +192,9 @@ impl<T: Struct> Serializer<T> {
 #[cfg(test)]
 mod tests {
     
+    use *;    
     use uavcan;
-
     use serializer::*;
-    
     use types::*;
 
     #[test]
@@ -254,47 +255,44 @@ mod tests {
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
         let mut bits_serialized = 0;
-        assert_eq!(uint2.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 2);
+        assert_eq!(uint2.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [0b01000000, 0, 0, 0]);
 
         buffer.stop_bit_index = 0;
         bits_serialized = 0;
-        assert_eq!(uint8.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 8);
+        assert_eq!(uint8.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [128, 0, 0, 0]);
             
         buffer.stop_bit_index = 0;
         bits_serialized = 0;
-        assert_eq!(uint16.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 16);
+        assert_eq!(uint16.serialize(&mut 0, &mut bits_serialized, false, &mut buffer), SerializationResult::Finished);
         assert_eq!(buffer.data, [1, 1, 0, 0]);
             
-        uint2.serialize(&mut 0, &mut buffer);
+        uint2.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 0b01000000, 0]);
             
-        uint8.serialize(&mut 0, &mut buffer);
+        uint8.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [1, 1, 0b01000000, 0b10000000]);
 
         buffer.stop_bit_index = 0;
-        int16.serialize(&mut 0, &mut buffer);
+        int16.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0..2], [0xff, 0xff]);
 
         buffer.stop_bit_index = 0;
         buffer.data[0] = 0;
-        int7.serialize(&mut 0, &mut buffer);
+        int7.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0], (-64i8 as u8) << 1);
         
         buffer.stop_bit_index = 0;
-        float16.serialize(&mut 0, &mut buffer);
+        float16.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data[0..2], [f16::from_f32(3.141592).as_bits() as u8, (f16::from_f32(3.141592).as_bits() >> 8) as u8]);
             
         buffer.stop_bit_index = 0;
-        float32.serialize(&mut 0, &mut buffer);
+        float32.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0x00, 0x00, 0x80, 0x3f]);
             
         buffer.stop_bit_index = 0;
-        float64.serialize(&mut 0, &mut buffer);
+        float64.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0x69, 0x57, 0x14, 0x8b]);
             
 
@@ -309,17 +307,18 @@ mod tests {
         let mut data = [0u8; 4];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
-        let mut bits_serialized = 0;
-        assert_eq!(a1.serialize(&mut bits_serialized, &mut buffer), SerializationResult::Finished);
-        assert_eq!(bits_serialized, 11);
+        let (mut field, mut bit) = (0, 0);
+        assert_eq!(a1.serialize(&mut field, &mut bit, false, &mut buffer), SerializationResult::Finished);
+        assert_eq!(field, 5);
+        assert_eq!(bit, 0);
         assert_eq!(buffer.data, [0b10001001, 0, 0, 0]);
 
         buffer.stop_bit_index = 0;
-        a2.serialize(&mut 0, &mut buffer);
+        a2.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b11001001, 0b00001000, 0, 0]);
             
         buffer.stop_bit_index = 0;
-        a3.serialize(&mut 0, &mut buffer);
+        a3.serialize(&mut 0, &mut 0, false, &mut buffer);
         assert_eq!(buffer.data, [0b10000001, 0b00000010, 0b00000100, 0b00010000]);
 
     }
@@ -331,19 +330,22 @@ mod tests {
         let mut data = [0u8; 1];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut data);
 
-        a.serialize(&mut 3, &mut buffer);
+        let (mut field, mut bit) = (1, 0);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
+        assert_eq!(field, 2);
+        assert_eq!(bit, 1);
         assert_eq!(buffer.data, [0b00000011]);
         
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 11, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 19, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data, [0b00000001]);
 
         buffer.stop_bit_index = 0;
-        a.serialize(&mut 27, &mut buffer);
+        a.serialize(&mut field, &mut bit, false, &mut buffer);
         assert_eq!(buffer.data[0].get_bits((8 - buffer.stop_bit_index as u8)..8), 0b00000000);
 
     }
@@ -351,7 +353,7 @@ mod tests {
     #[test]
     fn uavcan_serialize_test_byte_aligned() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             v1: u8,
             v2: u32,
@@ -381,7 +383,7 @@ mod tests {
     #[test]
     fn uavcan_serialize_static_array() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             a: [u16; 4],
         }
@@ -407,7 +409,7 @@ mod tests {
     fn uavcan_parse_test_misaligned() {
         
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -438,7 +440,7 @@ mod tests {
     #[test]
     fn uavcan_parse_padded() {
 
-        #[derive(UavcanStruct, Default)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct Message {
             v1: u8,
             _v2: void32,
@@ -465,6 +467,41 @@ mod tests {
         
     }
 
-    
+
+    #[test]
+    fn tail_array_optimization_struct() {
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        struct DynamicArrayStruct {
+            value: Dynamic<[u8; 255]>,
+        }
+
+        
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        struct TestStruct {
+            t1: DynamicArrayStruct, // this array should not be tail array optimized (should encode length)
+            t2: DynamicArrayStruct, // this array should be tail array optimized (should not encode length)
+        }
+
+        assert_eq!(DynamicArrayStruct::FLATTENED_FIELDS_NUMBER, 256);
+        assert_eq!(TestStruct::FLATTENED_FIELDS_NUMBER, 512);
+
+        let dynamic_array_struct = DynamicArrayStruct{value: Dynamic::<[u8; 255]>::with_data(&[4u8, 5u8, 6u8])};
+        
+        let test_struct = TestStruct{
+            t1: dynamic_array_struct.clone(),
+            t2: dynamic_array_struct.clone(),
+        };
+
+        
+
+        let mut serializer: Serializer<TestStruct> = Serializer::from_structure(test_struct);
+        let mut array: [u8; 8] = [0; 8];
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
+
+        serializer.serialize(&mut buffer);
+        assert_eq!(buffer.data, [3, 4, 5, 6, 4, 5, 6, 0]);                   
+
+    }
+
 }
 

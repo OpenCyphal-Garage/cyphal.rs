@@ -45,7 +45,16 @@ impl<S: Struct> FrameDisassembler<S> {
         let mut transport_frame = T::new(self.id);
         transport_frame.set_data_length(max_data_length);
         
-        let first_of_multi_frame = !self.started && !self.serializer.single_frame_transfer();
+        let first_of_multi_frame = if !self.started {
+            let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
+            if let SerializationResult::Finished = self.serializer.peek_serialize(&mut buffer) {
+                false
+            } else {
+                true
+            }                
+        } else {
+            false
+        };
 
         if self.finished {
             return None;
@@ -101,7 +110,7 @@ mod tests {
     #[test]
     fn serialize_node_status_frame() {
 
-        #[derive(UavcanStruct, Default)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct, Default)]
         struct NodeStatus {
             uptime_sec: u32,
             health: u2,
@@ -133,12 +142,12 @@ mod tests {
     #[test]
     fn serialize_multi_frame() {
 
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         struct LogLevel {
             value: u3,
         }
         
-        #[derive(UavcanStruct)]
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
         #[DataTypeSignature = "0xd654a48e0c049d75"]
         struct LogMessage {
             level: LogLevel,
@@ -156,8 +165,6 @@ mod tests {
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
-        assert_eq!(LogMessage::FLATTENED_FIELDS_NUMBER, 3);
-        
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
         let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
