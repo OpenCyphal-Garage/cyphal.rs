@@ -85,79 +85,63 @@ fn add_item(new_item: syn::Item, items: &mut Vec<syn::Item>) {
 
 impl Compile<Vec<syn::Item>> for dsdl_parser::File {
     fn compile(self) -> Vec<syn::Item> {
-        let mut items = match self.definition {
+        let mut items = Vec::new();
+        match self.definition {
             dsdl_parser::TypeDefinition::Message(message) => {
-                let (body, attrs) = message.compile();
-                match body {
-                    syn::Body::Struct(variant_data) => {
-                        let definition = syn::Item {
-                            ident: syn::Ident::from(self.name.name.clone()),
-                            vis: syn::Visibility::Public,
-                            attrs: attrs,
-                            node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                        };
-                        vec![definition]
-                    },
-                    syn::Body::Enum(variants) => {
-                        let definition = syn::Item {
-                            ident: syn::Ident::from(self.name.name.clone()),
-                            vis: syn::Visibility::Public,
-                            attrs: attrs,
-                            node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                        };
-                        vec![definition]
-                    },
+                let (item_kinds, struct_attributes) = message.compile();
+                for item_kind in item_kinds {
+                    
+                    let attrs = match item_kind {
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes.clone(),
+                        _ => Vec::new(),
+                    };
+                    
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone()),
+                        vis: syn::Visibility::Public,
+                        attrs: attrs,
+                        node: item_kind,
+                    });
                     
                 }
             },
             dsdl_parser::TypeDefinition::Service(service) => {
-                let request_def = {
-                    let (body, attrs) = service.request.compile();
-                    match body {
-                        syn::Body::Struct(variant_data) => {
-                            syn::Item {
-                                ident: syn::Ident::from(self.name.name.clone() + "Request"),
-                                vis: syn::Visibility::Public,
-                                attrs: attrs,
-                                node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                            }
-                        },
-                        syn::Body::Enum(variants) => {
-                            syn::Item {
-                                ident: syn::Ident::from(self.name.name.clone()),
-                                vis: syn::Visibility::Public,
-                                attrs: attrs,
-                                node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                            }
-                        },
-                    }
-                };
-
-                let response_def = {
-                    let (body, attrs) = service.response.compile();
-                    match body {
-                        syn::Body::Struct(variant_data) => {
-                            syn::Item {
-                                ident: syn::Ident::from(self.name.name.clone() + "Response"),
-                                vis: syn::Visibility::Public,
-                                attrs: attrs,
-                                node: syn::ItemKind::Struct(variant_data, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                            }
-                        },
-                        syn::Body::Enum(variants) => {
-                            syn::Item {
-                                ident: syn::Ident::from(self.name.name.clone()),
-                                vis: syn::Visibility::Public,
-                                attrs: attrs,
-                                node: syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}),
-                            }
-                        },
-                    }
-                };
-
-                vec![request_def, response_def]
+                let (item_kinds_req, struct_attributes_req) = service.request.compile();
+                let (item_kinds_res, struct_attributes_res) = service.response.compile();
+                
+                for item_kind in item_kinds_req {
+                    
+                    let attrs = match item_kind {
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes_req.clone(),
+                        _ => Vec::new(),
+                    };
+                    
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone() + "Request"),
+                        vis: syn::Visibility::Public,
+                        attrs: attrs,
+                        node: item_kind,
+                    });
+                    
+                }
+                
+                for item_kind in item_kinds_res {
+                    
+                    let attrs = match item_kind {
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes_res.clone(),
+                        _ => Vec::new(),
+                    };
+                    
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone() + "Response"),
+                        vis: syn::Visibility::Public,
+                        attrs: attrs,
+                        node: item_kind,
+                    });
+                    
+                }
             },
-        };
+        }
 
         // put all the items into the correct namespace
         for mod_name in self.name.rsplit_namespace() {
@@ -174,9 +158,10 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
 }
 
         
-impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinition {
-    fn compile(self) -> (syn::Body, Vec<syn::Attribute>) {
+impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinition {
+    fn compile(self) -> (Vec<syn::ItemKind>, Vec<syn::Attribute>) {
         let (directives, not_directives): (Vec<dsdl_parser::Line>, Vec<dsdl_parser::Line>) = self.0.into_iter().partition(|x| x.is_directive());
+        let mut items = Vec::new();
         
         // first scan through directives
         let mut union = false;
@@ -198,20 +183,20 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
         let mut attributes = current_comments.clone();
         let mut void_number = 0;
 
+        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
+        ])});
+        
+        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
+            syn::Ident::from("UavcanCrateName"),
+            syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
+        )});
+        
         if union {
             let mut variants = Vec::new();
             current_comments = Vec::new();
-
-            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
-            ])});
-
-            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
-                syn::Ident::from("UavcanCrateName"),
-                syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
-            )});
             
             for line in not_directives {
                 match line {
@@ -235,21 +220,11 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                     dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
                 }
             }
-            (syn::Body::Enum(variants), attributes)
+
+            items.push(syn::ItemKind::Enum(variants, syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}));
         } else {
             let mut fields = Vec::new();
             current_comments = Vec::new();
-            
-            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
-                syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
-            ])});
-
-            attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
-                syn::Ident::from("UavcanCrateName"),
-                syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
-            )});
             
             for line in not_directives {
                 match line {
@@ -273,8 +248,10 @@ impl Compile<(syn::Body, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinitio
                     dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
                 }
             }
-            (syn::Body::Struct(syn::VariantData::Struct(fields)), attributes)
+            items.push(syn::ItemKind::Struct(syn::VariantData::Struct(fields), syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}));
         }
+
+        (items, attributes)
     }
 }
 
