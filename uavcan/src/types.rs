@@ -26,10 +26,6 @@ use deserializer::{
     DeserializationBuffer,
 };
 
-/// This trait is only exposed so `Struct` can be derived.
-/// It is not intended for use outside the derive macro and
-/// must not be considered as a stable part of the API.
-#[doc(hidden)]
 trait PrimitiveType : Sized + Copy + ::Serializable {
     /// Mask bits exceeding `BIT_LENGTH`
     fn from_bits(v: u64) -> Self;
