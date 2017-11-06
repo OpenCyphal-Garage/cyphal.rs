@@ -636,8 +636,12 @@ mod tests {
                     #[doc = " Full node info request."]
                     #[doc = " Note that all fields of the response section are byte-aligned."]
                     #[doc = ""]
+                    #[derive(Debug, Clone, UavcanStruct)]
+                    #[UavcanCrateName = "uavcan_rs"]
                     pub struct GetNodeInfoRequest {}
 
+                    #[derive(Debug, Clone, UavcanStruct)]
+                    #[UavcanCrateName = "uavcan_rs"]
                     pub struct GetNodeInfoResponse {
                         #[doc = ""]
                         #[doc = " Current node status"]
@@ -657,7 +661,7 @@ mod tests {
                         #[doc = " Allowed characters are: a-z (lowercase ASCII letters) 0-9 (decimal digits) . (dot) - (dash) _ (underscore)."]
                         #[doc = " Node name is a reversed internet domain name (like Java packages), e.g. \"com.manufacturer.project.product\"."]
                         #[doc = ""]
-                        pub name: Dynamic<[u8; 80]>
+                        pub name: ::Dynamic<[u8; 80]>
                     }
                 }
             }
@@ -679,6 +683,8 @@ mod tests {
                         #[doc = " This is a union, which means that this structure can contain either one of the fields below."]
                         #[doc = " The structure is prefixed with tag - a selector value that indicates which particular field is encoded."]
                         #[doc = ""]
+                        #[derive(Debug, Clone, UavcanStruct)]
+                        #[UavcanCrateName = "uavcan_rs"]
                         pub enum Value {
                             #[doc = " Empty field, used to represent an undefined value."]
                             Empty(Empty),
@@ -688,7 +694,7 @@ mod tests {
                             #[doc = " 8-bit value is used for alignment reasons"]
                             BooleanValue(u8),
                             #[doc = " Length prefix is exactly one byte long, which ensures proper alignment of payload"]
-                            StringValue(Dynamic<[u8; 128]>),
+                            StringValue(::Dynamic<[u8; 128]>),
                         }
                     }
                 }
@@ -710,6 +716,8 @@ mod tests {
                     #[doc = ""]
                     #[doc = " Any UAVCAN node is required to publish this message periodically."]
                     #[doc = ""]
+                    #[derive(Debug, Clone, UavcanStruct)]
+                    #[UavcanCrateName = "uavcan_rs"]
                     pub struct NodeStatus {
                         #[doc = ""]
                         #[doc = " Uptime counter should never overflow."]
@@ -719,7 +727,7 @@ mod tests {
                         #[doc = ""]
                         #[doc = " Abstract node health."]
                         #[doc = ""]
-                        pub health: u2,
+                        pub health: ::u2,
                         #[doc = ""]
                         #[doc = " Current mode."]
                         #[doc = ""]
@@ -729,11 +737,11 @@ mod tests {
                         #[doc = ""]
                         #[doc = " Reserved values can be used in future revisions of the specification."]
                         #[doc = ""]
-                        pub mode: u3,
+                        pub mode: ::u3,
                         #[doc = ""]
                         #[doc = " Not used currently, keep zero when publishing, ignore when receiving."]
                         #[doc = ""]
-                        pub sub_mode: u3,
+                        pub sub_mode: ::u3,
                         #[doc = ""]
                         #[doc = " Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."]
                         #[doc = ""]
@@ -771,8 +779,8 @@ mod tests {
             ]
         ).compile();
 
-        let struct_body = if let syn::Body::Struct(x) = body.0 {
-            x
+        let struct_body = if let syn::ItemKind::Struct(variant_data, _) = body.0[0].clone() {
+            variant_data
         } else {
             unreachable!("This is a struct")
         };
@@ -782,6 +790,8 @@ mod tests {
         assert_eq!(quote!(
             #[doc = "about struct0"]
             #[doc = "about struct1"]
+            #[derive(Debug, Clone, UavcanStruct)]
+            #[UavcanCrateName = "uavcan_rs"]
         ), quote!{#(#struct_attributes)*});
         
         assert_eq!(quote!({
@@ -790,7 +800,7 @@ mod tests {
             pub node_status: u8,
             #[doc = "test comment2"]
             #[doc = "test comment3"]
-            pub node_something: u7
+            pub node_something: ::u7
         }), quote!{#struct_body});
     }
 
@@ -821,8 +831,8 @@ mod tests {
             ]
         ).compile();
 
-        let enum_body = if let syn::Body::Enum(x) = body.0 {
-            x
+        let enum_body = if let syn::ItemKind::Enum(variants, _) = body.0[0].clone() {
+            variants
         } else {
             unreachable!("This is an enum")
         };
@@ -831,22 +841,24 @@ mod tests {
         let def0 = &enum_body[0];
         let def1 = &enum_body[1];
         
-        assert_eq!(quote!(
+        assert_eq!(quote!{
             #[doc = "about enum0"]
             #[doc = "about enum1"]
-        ), quote!{#(#struct_attributes)*});
+            #[derive(Debug, Clone, UavcanStruct)]
+            #[UavcanCrateName = "uavcan_rs"]
+        }, quote!{#(#struct_attributes)*});
         
-        assert_eq!(quote!(
+        assert_eq!(quote!{
             #[doc = "test comment0"]
             #[doc = "test comment1"]
             NodeStatus(u8)
-        ), quote!{#def0});
+        }, quote!{#def0});
 
-        assert_eq!(quote!(
+        assert_eq!(quote!{
             #[doc = "test comment2"]
             #[doc = "test comment3"]
-            NodeSomething(u7)
-        ), quote!{#def1});
+            NodeSomething(::u7)
+        }, quote!{#def1});
     }
     
     #[test]
@@ -858,7 +870,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(Name(u3)), quote!{#simple_field});
+        assert_eq!(quote!(Name(::u3)), quote!{#simple_field});
 
         let composite_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -867,7 +879,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(Name(uavcan::protocol::NodeStatus)), quote!{#composite_field});
+        assert_eq!(quote!(Name(::uavcan::protocol::NodeStatus)), quote!{#composite_field});
 
         let array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -876,7 +888,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(Name([u3; 19])), quote!{#array_field});
+        assert_eq!(quote!(Name([::u3; 19])), quote!{#array_field});
 
         let dynleq_array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -885,7 +897,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("long_name")),
         }.compile();
 
-        assert_eq!(quote!(LongName(Dynamic<[i29; 191]>)), quote!{#dynleq_array_field});
+        assert_eq!(quote!(LongName(::Dynamic<[::i29; 191]>)), quote!{#dynleq_array_field});
         
         let dynless_array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -894,7 +906,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("very_long_name")),
         }.compile();
         
-        assert_eq!(quote!(VeryLongName(Dynamic<[bool; 370]>)), quote!{#dynless_array_field});
+        assert_eq!(quote!(VeryLongName(::Dynamic<[bool; 370]>)), quote!{#dynless_array_field});
 
     }
     
@@ -907,7 +919,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(pub name: u3), quote!{#simple_field});
+        assert_eq!(quote!(pub name: ::u3), quote!{#simple_field});
 
         let composite_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -916,7 +928,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(pub name: uavcan::protocol::NodeStatus), quote!{#composite_field});
+        assert_eq!(quote!(pub name: ::uavcan::protocol::NodeStatus), quote!{#composite_field});
 
         let array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -925,7 +937,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(pub name: [u3; 19]), quote!{#array_field});
+        assert_eq!(quote!(pub name: [::u3; 19]), quote!{#array_field});
 
         let dynleq_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -934,7 +946,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
 
-        assert_eq!(quote!(pub name: Dynamic<[i29; 191]>), quote!{#dynleq_array_field});
+        assert_eq!(quote!(pub name: ::Dynamic<[::i29; 191]>), quote!{#dynleq_array_field});
         
         let dynless_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
@@ -943,7 +955,7 @@ mod tests {
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile();
         
-        assert_eq!(quote!(pub name: Dynamic<[bool; 370]>), quote!{#dynless_array_field});
+        assert_eq!(quote!(pub name: ::Dynamic<[bool; 370]>), quote!{#dynless_array_field});
 
     }
         
@@ -951,29 +963,29 @@ mod tests {
     #[test]
     fn compile_type() {
         let composite = Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile();
-        assert_eq!(quote!(uavcan::protocol::NodeStatus), quote!{#composite});
+        assert_eq!(quote!(::uavcan::protocol::NodeStatus), quote!{#composite});
 
         let primitive = Ty::Primitive(PrimitiveType::Uint2).compile();
-        assert_eq!(quote!(u2), quote!{#primitive});
+        assert_eq!(quote!(::u2), quote!{#primitive});
 
     }
     
     #[test]
     fn compile_composite_type() {
         let t = dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}.compile();
-        assert_eq!(quote!(uavcan::protocol::NodeStatus), quote!{#t});
+        assert_eq!(quote!(::uavcan::protocol::NodeStatus), quote!{#t});
     }
     
     #[test]
     fn compile_primitive_type() {
         let uint2 = PrimitiveType::Uint2.compile();
-        assert_eq!(quote!(u2), quote!{#uint2});
+        assert_eq!(quote!(::u2), quote!{#uint2});
         
         let int9 = PrimitiveType::Int9.compile();
-        assert_eq!(quote!(i9), quote!{#int9});
+        assert_eq!(quote!(::i9), quote!{#int9});
         
         let void23 = PrimitiveType::Void23.compile();
-        assert_eq!(quote!(void23), quote!{#void23});
+        assert_eq!(quote!(::void23), quote!{#void23});
         
         let b = PrimitiveType::Bool.compile();
         assert_eq!(quote!(bool), quote!{#b});
