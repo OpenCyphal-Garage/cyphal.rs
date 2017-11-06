@@ -29,7 +29,11 @@ impl Compile<Vec<syn::Item>> for DSDL {
                      syn::Item{
                          ident: syn::Ident::from(""),
                          vis: syn::Visibility::Crate,
-                         attrs: Vec::new(),
+                         attrs: vec![
+                             syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("allow"), vec![
+                                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("unused_imports")))
+                             ])},
+                         ],
                          node: syn::ItemKind::Use(Box::new(syn::ViewPath::Glob(syn::Path{global: false, segments: vec![
                              syn::PathSegment{ident: syn::Ident::from("uavcan_rs"), parameters: syn::PathParameters::none()},
                              syn::PathSegment{ident: syn::Ident::from("types"), parameters: syn::PathParameters::none()},
@@ -42,11 +46,15 @@ impl Compile<Vec<syn::Item>> for DSDL {
                      syn::Item{
                          ident: syn::Ident::from("uavcan_rs"),
                          vis: syn::Visibility::Inherited,
-                         attrs: vec![syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::Word(syn::Ident::from("macro_use"))}],
+                         attrs: vec![
+                             syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("allow"), vec![
+                                 syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("unused_imports")))
+                             ])},
+                             syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::Word(syn::Ident::from("macro_use"))}
+                         ],
                          node: syn::ItemKind::ExternCrate(Some(syn::Ident::from("uavcan"))),
                      }
         );
-                         
         items
     }
 }
