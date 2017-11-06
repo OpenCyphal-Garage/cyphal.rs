@@ -64,47 +64,17 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
         }
     }
 
-    let bit_length_min = match ast.body {
-        Body::Enum(ref _variants) => {
-            let mut bit_length_min_builder = Tokens::new();
-            
-            bit_length_min_builder.append(quote!{0});
-
-            // MIN and MAX bit length for enums is not implemented yet
-                
-            bit_length_min_builder                
-        },
-        Body::Struct(syn::VariantData::Struct(ref fields)) => {
-            let mut bit_length_min_builder = Tokens::new();
-            
-            bit_length_min_builder.append(quote!{0});
-
-            for field in fields {
-                let field_type = &field.ty;
-                
-                match classify_type(field_type) {
-                    UavcanType::PrimitiveType => bit_length_min_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
-                    UavcanType::StaticArray => bit_length_min_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
-                    UavcanType::DynamicArray => {
-                        let array_type = array_from_dynamic(field_type);
-                        bit_length_min_builder.append(quote!{ + <::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::BIT_LENGTH_MIN});
-                    },
-                    UavcanType::Struct => bit_length_min_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
-                }
-            }
-            
-            bit_length_min_builder
-        },
-        Body::Struct(syn::VariantData::Unit) => quote!{0},
-        _ => panic!("UavcanStruct is only derivable for enums and named structs"),
-    };
+    let mut bit_length_min = Tokens::new();
+    let mut flattened_fields = Tokens::new();
+    let mut serialize_body = Tokens::new();
+    let mut deserialize_body = Tokens::new();
     
-    
-    let number_of_flattened_fields = match ast.body {
+    match ast.body {
         Body::Enum(ref variants) => {
-            let mut flattened_fields_builder = Tokens::new();
-            
-            flattened_fields_builder.append(quote!{0});
+            // MIN and MAX bit length for enums is not implemented yet
+            bit_length_min.append(quote!{0});
+
+            flattened_fields.append(quote!{0});
             
             for variant in variants {
                 if variant.data.fields().len() != 1 {
@@ -113,58 +83,57 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     let field_type = &field.ty;
                     
                     match classify_type(field_type) {
-                        UavcanType::PrimitiveType | UavcanType::DynamicArray | UavcanType::StaticArray => flattened_fields_builder.append(quote!{ + 1}),
-                        UavcanType::Struct => flattened_fields_builder.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER}),
+                        UavcanType::PrimitiveType | UavcanType::DynamicArray | UavcanType::StaticArray => flattened_fields.append(quote!{ + 1}),
+                        UavcanType::Struct => flattened_fields.append(quote!{ + #field_type::FLATTENED_FIELDS_NUMBER}),
                     }
                 }
             }
-            
-            flattened_fields_builder
-                
-        },
-        Body::Struct(syn::VariantData::Struct(ref fields)) => {
-            let mut flattened_fields_builder = Tokens::new();
-            
-            flattened_fields_builder.append(quote!{0});
 
-            for field in fields {
-                let field_type = &field.ty;
-                
-                match classify_type(field_type) {
-                    UavcanType::PrimitiveType => flattened_fields_builder.append(quote!{ + 1}),
-                    UavcanType::StaticArray => flattened_fields_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER}),
-                    UavcanType::DynamicArray => {
-                        let array_type = array_from_dynamic(field_type);
-                        flattened_fields_builder.append(quote!{ + <::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER});
-                    },
-                    UavcanType::Struct => flattened_fields_builder.append(quote!{ + <#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER}),
-                }
-            }
-            
-            flattened_fields_builder
+            serialize_body = quote!(unimplemented!("Serialization is not implemented for enum yet"));
+            deserialize_body = quote!(unimplemented!("Serialization is not implemented for enum yet"));
+
         },
-        Body::Struct(syn::VariantData::Unit) => quote!{0},
-        _ => panic!("UavcanStruct is only derivable for enums and named structs"),
-    };
-    
-    let serialize_body = match ast.body {
-        Body::Enum(_) => quote!(unimplemented!("UavcanSized is not derivable for enum yet")),
         Body::Struct(syn::VariantData::Struct(ref fields)) => {
-            
-            let mut serialize_builder = Tokens::new();
             let mut field_index = Tokens::new();
+            
+            bit_length_min.append(quote!{0});
+            flattened_fields.append(quote!{0});
             field_index.append(quote!{0});
             
             for (i, field) in fields.iter().enumerate() {
                 let field_ident = &field.ident;
                 let field_type = &field.ty;
+
                 let last_field = if i == fields.len()-1 {
                     quote!{true}
                 } else {
                     quote!{false}
                 };
                 
-                if i != 0 { serialize_builder.append(quote!{ else });}
+                
+                match classify_type(field_type) {
+                    UavcanType::PrimitiveType => bit_length_min.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
+                    UavcanType::StaticArray => bit_length_min.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
+                    UavcanType::DynamicArray => {
+                        let array_type = array_from_dynamic(field_type);
+                        bit_length_min.append(quote!{ + <::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::BIT_LENGTH_MIN});
+                    },
+                    UavcanType::Struct => bit_length_min.append(quote!{ + <#field_type as ::#crate_name::Serializable>::BIT_LENGTH_MIN}),
+                }
+                
+                match classify_type(field_type) {
+                    UavcanType::PrimitiveType => flattened_fields.append(quote!{ + 1}),
+                    UavcanType::StaticArray => flattened_fields.append(quote!{ + <#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER}),
+                    UavcanType::DynamicArray => {
+                        let array_type = array_from_dynamic(field_type);
+                        flattened_fields.append(quote!{ + <::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER});
+                    },
+                    UavcanType::Struct => flattened_fields.append(quote!{ + <#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER}),
+                }
+            
+
+                if i != 0 { serialize_body.append(quote!{ else });}
+                if i != 0 { deserialize_body.append(quote!{ else });}
                 
                 let field_length = match classify_type(field_type) {
                     UavcanType::PrimitiveType => quote!(1),
@@ -176,7 +145,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                     UavcanType::Struct => quote!{<#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER},
                 };
                 
-                serialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_length {
+                serialize_body.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_length {
                     let mut current_field = *flattened_field - (#field_index);
                     if ::#crate_name::Serializable::serialize(&self.#field_ident, &mut current_field, bit, #last_field && last_field, buffer) == ::#crate_name::SerializationResult::Finished {
                         *flattened_field = (#field_index) + current_field;
@@ -186,45 +155,8 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                         return ::#crate_name::SerializationResult::BufferFull;
                     }
                 }});
-                field_index.append(quote!{ + #field_length});
-            }
-            serialize_builder
-        },
-        Body::Struct(syn::VariantData::Unit) => quote!{0},
-        _ => panic!("UavcanStruct is only derivable for enums and named structs"),
-    };
-    
-    let deserialize_body = match ast.body {
-        Body::Enum(_) => quote!(unimplemented!("UavcanSized is not derivable for enum yet")),
-        Body::Struct(syn::VariantData::Struct(ref fields)) => {
-            let mut deserialize_builder = Tokens::new();
-            let mut field_index = Tokens::new();
-            
-            field_index.append(quote!{0});
-            
-            for (i, field) in fields.iter().enumerate() {
-                let field_ident = &field.ident;
-                let field_type = &field.ty;
-                let last_field = if i == fields.len()-1 {
-                    quote!{true}
-                } else {
-                    quote!{false}
-                };
-                
-                if i != 0 { deserialize_builder.append(quote!{ else });}
 
-
-                let field_length = match classify_type(field_type) {
-                    UavcanType::PrimitiveType => quote!(1),
-                    UavcanType::StaticArray => quote!(<#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER),
-                    UavcanType::DynamicArray => {
-                        let array_type = array_from_dynamic(field_type);
-                        quote!{<::#crate_name::types::Dynamic<#array_type> as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER}
-                    },
-                    UavcanType::Struct => quote!{<#field_type as ::#crate_name::Serializable>::FLATTENED_FIELDS_NUMBER},
-                };
-                
-                deserialize_builder.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_length {
+                deserialize_body.append(quote!{if *flattened_field >= (#field_index) && *flattened_field < (#field_index) + #field_length {
                     let mut current_field = *flattened_field - (#field_index);
                     if ::#crate_name::Serializable::deserialize(&mut self.#field_ident, &mut current_field, bit, #last_field && last_field, buffer) == ::#crate_name::DeserializationResult::Finished {
                         *flattened_field = (#field_index) + current_field;
@@ -237,12 +169,25 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
                 
                 field_index.append(quote!{ + #field_length});
             }
-            deserialize_builder   
         },
-        Body::Struct(syn::VariantData::Unit) => quote!{0},
+        Body::Struct(syn::VariantData::Unit) => {
+            bit_length_min = quote!(0);
+            flattened_fields = quote!(0);
+            serialize_body = quote!{
+                assert_eq!(*flattened_fields, 0);
+                *bit = 0;
+                *flattened_fields = 1;
+            };
+            deserialize_body = quote!{
+                assert_eq!(*flattened_fields, 0);
+                *bit = 0;
+                *flattened_fields = 1;
+            };
+
+        },
         _ => panic!("UavcanStruct is only derivable for enums and named structs"),
     };
-    
+
     
     quote!{
         impl ::#crate_name::Struct for #name {
@@ -252,7 +197,7 @@ fn impl_uavcan_struct(ast: &syn::DeriveInput) -> quote::Tokens {
 
         impl ::#crate_name::Serializable for #name {
             const BIT_LENGTH_MIN: usize = #bit_length_min;
-            const FLATTENED_FIELDS_NUMBER: usize = #number_of_flattened_fields;
+            const FLATTENED_FIELDS_NUMBER: usize = #flattened_fields;
             #[allow(unused_comparisons)]
             #[allow(unused_variables)]
             fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut ::#crate_name::SerializationBuffer) -> ::#crate_name::SerializationResult {
