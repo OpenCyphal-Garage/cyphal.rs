@@ -1,6 +1,6 @@
 [package]
 name = "dsdl_parser"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 description = "A nom parser for the DSDL (Data structure description language) used when transmiting over uavcan"
@@ -14,8 +14,8 @@ categories = ["parser-implementations"]
 license = "Apache-2.0/MIT"
 
 [dependencies]
-nom = "3.2.0"
-log = "0.3.8"
+nom = "^3.2"
+log = "^0.3.8"
 
 [dev-dependencies]
 test-logger = "0.1.0"
