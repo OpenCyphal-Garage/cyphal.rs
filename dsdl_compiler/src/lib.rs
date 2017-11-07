@@ -2,7 +2,12 @@
 //!
 //! For full description of DSDL, have a look at the [specification](http://uavcan.org/Specification/3._Data_structure_description_language/)
 //!
-//! # Examples
+//! # Binary
+//! The `dsdl_compiler` consists of a binary and a library. For documentation on the binary look [here](bin/index.html)
+//!
+//! # Library
+//! 
+//! ## Examples
 //! ### Compile DSDL directory
 //!
 //! ```
@@ -26,6 +31,8 @@ extern crate syn;
 extern crate inflections;
 
 use inflections::Inflect;
+
+pub mod bin;
 
 pub use dsdl_parser::DSDL;
 
