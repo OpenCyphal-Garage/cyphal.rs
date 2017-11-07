@@ -1,3 +1,21 @@
+//! A compiler for the DSDL (Data structure description language) used in [uavcan](http://uavcan.org)
+//!
+//! For full description of DSDL, have a look at the [specification](http://uavcan.org/Specification/3._Data_structure_description_language/)
+//!
+//! # Examples
+//! ### Compile DSDL directory
+//!
+//! ```
+//! use dsdl_compiler::DSDL;
+//! use dsdl_compiler::Compile;
+//!
+//! let dsdl = DSDL::read("tests/dsdl/").unwrap();
+//! let items = dsdl.compile();
+//!
+//! assert!(items.len() >= 1);
+//!
+//! ```
+
 #![recursion_limit="128"]
 
 #[allow(unused_imports)]
