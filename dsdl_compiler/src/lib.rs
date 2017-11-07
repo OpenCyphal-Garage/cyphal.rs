@@ -195,6 +195,84 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                     });
                     
                 }
+
+                if let Some(ref id) = self.name.id {
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone() + "Request"),
+                        vis: syn::Visibility::Inherited,
+                        attrs: Vec::new(),
+                        node: syn::ItemKind::Impl(
+                            syn::Unsafety::Normal,
+                            syn::ImplPolarity::Positive,
+                            syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()},
+                            Some(syn::Path{global: true, segments: vec![
+                                syn::PathSegment{ident: syn::Ident::from("uavcan_rs"), parameters: syn::PathParameters::none()},
+                                syn::PathSegment{ident: syn::Ident::from("Request"), parameters: syn::PathParameters::none()}
+                            ]}),
+                            Box::new(syn::Ty::Path(None, syn::Path{global: false, segments: vec![syn::PathSegment{ident: syn::Ident::from(self.name.name.clone() + "Request"), parameters: syn::PathParameters::none()}]})),
+                            vec![
+                                syn::ImplItem{
+                                    ident: syn::Ident::from("RESPONSE"),
+                                    vis: syn::Visibility::Inherited,
+                                    defaultness: syn::Defaultness::Final,
+                                    attrs: Vec::new(),
+                                    node: syn::ImplItemKind::Type(
+                                        syn::parse::ty(&format!("{}Response", self.name.name.clone())).expect(""),
+                                    ),
+                                },
+                                syn::ImplItem{
+                                    ident: syn::Ident::from("TYPE_ID"),
+                                    vis: syn::Visibility::Inherited,
+                                    defaultness: syn::Defaultness::Final,
+                                    attrs: Vec::new(),
+                                    node: syn::ImplItemKind::Const(
+                                        syn::parse::ty("Option<u8>").expect(""),
+                                        syn::parse::expr(&format!("Some({})", id)).expect(""),
+                                    ),
+                                }
+                            ],
+                        ),
+                    });
+
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone() + "Response"),
+                        vis: syn::Visibility::Inherited,
+                        attrs: Vec::new(),
+                        node: syn::ItemKind::Impl(
+                            syn::Unsafety::Normal,
+                            syn::ImplPolarity::Positive,
+                            syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()},
+                            Some(syn::Path{global: true, segments: vec![
+                                syn::PathSegment{ident: syn::Ident::from("uavcan_rs"), parameters: syn::PathParameters::none()},
+                                syn::PathSegment{ident: syn::Ident::from("Response"), parameters: syn::PathParameters::none()}
+                            ]}),
+                            Box::new(syn::Ty::Path(None, syn::Path{global: false, segments: vec![syn::PathSegment{ident: syn::Ident::from(self.name.name.clone() + "Response"), parameters: syn::PathParameters::none()}]})),
+                            vec![
+                                syn::ImplItem{
+                                    ident: syn::Ident::from("REQUEST"),
+                                    vis: syn::Visibility::Inherited,
+                                    defaultness: syn::Defaultness::Final,
+                                    attrs: Vec::new(),
+                                    node: syn::ImplItemKind::Type(
+                                        syn::parse::ty(&format!("{}Request", self.name.name.clone())).expect(""),
+                                    ),
+                                },
+                                syn::ImplItem{
+                                    ident: syn::Ident::from("TYPE_ID"),
+                                    vis: syn::Visibility::Inherited,
+                                    defaultness: syn::Defaultness::Final,
+                                    attrs: Vec::new(),
+                                    node: syn::ImplItemKind::Const(
+                                        syn::parse::ty("Option<u8>").expect(""),
+                                        syn::parse::expr(&format!("Some({})", id)).expect(""),
+                                    ),
+                                }
+                            ],
+                        ),
+                    });
+
+                }
+                    
             },
         }
 
