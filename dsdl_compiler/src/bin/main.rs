@@ -1,4 +1,7 @@
 extern crate getopts;
+#[macro_use]
+extern crate log;
+extern crate badlog;
 extern crate dsdl_parser;
 extern crate dsdl_compiler;
 #[macro_use]
@@ -16,6 +19,8 @@ use dsdl_parser::DSDL;
 use dsdl_compiler::Compile;
 
 fn main() {
+    badlog::init(Some("info"));
+    
     let flags = InputFlags::read();
     
     if flags.help {
@@ -39,10 +44,24 @@ fn main() {
         return;
     };
 
-    let dsdl = DSDL::read(input).unwrap();
+    let dsdl = match DSDL::read(input) {
+        Ok(dsdl) => dsdl,
+        Err(error) => {
+            error!("errored when reading DSDL: {}", error);
+            return;
+        },
+    };
+    
     let items = dsdl.compile();
+    
+    let mut file = match File::create(output) {
+        Ok(file) => file,
+        Err(error) => {
+            error!("errored when creating output file: {}", error);
+            return;
+        },
+    };
 
-    let mut file = File::create(output).unwrap();
 
     let tokens = quote!{#(#items)*};
     

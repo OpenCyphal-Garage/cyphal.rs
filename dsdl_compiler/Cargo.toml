@@ -15,7 +15,7 @@ license = "Apache-2.0/MIT"
 
 [features]
 default = ["binary"]
-binary = ["getopts"]
+binary = ["getopts", "badlog"]
 
 [[bin]]
 doc = false
@@ -35,6 +35,13 @@ features = ["full"]
 
 [dependencies.getopts]
 version = "0.2"
+optional = true
+
+[dependencies.log]
+version = "0.3"
+
+[dependencies.badlog]
+version = "0.3"
 optional = true
 
 [badges]
