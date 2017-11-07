@@ -27,7 +27,6 @@ pub(crate) fn print_usage() {
 impl InputFlags {
     pub fn read() -> Self {
         let args: Vec<String> = env::args().collect();
-        let program = args[0].clone();
         
         let opts = options();
         let matches = match opts.parse(&args[1..]) {
