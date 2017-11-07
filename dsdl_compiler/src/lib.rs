@@ -773,10 +773,12 @@ mod tests {
                     #[doc = ""]
                     #[derive(Debug, Clone, UavcanStruct)]
                     #[UavcanCrateName = "uavcan_rs"]
+                    #[DSDLSignature = "0xa80dc8995053e685"]
                     pub struct GetNodeInfoRequest {}
 
                     #[derive(Debug, Clone, UavcanStruct)]
                     #[UavcanCrateName = "uavcan_rs"]
+                    #[DSDLSignature = "0xa80dc8995053e685"]
                     pub struct GetNodeInfoResponse {
                         #[doc = ""]
                         #[doc = " Current node status"]
@@ -798,6 +800,17 @@ mod tests {
                         #[doc = ""]
                         pub name: ::Dynamic<[u8; 80]>
                     }
+
+                    impl ::uavcan_rs::Request for GetNodeInfoRequest {
+                        type RESPONSE = GetNodeInfoResponse;
+                        const TYPE_ID: Option<u8> = Some(1);
+                    }
+                    
+                    impl ::uavcan_rs::Response for GetNodeInfoResponse {
+                        type REQUEST = GetNodeInfoRequest;
+                        const TYPE_ID: Option<u8> = Some(1);
+                    }
+
                 }
             }
         });
@@ -820,6 +833,7 @@ mod tests {
                         #[doc = ""]
                         #[derive(Debug, Clone, UavcanStruct)]
                         #[UavcanCrateName = "uavcan_rs"]
+                        #[DSDLSignature = "0xc3d96f448f2b00a1"]
                         pub enum Value {
                             #[doc = " Empty field, used to represent an undefined value."]
                             Empty(Empty),
@@ -853,6 +867,7 @@ mod tests {
                     #[doc = ""]
                     #[derive(Debug, Clone, UavcanStruct)]
                     #[UavcanCrateName = "uavcan_rs"]
+                    #[DSDLSignature = "0xf0868d0c1a7c6f1"] 
                     pub struct NodeStatus {
                         #[doc = ""]
                         #[doc = " Uptime counter should never overflow."]
@@ -881,6 +896,10 @@ mod tests {
                         #[doc = " Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."]
                         #[doc = ""]
                         pub vendor_specific_status_code: u16
+                    }
+                    
+                    impl ::uavcan_rs::Message for NodeStatus {
+                        const TYPE_ID: Option<u16> = Some(341);
                     }
                 }
             }
