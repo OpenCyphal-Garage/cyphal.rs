@@ -9,6 +9,7 @@ use {
 use transfer::{
     TransferInterface,
     TransferID,
+    TransferFrameID,
     FullTransferID,
 };
 
@@ -118,12 +119,14 @@ impl<'a, I> Node for SimpleNode<'a, I>
     }
 
     fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
+        let id = u32::from(T::TYPE_ID) << 8;
+
         let identifier = FullTransferID {
-            frame_id: T::id(0, NodeID(0)),
+            frame_id: TransferFrameID::new(id),
             transfer_id: TransferID::new(0),
         };
         let mask = FullTransferID {
-            frame_id: T::id(0, NodeID(0)),
+            frame_id: TransferFrameID::new(id),
             transfer_id: TransferID::new(0),
         };
 

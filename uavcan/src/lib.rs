@@ -195,58 +195,16 @@ pub trait Struct: Sized + Serializable {
 
 pub trait Message: Struct {
     const TYPE_ID: u16;
-
-    fn id(priority: u8, source_node: NodeID) -> TransferFrameID {
-        let mut id = 0;
-        id.set_bits(0..7, u32::from(source_node));
-        id.set_bit(7, false);
-        id.set_bits(8..24, u32::from(Self::TYPE_ID));
-        id.set_bits(24..29, u32::from(priority));
-
-        TransferFrameID::new(id)
-    }
-
-    fn id_anonymous(priority: u8, discriminator: u16) -> TransferFrameID {
-        let mut id = 0;
-        id.set_bits(0..7, 0);
-        id.set_bit(7, false);
-        id.set_bits(8..10, u32::from(Self::TYPE_ID));
-        id.set_bits(10..24, u32::from(discriminator));
-        id.set_bits(24..29, u32::from(priority));
-        TransferFrameID::new(id)
-    }
 }
 
 pub trait Request: Struct {
     type RESPONSE: Response;
     const TYPE_ID: u8;
-
-    fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
-        let mut id = 0;
-        id.set_bits(0..7, u32::from(source_node));
-        id.set_bit(7, false);
-        id.set_bits(8..15, u32::from(destination_node));
-        id.set_bit(15, true);
-        id.set_bits(16..24, u32::from(Self::TYPE_ID));
-        id.set_bits(24..29, u32::from(priority));
-        TransferFrameID::new(id)
-    }
 }
 
 pub trait Response: Struct {
     type REQUEST: Request;
     const TYPE_ID: u8;
-
-    fn id(priority: u8, source_node: NodeID, destination_node: NodeID) -> TransferFrameID {
-        let mut id = 0;
-        id.set_bits(0..7, u32::from(source_node));
-        id.set_bit(7, false);
-        id.set_bits(8..15, u32::from(destination_node));
-        id.set_bit(15, true);
-        id.set_bits(16..24, u32::from(Self::TYPE_ID));
-        id.set_bits(24..29, u32::from(priority));
-        TransferFrameID::new(id)
-    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -259,29 +217,58 @@ impl<T: Struct> Frame<T> {
 
     
     pub fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..24, u32::from(T::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+
         Frame::from_parts(
-            T::id(priority, source_node),
+            TransferFrameID::new(id),
             message,
         )
     }
 
     pub fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
+        let mut id = 0;
+        id.set_bits(0..7, 0);
+        id.set_bit(7, false);
+        id.set_bits(8..10, u32::from(T::TYPE_ID));
+        id.set_bits(10..24, u32::from(discriminator));
+        id.set_bits(24..29, u32::from(priority));
+        
         Frame::from_parts(
-            T::id_anonymous(priority, discriminator),
+            TransferFrameID::new(id),
             message,
         )
     }
 
     pub fn from_request(request: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..15, u32::from(destination_node));
+        id.set_bit(15, true);
+        id.set_bits(16..24, u32::from(T::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+        
         Frame::from_parts(
-            T::id(priority, source_node, destination_node),
+            TransferFrameID::new(id),
             request,
         )
     }
 
     pub fn from_response(response: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
+        let mut id = 0;
+        id.set_bits(0..7, u32::from(source_node));
+        id.set_bit(7, false);
+        id.set_bits(8..15, u32::from(destination_node));
+        id.set_bit(15, true);
+        id.set_bits(16..24, u32::from(T::TYPE_ID));
+        id.set_bits(24..29, u32::from(priority));
+
         Frame::from_parts(
-            T::id(priority, source_node, destination_node),
+            TransferFrameID::new(id),
             response,
         )
     }
