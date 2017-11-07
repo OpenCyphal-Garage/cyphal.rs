@@ -3,7 +3,7 @@ name = "dsdl_parser"
 version = "0.0.1"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
-description = "A parser for the DSDL (Data structure description language) used when transmiting over uavcan"
+description = "A nom parser for the DSDL (Data structure description language) used when transmiting over uavcan"
 homepage = "http://uavcan.org/Specification/3._Data_structure_description_language/"
 repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl_parser"
 readme = "README.md"
