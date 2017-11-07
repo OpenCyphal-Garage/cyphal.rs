@@ -16,12 +16,15 @@ fn main() {
     let dsdl_path = Path::new(&cargo_dir).join("dsdl");
     let out_path = Path::new(&out_dir).join("dsdl.rs");
 
-    let dsdl = DSDL::read(dsdl_path).unwrap();
+    let dsdl = DSDL::read(dsdl_path.clone()).unwrap();
     let items = dsdl.compile();
 
     let mut file = File::create(&out_path).unwrap();
 
     let tokens = quote!{#(#items)*};
     
-    file.write_all(tokens.as_str().as_bytes()).unwrap();    
+    file.write_all(tokens.as_str().as_bytes()).unwrap();
+
+    // only recompile DSDL if it has changed
+    println!("cargo:rerun-if-changed={}", dsdl_path.to_str().unwrap());
 }
