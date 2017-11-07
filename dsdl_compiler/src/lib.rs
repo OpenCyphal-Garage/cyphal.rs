@@ -86,13 +86,22 @@ fn add_item(new_item: syn::Item, items: &mut Vec<syn::Item>) {
 impl Compile<Vec<syn::Item>> for dsdl_parser::File {
     fn compile(self) -> Vec<syn::Item> {
         let mut items = Vec::new();
+        let dsdl_signature = self.clone().normalize().dsdl_signature();
         match self.definition {
             dsdl_parser::TypeDefinition::Message(message) => {
                 let (item_kinds, struct_attributes) = message.compile();
                 for item_kind in item_kinds {
                     
                     let attrs = match item_kind {
-                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes.clone(),
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => {
+                            let mut attrs = vec![syn::Attribute{
+                                style: syn::AttrStyle::Outer,
+                                value: syn::MetaItem::NameValue(syn::Ident::from("DSDLSignature"), syn::Lit::Str(format!("0x{:x}", dsdl_signature), syn::StrStyle::Cooked)),
+                                is_sugared_doc: true,
+                            }];
+                            attrs.append(&mut struct_attributes.clone());
+                            attrs
+                        },
                         _ => Vec::new(),
                     };
                     
