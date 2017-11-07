@@ -8,7 +8,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+//! assert!(DSDL::read("tests/dsdl/").is_ok());
 //!
 //! ```
 //!
@@ -26,7 +26,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+//! let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 //!
 //! println!("{}", dsdl.get_file("uavcan.protocol.GetNodeInfo").unwrap());
 //! 
@@ -37,7 +37,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+//! let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 //!
 //! assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
 //! ```
@@ -85,13 +85,20 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+    /// assert!(DSDL::read("tests/dsdl/").is_ok());
     ///
     /// ```
     pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
 
-        DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+        if path.as_ref().is_dir() {
+            for entry in fs::read_dir(path)? {
+                let current_path = entry?.path();
+                DSDL::read_uavcan_files(current_path.as_ref(), String::new(), &mut dsdl.files)?;
+            }
+        } else {
+            DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+        }
 
         Ok(dsdl)
     }
@@ -135,7 +142,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert!(dsdl.get_file("uavcan.protocol.NodeStatus").is_some());
     ///
@@ -150,7 +157,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert!(dsdl.files().len() >= 1);
     ///
@@ -165,7 +172,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
     ///
@@ -213,6 +220,49 @@ pub struct FileName {
     pub namespace: String,
     pub name: String,
     pub version: Option<Version>,
+}
+
+impl FileName {
+    /// Split a namespace into parts
+    ///
+    /// # Examples
+    /// ```
+    /// use dsdl_parser::FileName;
+    ///
+    /// let name = FileName {
+    ///                     id: Some(String::from("341")),
+    ///                     namespace: String::from("uavcan.protocol"),
+    ///                     name: String::from("NodeStatus"),
+    ///                     version: None,
+    /// };
+    ///
+    /// assert_eq!(name.split_namespace(), vec!["uavcan", "protocol"]);
+    ///
+    /// ```
+    pub fn split_namespace(&self) -> Vec<String> {
+        self.namespace.split('.').map(|x| String::from(x)).collect()
+    }
+    
+    /// Split a namespace into parts
+    ///
+    /// # Examples
+    /// ```
+    /// use dsdl_parser::FileName;
+    ///
+    /// let name = FileName {
+    ///                     id: Some(String::from("341")),
+    ///                     namespace: String::from("uavcan.protocol"),
+    ///                     name: String::from("NodeStatus"),
+    ///                     version: None,
+    /// };
+    ///
+    /// assert_eq!(name.rsplit_namespace(), vec!["protocol", "uavcan"]);
+    ///
+    /// ```
+    pub fn rsplit_namespace(&self) -> Vec<String> {
+        self.namespace.rsplit('.').map(|x| String::from(x)).collect()
+    }
+
 }
 
 
@@ -332,6 +382,51 @@ pub enum Line {
     Directive(Directive, Option<Comment>),
 }
 
+impl Line {
+    /// returns true if the `Line` is empty
+    pub fn is_empty(&self) -> bool {
+        match *self {
+            Line::Empty => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a directive
+    pub fn is_directive(&self) -> bool {
+        match *self {
+            Line::Directive(_,_) => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a definiition
+    pub fn is_definition(&self) -> bool {
+        match *self {
+            Line::Definition(_,_) => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` is nothing but a comment
+    pub fn is_comment(&self) -> bool {
+        match *self {
+            Line::Comment(_) => true,
+            _ => false,
+        }
+    }
+
+    /// returns true if the `Line` contains a comment
+    pub fn has_comment(&self) -> bool {
+        match *self {
+            Line::Comment(_) => true,
+            Line::Directive(_,Some(_)) => true,
+            Line::Definition(_,Some(_)) => true,
+            _ => false,
+        }
+    }
+        
+}
+
 /// A CompositeType is what the uavcan specification refers to as "Nested data structures"
 ///
 /// In short if it's not a primitive data type (or arrays of primitive data types) it's a `CompositeType`
@@ -380,6 +475,12 @@ impl FromStr for Comment {
     
     fn from_str(s: &str) -> Result<Comment, Self::Err> {
         Ok(Comment::from(s))
+    }
+}
+
+impl AsRef<str> for Comment {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
     }
 }
 
@@ -464,6 +565,12 @@ impl FromStr for Size {
     }
 }
 
+impl From<Size> for u64 {
+    fn from(i: Size) -> u64 {
+        i.0
+    }
+}
+
 impl From<u8> for Size {
     fn from(i: u8) -> Size {
         Size(u64::from(i))
@@ -489,24 +596,29 @@ impl From<u64> for Size {
 }
 
 /// A constant must be a primitive scalar type (i.e., arrays and nested data structures are not allowed as constant types).
-///
-/// A constant must be assigned with a constant initializer, which must be one of the following:
-/// 
-/// - Integer zero (0).
-/// - Integer literal in base 10, starting with a non-zero character. E.g., 123, -12.
-/// - Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12.
-/// - Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101.
-/// - Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777.
-/// - Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, 25E-4. Note that the use of infinity and NAN (not-a-number) is discouraged as it may not be supported on all platforms.
-/// - Boolean true or false.
-/// - Single ASCII character, ASCII escape sequence, or ASCII hex literal in single quotes. E.g., 'a', '\x61', '\n'.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Const {
+
+    /// Integer zero (0) or Integer literal in base 10, starting with a non-zero character. E.g., 123, -12.
     Dec(String),
+    
+    /// Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12.
     Hex(String),
+
+    /// Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777.
+    Oct(String),
+    
+    /// Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101.
     Bin(String),
+    
+    /// Boolean true or false.
     Bool(bool),
+    
+    /// Single ASCII character, ASCII escape sequence, or ASCII hex literal in single quotes. E.g., 'a', '\x61', '\n'.
     Char(String),
+    
+    /// Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, 25E-4. Note that the use of infinity and NAN (not-a-number) is discouraged as it may not be supported on all platforms.
+    Float(String),
 }
 
 /// Cast mode defines the rules of conversion from the native value of a certain programming language to the serialized field value.
@@ -609,6 +721,15 @@ impl From<ConstDefinition> for AttributeDefinition {
 pub enum Ty{
     Primitive(PrimitiveType),
     Composite(CompositeType),
+}
+
+impl Ty {
+    pub fn is_void(&self) -> bool {
+        match *self{
+            Ty::Primitive(ref x) => x.is_void(),
+            Ty::Composite(_) => false,
+        }
+    }
 }
 
 impl From<PrimitiveType> for Ty {
@@ -878,7 +999,7 @@ impl FromStr for PrimitiveType {
 }
 
 impl PrimitiveType {
-    fn is_void(&self) -> bool {
+    pub fn is_void(&self) -> bool {
         match *self {
             PrimitiveType::Void1 => true,
             PrimitiveType::Void2 => true,

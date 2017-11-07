@@ -8,6 +8,8 @@ env:
   - TEST_DIR="uavcan" ACTION="test" FLAGS="--no-default-features"
   - TEST_DIR="uavcan" ACTION="test" FLAGS=""
   - TEST_DIR="dsdl_parser" ACTION="test" FLAGS=" -- --nocapture"
+  - TEST_DIR="dsdl_compiler" ACTION="test" FLAGS=""
+  - TEST_DIR="dsdl" ACTION="test" FLAGS=""
 
 matrix:
   include:

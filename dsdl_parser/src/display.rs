@@ -72,8 +72,10 @@ impl Display for Const {
             Const::Dec(ref x) => write!(f, "{}", x),
             Const::Hex(ref x) => write!(f, "0x{}", x),
             Const::Bin(ref x) => write!(f, "0b{}", x),
+            Const::Oct(ref x) => write!(f, "0o{}", x),
             Const::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
             Const::Char(ref x) => write!(f, "'{}'", x),
+            Const::Float(ref x) => write!(f, "{}", x),
         }
     }
 }

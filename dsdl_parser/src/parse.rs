@@ -7,6 +7,7 @@ use nom::{
     line_ending,
     not_line_ending,
     is_digit,
+    is_oct_digit,
     is_hex_digit,
 };
 
@@ -15,7 +16,7 @@ named!(whitespace, take_while!(is_whitespace));
 
 named!(pub id<String>, map!(map_res!(verify!(take_while!(is_digit), |x:&[u8]| x.len() > 0), str::from_utf8), String::from));
 
-named!(pub file_name<FileName>, map_res!(map_res!(recognize!(complete!(terminated!(take_until!(".uavcan"), tag!(".uavcan")))), str::from_utf8), FileName::from_str));
+named!(pub file_name<FileName>, map_res!(map_res!(take_while!(is_allowed_in_file_name), str::from_utf8), FileName::from_str));
 
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
@@ -28,9 +29,14 @@ named!(constant<Const>, alt!(
     complete!(do_parse!(_value: tag!("true") >> (Const::Bool(true)) )) |
     complete!(do_parse!(_value: tag!("false") >> (Const::Bool(false)) )) |
     complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Const::Hex(String::from(value))))) |
+    complete!(do_parse!(_format: tag!("-0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Const::Hex(String::from("-") + value)))) |
     complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Const::Bin(String::from(value))))) |
+    complete!(do_parse!(_format: tag!("-0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Const::Bin(String::from("-") + value)))) |
+    complete!(do_parse!(_format: tag!("0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Const::Oct(String::from(value))))) |
+    complete!(do_parse!(_format: tag!("-0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Const::Oct(String::from("-") + value)))) |
     complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Const::Char(String::from(achar))))) |
-    complete!(do_parse!(value: map_res!(take_while!(allowed_in_decimal_number), str::from_utf8) >> (Const::Dec(String::from(value)))))
+    complete!(do_parse!(value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x) || *x == b'-')), str::from_utf8) >> (Const::Dec(String::from(value))))) |
+    complete!(do_parse!(value: map_res!(take_while!(is_allowed_in_float), str::from_utf8) >> (Const::Float(String::from(value)))))
 ));
 
 named!(cast_mode<CastMode>, map_res!(map_res!(
@@ -170,8 +176,12 @@ fn is_bin_digit(chr: u8) -> bool {
     chr == b'0' || chr == b'1'
 }
 
-fn allowed_in_decimal_number(chr: u8) -> bool {
+fn is_allowed_in_float(chr: u8) -> bool {
     is_digit(chr) || chr == b'.' || chr == b'E' || chr == b'e' || chr == b'-'
+}
+
+fn is_allowed_in_const(chr: u8) -> bool {
+    is_digit(chr) || is_uppercase_char(chr) || is_lowercase_char(chr) || chr == b'.' || chr == b'E' || chr == b'e' || chr == b'-'
 }
 
 fn is_allowed_in_field_name(chr: u8) -> bool {
@@ -192,6 +202,10 @@ fn is_allowed_in_composite_type_name(chr: u8) -> bool {
     
 fn is_allowed_in_directive_name(chr: u8) -> bool {
     is_lowercase_char(chr)
+}
+    
+fn is_allowed_in_file_name(chr: u8) -> bool {
+    is_lowercase_char(chr) || is_uppercase_char(chr) || is_digit(chr) || chr == b'.'
 }
     
         
@@ -236,12 +250,28 @@ mod tests {
     fn parse_constant() {
         assert_eq!(constant(&b"0x123"[..]), IResult::Done(&b""[..], Const::Hex(String::from("123"))));
         assert_eq!(constant(&b"0xAABBCC"[..]), IResult::Done(&b""[..], Const::Hex(String::from("AABBCC"))));
+        assert_eq!(constant(&b"-0x12"[..]), IResult::Done(&b""[..], Const::Hex(String::from("-12"))));
+        
         assert_eq!(constant(&b"0b000111"[..]), IResult::Done(&b""[..], Const::Bin(String::from("000111"))));
+        assert_eq!(constant(&b"-0b000111"[..]), IResult::Done(&b""[..], Const::Bin(String::from("-000111"))));
+        
         assert_eq!(constant(&b"12354"[..]), IResult::Done(&b""[..], Const::Dec(String::from("12354"))));
+        assert_eq!(constant(&b"-12"[..]), IResult::Done(&b""[..], Const::Dec(String::from("-12"))));
+        
         assert_eq!(constant(&[39,92,b'n', 39]), IResult::Done(&b""[..], Const::Char(String::from("\\n"))));
         assert_eq!(constant(&b"'b'"[..]), IResult::Done(&b""[..], Const::Char(String::from("b"))));
+        
         assert_eq!(constant(&b"true"[..]), IResult::Done(&b""[..], Const::Bool(true)));
         assert_eq!(constant(&b"false"[..]), IResult::Done(&b""[..], Const::Bool(false)));
+        
+        assert_eq!(constant(&b"15.75"[..]), IResult::Done(&b""[..], Const::Float(String::from("15.75"))));
+        assert_eq!(constant(&b"15.75E1"[..]), IResult::Done(&b""[..], Const::Float(String::from("15.75E1"))));
+        assert_eq!(constant(&b"1575e-2"[..]), IResult::Done(&b""[..], Const::Float(String::from("1575e-2"))));
+        assert_eq!(constant(&b"-2.5e-3"[..]), IResult::Done(&b""[..], Const::Float(String::from("-2.5e-3"))));
+        assert_eq!(constant(&b"-25e-4"[..]), IResult::Done(&b""[..], Const::Float(String::from("-25e-4"))));
+        
+        assert_eq!(constant(&b"0o123"[..]), IResult::Done(&b""[..], Const::Oct(String::from("123"))));
+        assert_eq!(constant(&b"-0o777"[..]), IResult::Done(&b""[..], Const::Oct(String::from("-777"))));
     }
 
     #[test]
