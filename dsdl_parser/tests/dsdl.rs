@@ -15,13 +15,13 @@ fn parse_protocol() {
 #[test]
 fn parse_dsdl() {
     test_logger::ensure_env_logger_initialized();
-    let _dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let _dsdl = DSDL::read("./tests/dsdl/").unwrap();
 }
 
 #[test]
 fn verify_display() {
     test_logger::ensure_env_logger_initialized();
-    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
     for dsdl_file in dsdl.files() {
         let mut filename = String::from("./tests/dsdl/");
         if dsdl_file.name.namespace != "" {
@@ -50,7 +50,7 @@ fn verify_display() {
 
 #[test]
 fn normalize_get_node_info() {
-    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
     
     assert_eq!(format!("{}", dsdl.get_file("uavcan.protocol.GetNodeInfo").unwrap().clone().normalize()),
                "uavcan.protocol.GetNodeInfo
@@ -63,7 +63,7 @@ saturated uint8[<=80] name");
 
 #[test]
 fn normalize_node_status() {
-    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
     
     assert_eq!(format!("{}", dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize()),
                "uavcan.protocol.NodeStatus
@@ -77,7 +77,7 @@ saturated uint16 vendor_specific_status_code");
 
 #[test]
 fn verify_dsdl_signature() {
-    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 
     assert_eq!(dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize().dsdl_signature(), 0x0f0868d0c1a7c6f1);
     assert_eq!(dsdl.get_file("uavcan.protocol.AccessCommandShell").unwrap().clone().normalize().dsdl_signature(), 0x59276b5921c9246e);
@@ -88,7 +88,7 @@ fn verify_dsdl_signature() {
 
 #[test]
 fn verify_data_type_signature() {
-    let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 
     assert_eq!(dsdl.data_type_signature("uavcan.protocol.NodeStatus").unwrap(), 0x0f0868d0c1a7c6f1);
     assert_eq!(dsdl.data_type_signature("uavcan.protocol.CANIfaceStats").unwrap(), 0x13b106f0c44ca350);

@@ -13,7 +13,7 @@ use dsdl_compiler::Compile;
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
     let cargo_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
-    let dsdl_path = Path::new(&cargo_dir).join("dsdl").join("uavcan");
+    let dsdl_path = Path::new(&cargo_dir).join("dsdl");
     let out_path = Path::new(&out_dir).join("dsdl.rs");
 
     let dsdl = DSDL::read(dsdl_path).unwrap();

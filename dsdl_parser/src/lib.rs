@@ -8,7 +8,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+//! assert!(DSDL::read("tests/dsdl/").is_ok());
 //!
 //! ```
 //!
@@ -26,7 +26,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+//! let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 //!
 //! println!("{}", dsdl.get_file("uavcan.protocol.GetNodeInfo").unwrap());
 //! 
@@ -37,7 +37,7 @@
 //! ```
 //! use dsdl_parser::DSDL;
 //!
-//! let dsdl = DSDL::read("./tests/dsdl/uavcan/").unwrap();
+//! let dsdl = DSDL::read("./tests/dsdl/").unwrap();
 //!
 //! assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
 //! ```
@@ -85,13 +85,20 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// assert!(DSDL::read("tests/dsdl/uavcan").is_ok());
+    /// assert!(DSDL::read("tests/dsdl/").is_ok());
     ///
     /// ```
     pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
 
-        DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+        if path.as_ref().is_dir() {
+            for entry in fs::read_dir(path)? {
+                let current_path = entry?.path();
+                DSDL::read_uavcan_files(current_path.as_ref(), String::new(), &mut dsdl.files)?;
+            }
+        } else {
+            DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+        }
 
         Ok(dsdl)
     }
@@ -135,7 +142,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert!(dsdl.get_file("uavcan.protocol.NodeStatus").is_some());
     ///
@@ -150,7 +157,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert!(dsdl.files().len() >= 1);
     ///
@@ -165,7 +172,7 @@ impl DSDL {
     /// ```
     /// use dsdl_parser::DSDL;
     ///
-    /// let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
     ///
     /// assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
     ///
