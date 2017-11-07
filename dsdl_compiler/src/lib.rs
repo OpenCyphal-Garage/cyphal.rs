@@ -19,6 +19,28 @@
 //!
 //! assert!(items.len() >= 1);
 //!
+//!
+//! ```
+//!
+//! ### Print compiled dsdl
+//!
+//! ```
+//! #[macro_use]
+//! extern crate quote;
+//! extern crate dsdl_compiler;
+//!
+//! use dsdl_compiler::DSDL;
+//! use dsdl_compiler::Compile;
+//!
+//! # fn main() {
+//! let dsdl = DSDL::read("tests/dsdl/").unwrap();
+//! let items = dsdl.compile();
+//!
+//! let tokens = quote!{#(#items)*};
+//!
+//! println!("{}", tokens);
+//! # }
+//! 
 //! ```
 
 #![recursion_limit="128"]
