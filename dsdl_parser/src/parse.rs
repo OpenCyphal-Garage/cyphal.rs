@@ -15,7 +15,7 @@ named!(whitespace, take_while!(is_whitespace));
 
 named!(pub id<String>, map!(map_res!(verify!(take_while!(is_digit), |x:&[u8]| x.len() > 0), str::from_utf8), String::from));
 
-named!(pub file_name<FileName>, map_res!(map_res!(recognize!(complete!(terminated!(take_until!(".uavcan"), tag!(".uavcan")))), str::from_utf8), FileName::from_str));
+named!(pub file_name<FileName>, map_res!(map_res!(take_while!(is_allowed_in_file_name), str::from_utf8), FileName::from_str));
 
 
 named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
@@ -192,6 +192,10 @@ fn is_allowed_in_composite_type_name(chr: u8) -> bool {
     
 fn is_allowed_in_directive_name(chr: u8) -> bool {
     is_lowercase_char(chr)
+}
+    
+fn is_allowed_in_file_name(chr: u8) -> bool {
+    is_lowercase_char(chr) || is_uppercase_char(chr) || is_digit(chr) || chr == b'.'
 }
     
         
