@@ -11,7 +11,9 @@ use inflections::Inflect;
 
 pub use dsdl_parser::DSDL;
 
+/// The trait that must be implemented to compile from DSDL to code
 pub trait Compile<T> {
+    /// The function used to compile from DSDL to code
     fn compile(self) -> T;
 }
 
