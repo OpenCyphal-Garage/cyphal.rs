@@ -774,7 +774,7 @@ mod tests {
     #[test]
     fn compile_dsdl() {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
-        let items = dsdl.compile();
+        dsdl.compile();
     }    
     
     #[test]
