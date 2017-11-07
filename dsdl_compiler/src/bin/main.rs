@@ -65,6 +65,9 @@ fn main() {
 
     let tokens = quote!{#(#items)*};
     
-    file.write_all(tokens.as_str().as_bytes());    
+    match file.write_all(tokens.as_str().as_bytes()) {
+        Ok(_) => (),
+        Err(error) => error!("errored when writing to output file: {}", error),
+    }
     
 }
