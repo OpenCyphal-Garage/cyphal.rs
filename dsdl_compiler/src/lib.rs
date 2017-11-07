@@ -102,8 +102,37 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                         attrs: attrs,
                         node: item_kind,
                     });
-                    
                 }
+
+                if let Some(ref id) = self.name.id {
+                    items.push(syn::Item {
+                        ident: syn::Ident::from(self.name.name.clone()),
+                        vis: syn::Visibility::Inherited,
+                        attrs: Vec::new(),
+                        node: syn::ItemKind::Impl(
+                            syn::Unsafety::Normal,
+                            syn::ImplPolarity::Positive,
+                            syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()},
+                            Some(syn::Path{global: true, segments: vec![
+                                syn::PathSegment{ident: syn::Ident::from("uavcan_rs"), parameters: syn::PathParameters::none()},
+                                syn::PathSegment{ident: syn::Ident::from("Message"), parameters: syn::PathParameters::none()}
+                            ]}),
+                            Box::new(syn::Ty::Path(None, syn::Path{global: false, segments: vec![syn::PathSegment{ident: syn::Ident::from(self.name.name.clone()), parameters: syn::PathParameters::none()}]})),
+                            vec![
+                                syn::ImplItem{
+                                    ident: syn::Ident::from("TYPE_ID"),
+                                    vis: syn::Visibility::Inherited,
+                                    defaultness: syn::Defaultness::Final,
+                                    attrs: Vec::new(),
+                                    node: syn::ImplItemKind::Const(
+                                        syn::parse::ty("u16").expect(""),
+                                        syn::parse::expr(&id).expect(""),
+                                    ),
+                                }
+                            ],
+                        ),
+                    });
+                }                           
             },
             dsdl_parser::TypeDefinition::Service(service) => {
                 let (item_kinds_req, struct_attributes_req) = service.request.compile();
