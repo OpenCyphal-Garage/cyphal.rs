@@ -755,13 +755,13 @@ mod tests {
 
     #[test]
     fn compile_dsdl() {
-        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let dsdl = DSDL::read("tests/dsdl/").unwrap();
         let items = dsdl.compile();
     }    
     
     #[test]
     fn compile_service() {
-        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let dsdl = DSDL::read("tests/dsdl/").unwrap();
         let file = dsdl.get_file(&String::from("uavcan.protocol.GetNodeInfo")).unwrap().clone().compile();
         
         assert_eq!(quote!(#(#file)*), quote!{
@@ -805,7 +805,7 @@ mod tests {
 
     #[test]
     fn compile_enum() {
-        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let dsdl = DSDL::read("tests/dsdl/").unwrap();
         let file = dsdl.get_file(&String::from("uavcan.protocol.param.Value")).unwrap().clone().compile();
         
         assert_eq!(quote!(#(#file)*), quote!{
@@ -840,7 +840,7 @@ mod tests {
 
     #[test]
     fn compile_struct() {
-        let dsdl = DSDL::read("tests/dsdl/uavcan").unwrap();
+        let dsdl = DSDL::read("tests/dsdl/").unwrap();
         let file = dsdl.get_file(&String::from("uavcan.protocol.NodeStatus")).unwrap().clone().compile();
         
         assert_eq!(quote!(#(#file)*), quote!{
