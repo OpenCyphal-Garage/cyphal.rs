@@ -614,6 +614,7 @@ pub enum Const {
     Bin(String),
     Bool(bool),
     Char(String),
+    Float(String),
 }
 
 /// Cast mode defines the rules of conversion from the native value of a certain programming language to the serialized field value.

@@ -74,6 +74,7 @@ impl Display for Const {
             Const::Bin(ref x) => write!(f, "0b{}", x),
             Const::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
             Const::Char(ref x) => write!(f, "'{}'", x),
+            Const::Float(ref x) => write!(f, "{}", x),
         }
     }
 }
