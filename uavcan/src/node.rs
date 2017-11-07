@@ -119,7 +119,11 @@ impl<'a, I> Node for SimpleNode<'a, I>
     }
 
     fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
-        let id = u32::from(T::TYPE_ID) << 8;
+        let id = if let Some(type_id) = T::TYPE_ID {
+            u32::from(type_id) << 8
+        } else {
+            unimplemented!("Resolvation of type id is not supported yet")
+        };
 
         let identifier = FullTransferID {
             frame_id: TransferFrameID::new(id),

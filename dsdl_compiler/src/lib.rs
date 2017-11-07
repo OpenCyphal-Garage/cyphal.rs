@@ -125,8 +125,8 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                                     defaultness: syn::Defaultness::Final,
                                     attrs: Vec::new(),
                                     node: syn::ImplItemKind::Const(
-                                        syn::parse::ty("u16").expect(""),
-                                        syn::parse::expr(&id).expect(""),
+                                        syn::parse::ty("Option<u16>").expect(""),
+                                        syn::parse::expr(&format!("Some({})", id)).expect(""),
                                     ),
                                 }
                             ],
