@@ -5,7 +5,7 @@ authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 build = "build.rs"
 
-description = "A crate that invokes the DSDL compiler (dsdlc)"
+description = "A crate that conviniently integrates the DSDL compiler (dsdlc) with cargo/crates.io"
 homepage = "http://uavcan.org/Specification/3._Data_structure_description_language/"
 repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl"
 readme = "README.md"
@@ -21,3 +21,7 @@ uavcan = {path = "../uavcan"}
 [build-dependencies]
 quote = "0.3"
 dsdl_compiler = {path = "../dsdl_compiler"}
+
+[badges]
+travis-ci = {repository = "UAVCAN/uavcan.rs", branch = "master"}
+maintenance = {status = "actively-developed"}
