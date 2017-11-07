@@ -1,5 +1,6 @@
 #![recursion_limit="128"]
 
+#[allow(unused_imports)]
 #[macro_use]
 extern crate quote;
 extern crate dsdl_parser;
@@ -18,7 +19,7 @@ impl Compile<Vec<syn::Item>> for DSDL {
     fn compile(self) -> Vec<syn::Item> {
         let mut items = Vec::new();
         for file in self.files() {
-            let mut new_items = file.clone().compile();
+            let new_items = file.clone().compile();
             for new_item in new_items {
                 add_item(new_item, &mut items);
             }
