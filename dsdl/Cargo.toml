@@ -5,6 +5,16 @@ authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 build = "build.rs"
 
+description = "A crate that invokes the DSDL compiler (dsdlc)"
+homepage = "http://uavcan.org/Specification/3._Data_structure_description_language/"
+repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl"
+readme = "README.md"
+
+keywords = ["uavcan", "can", "dsdl", "parser", "dsdlc"]
+categories = []
+
+license = "Apache-2.0/MIT"
+
 [dependencies]
 uavcan = {path = "../uavcan"}
 
