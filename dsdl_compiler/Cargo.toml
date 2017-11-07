@@ -8,7 +8,7 @@ homepage = "http://uavcan.org/Specification/3._Data_structure_description_langua
 repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl_compiler"
 readme = "README.md"
 
-keywords = ["uavcan", "can", "dsdl", "compiler"]
+keywords = ["uavcan", "can", "dsdl", "compiler", "dsdlc"]
 categories = ["command-lines-utilities"]
 
 license = "Apache-2.0/MIT"
