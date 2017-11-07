@@ -95,12 +95,12 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                     
                     let attrs = match item_kind {
                         syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => {
-                            let mut attrs = vec![syn::Attribute{
+                            let mut attrs = struct_attributes.clone();
+                            attrs.push(syn::Attribute{
                                 style: syn::AttrStyle::Outer,
                                 value: syn::MetaItem::NameValue(syn::Ident::from("DSDLSignature"), syn::Lit::Str(format!("0x{:x}", dsdl_signature), syn::StrStyle::Cooked)),
                                 is_sugared_doc: true,
-                            }];
-                            attrs.append(&mut struct_attributes.clone());
+                            });
                             attrs
                         },
                         _ => Vec::new(),
@@ -149,9 +149,17 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                 let (item_kinds_res, struct_attributes_res) = service.response.compile();
                 
                 for item_kind in item_kinds_req {
-                    
+
                     let attrs = match item_kind {
-                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes_req.clone(),
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => {
+                            let mut attrs = struct_attributes_req.clone();
+                            attrs.push(syn::Attribute{
+                                style: syn::AttrStyle::Outer,
+                                value: syn::MetaItem::NameValue(syn::Ident::from("DSDLSignature"), syn::Lit::Str(format!("0x{:x}", dsdl_signature), syn::StrStyle::Cooked)),
+                                is_sugared_doc: true,
+                            });
+                            attrs
+                        },
                         _ => Vec::new(),
                     };
                     
@@ -167,7 +175,15 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                 for item_kind in item_kinds_res {
                     
                     let attrs = match item_kind {
-                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => struct_attributes_res.clone(),
+                        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => {
+                            let mut attrs = struct_attributes_res.clone();
+                            attrs.push(syn::Attribute{
+                                style: syn::AttrStyle::Outer,
+                                value: syn::MetaItem::NameValue(syn::Ident::from("DSDLSignature"), syn::Lit::Str(format!("0x{:x}", dsdl_signature), syn::StrStyle::Cooked)),
+                                is_sugared_doc: true,
+                            });
+                            attrs
+                        },
                         _ => Vec::new(),
                     };
                     
