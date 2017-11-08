@@ -5,6 +5,7 @@ use getopts::Options;
 pub(crate) struct InputFlags {
     pub input: Option<String>,
     pub output: Option<String>,
+    pub data_type_signature: bool,
     pub help: bool,
     pub version: bool,
 }
@@ -13,6 +14,10 @@ fn options() -> Options {
     let mut opts = Options::new();
     opts.optopt("o", "output", "set output file name", "NAME");
     opts.optopt("i", "input", "set input dir/file name", "NAME");
+    
+    opts.optflag("", "data-type-signature", "inserts data type signatures");
+
+    
     opts.optflag("", "version", "print the version of this software");
     opts.optflag("h", "help", "print this help menu");
     opts
@@ -43,12 +48,16 @@ impl InputFlags {
         };
         let help = matches.opt_present("h");
         let version = matches.opt_present("version");
+        
         let output = matches.opt_str("o");
         let input = matches.opt_str("i");
+        
+        let data_type_signature = matches.opt_present("data-type-signature");
 
         InputFlags{
             input: input,
             output: output,
+            data_type_signature: data_type_signature,
             help: help,
             version: version,
         }            

@@ -56,8 +56,11 @@ fn main() {
             return;
         },
     };
-    
-    let items = dsdl.compile(&CompileConfig::default());
+
+    let mut compile_config = CompileConfig::default();
+    compile_config.data_type_signature = flags.data_type_signature;
+
+    let items = dsdl.compile(&compile_config);
     
     let mut file = match File::create(output) {
         Ok(file) => file,
