@@ -9,7 +9,7 @@ repository = "https://github.com/UAVCAN/uavcan.rs/tree/master/dsdl_compiler"
 readme = "README.md"
 
 keywords = ["uavcan", "can", "dsdl", "compiler", "dsdlc"]
-categories = ["command-lines-utilities"]
+categories = ["command-line-utilities"]
 
 license = "Apache-2.0/MIT"
 
