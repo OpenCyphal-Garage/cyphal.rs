@@ -70,9 +70,9 @@ impl Display for Const {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Const::Dec(ref x) => write!(f, "{}", x),
-            Const::Hex(ref x) => write!(f, "0x{}", x),
-            Const::Bin(ref x) => write!(f, "0b{}", x),
-            Const::Oct(ref x) => write!(f, "0o{}", x),
+            Const::Hex(ref x) => write!(f, "{}", x),
+            Const::Bin(ref x) => write!(f, "{}", x),
+            Const::Oct(ref x) => write!(f, "{}", x),
             Const::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
             Const::Char(ref x) => write!(f, "'{}'", x),
             Const::Float(ref x) => write!(f, "{}", x),

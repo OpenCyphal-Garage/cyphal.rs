@@ -602,13 +602,13 @@ pub enum Const {
     /// Integer zero (0) or Integer literal in base 10, starting with a non-zero character. E.g., 123, -12.
     Dec(String),
     
-    /// Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12.
+    /// Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12, +0x123.
     Hex(String),
 
-    /// Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777.
+    /// Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777, +0o777.
     Oct(String),
     
-    /// Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101.
+    /// Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101, +0b101101.
     Bin(String),
     
     /// Boolean true or false.
@@ -617,7 +617,7 @@ pub enum Const {
     /// Single ASCII character, ASCII escape sequence, or ASCII hex literal in single quotes. E.g., 'a', '\x61', '\n'.
     Char(String),
     
-    /// Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, 25E-4. Note that the use of infinity and NAN (not-a-number) is discouraged as it may not be supported on all platforms.
+    /// Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, +25E-4. Not-a-number (NaN), positive infinity, and negative infinity are intentionally not supported in order to maximize cross-platform compatibility.
     Float(String),
 }
 
