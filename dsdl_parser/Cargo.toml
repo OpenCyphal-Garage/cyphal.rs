@@ -1,6 +1,6 @@
 [package]
 name = "dsdl_parser"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
 
 description = "A nom parser for the DSDL (Data structure description language) used when transmiting over uavcan"
