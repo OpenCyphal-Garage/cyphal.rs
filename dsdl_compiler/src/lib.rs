@@ -82,8 +82,12 @@ impl Compile<Vec<syn::Item>> for DSDL {
     fn compile(self, config: &CompileConfig) -> Vec<syn::Item> {
         let mut items = Vec::new();
         for file in self.files() {
+            let data_type_signature = self.data_type_signature(format!("{}", file.name)).unwrap();
             let new_items = file.clone().compile(config);
-            for new_item in new_items {
+            for mut new_item in new_items {
+                if config.data_type_signature {
+                    add_data_type_signature(&mut new_item, data_type_signature);
+                }
                 add_item(new_item, &mut items);
             }
         }
@@ -122,6 +126,26 @@ impl Compile<Vec<syn::Item>> for DSDL {
         items
     }
 }
+
+
+fn add_data_type_signature(current_item: &mut syn::Item, signature: u64) {
+    match current_item.node {
+        syn::ItemKind::Enum(_,_) | syn::ItemKind::Struct(_,_) => {
+            current_item.attrs.push(syn::Attribute{
+                style: syn::AttrStyle::Outer,
+                value: syn::MetaItem::NameValue(syn::Ident::from("DataTypeSignature"), syn::Lit::Str(format!("0x{:x}", signature), syn::StrStyle::Cooked)),
+                is_sugared_doc: true,
+            });
+        },
+        syn::ItemKind::Mod(Some(ref mut items)) => {
+            for item in items {
+                add_data_type_signature(item, signature);
+            }
+        },
+        _ => (),
+    };   
+}
+
 
 fn add_item(new_item: syn::Item, items: &mut Vec<syn::Item>) {
     if let (module_name, syn::ItemKind::Mod(Some(new_sub_items))) = (&new_item.ident.clone(), new_item.node.clone()) {
@@ -819,6 +843,71 @@ mod tests {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
         dsdl.compile(&CompileConfig::default());
     }    
+
+    #[test]
+    fn compile_data_type_signature() {
+        let dsdl = DSDL::read("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
+
+        let compile_config = CompileConfig{
+            data_type_signature: true,
+            .. Default::default()
+        };
+        assert!(compile_config.data_type_signature);
+        
+        let file = dsdl.compile(&compile_config);
+
+        assert_eq!(quote!(#(#file)*), quote!{
+            #[allow(unused_imports)]
+            #[macro_use]
+            extern crate uavcan as uavcan_rs;
+            #[allow(unused_imports)]
+            pub(crate) use uavcan_rs::types::*;
+            
+            #[doc = ""]
+            #[doc = " Abstract node status information."]
+            #[doc = ""]
+            #[doc = " Any UAVCAN node is required to publish this message periodically."]
+            #[doc = ""]
+            #[derive(Debug, Clone, UavcanStruct)]
+            #[UavcanCrateName = "uavcan_rs"]
+            #[DSDLSignature = "0xbe7710808d2ff575"] 
+            #[DataTypeSignature = "0xbe7710808d2ff575"] 
+            pub struct NodeStatus {
+                #[doc = ""]
+                #[doc = " Uptime counter should never overflow."]
+                #[doc = " Other nodes may detect that a remote node has restarted when this value goes backwards."]
+                #[doc = ""]
+                pub uptime_sec: u32,
+                #[doc = ""]
+                #[doc = " Abstract node health."]
+                #[doc = ""]
+                pub health: ::u2,
+                #[doc = ""]
+                #[doc = " Current mode."]
+                #[doc = ""]
+                #[doc = " Mode OFFLINE can be actually reported by the node to explicitly inform other network"]
+                #[doc = " participants that the sending node is about to shutdown. In this case other nodes will not"]
+                #[doc = " have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available."]
+                #[doc = ""]
+                #[doc = " Reserved values can be used in future revisions of the specification."]
+                #[doc = ""]
+                pub mode: ::u3,
+                #[doc = ""]
+                #[doc = " Not used currently, keep zero when publishing, ignore when receiving."]
+                #[doc = ""]
+                pub sub_mode: ::u3,
+                #[doc = ""]
+                #[doc = " Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."]
+                #[doc = ""]
+                pub vendor_specific_status_code: u16
+            }
+            
+            impl ::uavcan_rs::Message for NodeStatus {
+                const TYPE_ID: Option<u16> = Some(341);
+            }
+        });
+    }
+
     
     #[test]
     fn compile_service() {
