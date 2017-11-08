@@ -12,7 +12,6 @@ use std::io::Write;
 
 mod opts;
 use opts::InputFlags;
-use opts::print_usage;
 
 use dsdl_parser::DSDL;
 
@@ -24,14 +23,19 @@ fn main() {
     let flags = InputFlags::read();
     
     if flags.help {
-        print_usage();
+        opts::print_usage();
+        return;
+    }
+
+    if flags.version {
+        opts::print_version();
         return;
     }
 
     let input = if let Some(path) = flags.input.clone() {
         path
     } else {
-        print_usage();
+        opts::print_usage();
         println!("\nInput needs to be specified");
         return;
     };
@@ -39,7 +43,7 @@ fn main() {
     let output = if let Some(path) = flags.output.clone() {
         path
     } else {
-        print_usage();
+        opts::print_usage();
         println!("\nOutput needs to be specified");
         return;
     };
