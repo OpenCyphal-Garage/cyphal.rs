@@ -9,6 +9,7 @@ use std::path::Path;
 
 use dsdl_compiler::DSDL;
 use dsdl_compiler::Compile;
+use dsdl_compiler::CompileConfig;
 
 fn main() {
     let out_dir = env::var("OUT_DIR").unwrap();
@@ -17,7 +18,11 @@ fn main() {
     let out_path = Path::new(&out_dir).join("dsdl.rs");
 
     let dsdl = DSDL::read(dsdl_path.clone()).unwrap();
-    let items = dsdl.compile();
+
+    let mut compile_config = CompileConfig::default();
+    compile_config.data_type_signature = true;
+    
+    let items = dsdl.compile(&compile_config);
 
     let mut file = File::create(&out_path).unwrap();
 
