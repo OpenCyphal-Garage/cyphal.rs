@@ -16,6 +16,7 @@ use opts::InputFlags;
 use dsdl_parser::DSDL;
 
 use dsdl_compiler::Compile;
+use dsdl_compiler::CompileConfig;
 
 fn main() {
     badlog::init(Some("info"));
@@ -56,7 +57,7 @@ fn main() {
         },
     };
     
-    let items = dsdl.compile();
+    let items = dsdl.compile(&CompileConfig::default());
     
     let mut file = match File::create(output) {
         Ok(file) => file,

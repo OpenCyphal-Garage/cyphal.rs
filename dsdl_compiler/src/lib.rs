@@ -13,9 +13,10 @@
 //! ```
 //! use dsdl_compiler::DSDL;
 //! use dsdl_compiler::Compile;
+//! use dsdl_compiler::CompileConfig;
 //!
 //! let dsdl = DSDL::read("tests/dsdl/").unwrap();
-//! let items = dsdl.compile();
+//! let items = dsdl.compile(&CompileConfig::default());
 //!
 //! assert!(items.len() >= 1);
 //!
@@ -31,10 +32,11 @@
 //!
 //! use dsdl_compiler::DSDL;
 //! use dsdl_compiler::Compile;
+//! use dsdl_compiler::CompileConfig;
 //!
 //! # fn main() {
 //! let dsdl = DSDL::read("tests/dsdl/").unwrap();
-//! let items = dsdl.compile();
+//! let items = dsdl.compile(&CompileConfig::default());
 //!
 //! let tokens = quote!{#(#items)*};
 //!
@@ -61,14 +63,26 @@ pub use dsdl_parser::DSDL;
 /// The trait that must be implemented to compile from DSDL to code
 pub trait Compile<T> {
     /// The function used to compile from DSDL to code
-    fn compile(self) -> T;
+    fn compile(self, config: &CompileConfig) -> T;
+}
+
+pub struct CompileConfig {
+    pub data_type_signature: bool,
+}
+
+impl Default for CompileConfig {
+    fn default() -> CompileConfig {
+        CompileConfig {
+            data_type_signature: false,
+        }
+    }
 }
 
 impl Compile<Vec<syn::Item>> for DSDL {
-    fn compile(self) -> Vec<syn::Item> {
+    fn compile(self, config: &CompileConfig) -> Vec<syn::Item> {
         let mut items = Vec::new();
         for file in self.files() {
-            let new_items = file.clone().compile();
+            let new_items = file.clone().compile(config);
             for new_item in new_items {
                 add_item(new_item, &mut items);
             }
@@ -134,12 +148,12 @@ fn add_item(new_item: syn::Item, items: &mut Vec<syn::Item>) {
             
 
 impl Compile<Vec<syn::Item>> for dsdl_parser::File {
-    fn compile(self) -> Vec<syn::Item> {
+    fn compile(self, config: &CompileConfig) -> Vec<syn::Item> {
         let mut items = Vec::new();
         let dsdl_signature = self.clone().normalize().dsdl_signature();
         match self.definition {
             dsdl_parser::TypeDefinition::Message(message) => {
-                let (item_kinds, struct_attributes) = message.compile();
+                let (item_kinds, struct_attributes) = message.compile(config);
                 for item_kind in item_kinds {
                     
                     let attrs = match item_kind {
@@ -194,8 +208,8 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
                 }                           
             },
             dsdl_parser::TypeDefinition::Service(service) => {
-                let (item_kinds_req, struct_attributes_req) = service.request.compile();
-                let (item_kinds_res, struct_attributes_res) = service.response.compile();
+                let (item_kinds_req, struct_attributes_req) = service.request.compile(config);
+                let (item_kinds_res, struct_attributes_res) = service.response.compile(config);
                 
                 for item_kind in item_kinds_req {
 
@@ -341,7 +355,7 @@ impl Compile<Vec<syn::Item>> for dsdl_parser::File {
 
         
 impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::MessageDefinition {
-    fn compile(self) -> (Vec<syn::ItemKind>, Vec<syn::Attribute>) {
+    fn compile(self, config: &CompileConfig) -> (Vec<syn::ItemKind>, Vec<syn::Attribute>) {
         let (directives, not_directives): (Vec<dsdl_parser::Line>, Vec<dsdl_parser::Line>) = self.0.into_iter().partition(|x| x.is_directive());
         let mut items = Vec::new();
         
@@ -357,7 +371,7 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
         
         for line in not_directives.clone() {
             if let dsdl_parser::Line::Comment(comment) = line {
-                current_comments.push(comment.compile());
+                current_comments.push(comment.compile(config));
             } else {
                 break
             }
@@ -383,12 +397,12 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
             for line in not_directives {
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
-                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile()),
+                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
                     dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
                         if let Some(comment) = opt_comment {
-                            current_comments.push(comment.compile());
+                            current_comments.push(comment.compile(config));
                         }
-                        let mut variant: syn::Variant = def.clone().compile();
+                        let mut variant: syn::Variant = def.clone().compile(config);
                         variant.attrs = current_comments.clone();
                         if def.field_type.is_void() {
                             variant.ident = syn::Ident::from(format!("_V{}", void_number));
@@ -411,12 +425,12 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
             for line in not_directives {
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
-                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile()),
+                    dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
                     dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
                         if let Some(comment) = opt_comment {
-                            current_comments.push(comment.compile());
+                            current_comments.push(comment.compile(config));
                         }
-                        let mut field: syn::Field = def.clone().compile();
+                        let mut field: syn::Field = def.clone().compile(config);
                         if def.field_type.is_void() {
                             field.ident = Some(syn::Ident::from(format!("_v{}", void_number)));
                             void_number += 1;
@@ -439,9 +453,9 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
 
 
 impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
-    fn compile(self) -> syn::Field {
+    fn compile(self, config: &CompileConfig) -> syn::Field {
         let ty = match self.array {
-            dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
+            dsdl_parser::ArrayInfo::Single => self.field_type.compile(config),
             dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
@@ -449,7 +463,7 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), dsdl_parser::Size::from(u64::from(size) - 1).compile())],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), dsdl_parser::Size::from(u64::from(size) - 1).compile(config))],
                             bindings: Vec::new(),
                         })
                     }],
@@ -461,16 +475,16 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), size.compile())],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile()), size.compile()),
+            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config)),
         };
         
         syn::Field{
-            ident: self.name.map(|x| x.compile()),
+            ident: self.name.map(|x| x.compile(config)),
             vis: syn::Visibility::Public,
             attrs: Vec::new(),
             ty: ty,
@@ -479,9 +493,9 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
 }
 
 impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
-    fn compile(self) -> syn::Variant {
+    fn compile(self, config: &CompileConfig) -> syn::Variant {
         let ty = match self.array {
-            dsdl_parser::ArrayInfo::Single => self.field_type.compile(),
+            dsdl_parser::ArrayInfo::Single => self.field_type.compile(config),
             dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
@@ -489,7 +503,7 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), dsdl_parser::Size::from(u64::from(size) - 1).compile())],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), dsdl_parser::Size::from(u64::from(size) - 1).compile(config))],
                             bindings: Vec::new(),
                         })
                     }],
@@ -501,12 +515,12 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile()), size.compile())],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile()), size.compile()),
+            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config)),
         };
 
         syn::Variant {
@@ -527,25 +541,25 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
 
 
 impl Compile<syn::ConstExpr> for dsdl_parser::Size {
-    fn compile(self) -> syn::ConstExpr {
-        syn::ConstExpr::Lit(self.compile())
+    fn compile(self, config: &CompileConfig) -> syn::ConstExpr {
+        syn::ConstExpr::Lit(self.compile(config))
     }    
 }
     
 impl Compile<syn::Lit> for dsdl_parser::Size {
-    fn compile(self) -> syn::Lit {
+    fn compile(self, _config: &CompileConfig) -> syn::Lit {
         syn::Lit::Int(self.into(), syn::IntTy::Unsuffixed)
     }    
 }
     
 impl Compile<syn::Ident> for dsdl_parser::Ident {
-    fn compile(self) -> syn::Ident {
+    fn compile(self, _config: &CompileConfig) -> syn::Ident {
         syn::Ident::from(self.as_ref())
     }
 }
 
 impl Compile<syn::Attribute> for dsdl_parser::Comment {
-    fn compile(self) -> syn::Attribute {
+    fn compile(self, _config: &CompileConfig) -> syn::Attribute {
         syn::Attribute{
             style: syn::AttrStyle::Outer,
             value: syn::MetaItem::NameValue(syn::Ident::from("doc"), syn::Lit::Str(String::from(self.as_ref()), syn::StrStyle::Cooked)),
@@ -555,16 +569,16 @@ impl Compile<syn::Attribute> for dsdl_parser::Comment {
 }
 
 impl Compile<syn::Ty> for dsdl_parser::Ty {
-    fn compile(self) -> syn::Ty {
+    fn compile(self, config: &CompileConfig) -> syn::Ty {
         match self {
-            dsdl_parser::Ty::Primitive(x) => x.compile(),
-            dsdl_parser::Ty::Composite(x) => x.compile(),
+            dsdl_parser::Ty::Primitive(x) => x.compile(config),
+            dsdl_parser::Ty::Composite(x) => x.compile(config),
         }
     }
 }
 
 impl Compile<syn::Ty> for dsdl_parser::CompositeType {
-    fn compile(self) -> syn::Ty {
+    fn compile(self, config: &CompileConfig) -> syn::Ty {
         let mut path = syn::Path {
             global: false,
             segments: Vec::new(),
@@ -577,14 +591,14 @@ impl Compile<syn::Ty> for dsdl_parser::CompositeType {
             }
         }
         
-        path.segments.push(syn::PathSegment{ident: self.name.compile(), parameters: syn::PathParameters::none()});
+        path.segments.push(syn::PathSegment{ident: self.name.compile(config), parameters: syn::PathParameters::none()});
         
         syn::Ty::Path(None, path)
     }
 }   
 
 impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
-    fn compile(self) -> syn::Ty {
+    fn compile(self, _config: &CompileConfig) -> syn::Ty {
         match self {
             dsdl_parser::PrimitiveType::Bool => syn::Ty::Path(None, syn::Path{global: false, segments: vec!(syn::PathSegment{ident: syn::Ident::from("bool"), parameters: syn::PathParameters::none()})}),
             
@@ -803,13 +817,13 @@ mod tests {
     #[test]
     fn compile_dsdl() {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
-        dsdl.compile();
+        dsdl.compile(&CompileConfig::default());
     }    
     
     #[test]
     fn compile_service() {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
-        let file = dsdl.get_file(&String::from("uavcan.protocol.GetNodeInfo")).unwrap().clone().compile();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.GetNodeInfo")).unwrap().clone().compile(&CompileConfig::default());
         
         assert_eq!(quote!(#(#file)*), quote!{
             pub mod uavcan {
@@ -866,7 +880,7 @@ mod tests {
     #[test]
     fn compile_enum() {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
-        let file = dsdl.get_file(&String::from("uavcan.protocol.param.Value")).unwrap().clone().compile();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.param.Value")).unwrap().clone().compile(&CompileConfig::default());
         
         assert_eq!(quote!(#(#file)*), quote!{
             pub mod uavcan {
@@ -902,7 +916,7 @@ mod tests {
     #[test]
     fn compile_struct() {
         let dsdl = DSDL::read("tests/dsdl/").unwrap();
-        let file = dsdl.get_file(&String::from("uavcan.protocol.NodeStatus")).unwrap().clone().compile();
+        let file = dsdl.get_file(&String::from("uavcan.protocol.NodeStatus")).unwrap().clone().compile(&CompileConfig::default());
         
         assert_eq!(quote!(#(#file)*), quote!{
             pub mod uavcan {
@@ -978,7 +992,7 @@ mod tests {
                  }) , Some(Comment::from("test comment3"))),
 
             ]
-        ).compile();
+        ).compile(&CompileConfig::default());
 
         let struct_body = if let syn::ItemKind::Struct(variant_data, _) = body.0[0].clone() {
             variant_data
@@ -1030,7 +1044,7 @@ mod tests {
                  }) , Some(Comment::from("test comment3"))),
 
             ]
-        ).compile();
+        ).compile(&CompileConfig::default());
 
         let enum_body = if let syn::ItemKind::Enum(variants, _) = body.0[0].clone() {
             variants
@@ -1069,7 +1083,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Single,
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(Name(::u3)), quote!{#simple_field});
 
@@ -1078,7 +1092,7 @@ mod tests {
             field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
             array: dsdl_parser::ArrayInfo::Single,
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(Name(::uavcan::protocol::NodeStatus)), quote!{#composite_field});
 
@@ -1087,7 +1101,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(Name([::u3; 19])), quote!{#array_field});
 
@@ -1096,7 +1110,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
             name: Some(dsdl_parser::Ident::from("long_name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(LongName(::Dynamic<[::i29; 191]>)), quote!{#dynleq_array_field});
         
@@ -1105,7 +1119,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
             name: Some(dsdl_parser::Ident::from("very_long_name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
         
         assert_eq!(quote!(VeryLongName(::Dynamic<[bool; 370]>)), quote!{#dynless_array_field});
 
@@ -1118,7 +1132,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Single,
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(pub name: ::u3), quote!{#simple_field});
 
@@ -1127,7 +1141,7 @@ mod tests {
             field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
             array: dsdl_parser::ArrayInfo::Single,
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(pub name: ::uavcan::protocol::NodeStatus), quote!{#composite_field});
 
@@ -1136,7 +1150,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
             array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(pub name: [::u3; 19]), quote!{#array_field});
 
@@ -1145,7 +1159,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
 
         assert_eq!(quote!(pub name: ::Dynamic<[::i29; 191]>), quote!{#dynleq_array_field});
         
@@ -1154,7 +1168,7 @@ mod tests {
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
             array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
             name: Some(dsdl_parser::Ident::from("name")),
-        }.compile();
+        }.compile(&CompileConfig::default());
         
         assert_eq!(quote!(pub name: ::Dynamic<[bool; 370]>), quote!{#dynless_array_field});
 
@@ -1163,41 +1177,41 @@ mod tests {
 
     #[test]
     fn compile_type() {
-        let composite = Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile();
+        let composite = Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}).compile(&CompileConfig::default());
         assert_eq!(quote!(::uavcan::protocol::NodeStatus), quote!{#composite});
 
-        let primitive = Ty::Primitive(PrimitiveType::Uint2).compile();
+        let primitive = Ty::Primitive(PrimitiveType::Uint2).compile(&CompileConfig::default());
         assert_eq!(quote!(::u2), quote!{#primitive});
 
     }
     
     #[test]
     fn compile_composite_type() {
-        let t = dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}.compile();
+        let t = dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}.compile(&CompileConfig::default());
         assert_eq!(quote!(::uavcan::protocol::NodeStatus), quote!{#t});
     }
     
     #[test]
     fn compile_primitive_type() {
-        let uint2 = PrimitiveType::Uint2.compile();
+        let uint2 = PrimitiveType::Uint2.compile(&CompileConfig::default());
         assert_eq!(quote!(::u2), quote!{#uint2});
         
-        let int9 = PrimitiveType::Int9.compile();
+        let int9 = PrimitiveType::Int9.compile(&CompileConfig::default());
         assert_eq!(quote!(::i9), quote!{#int9});
         
-        let void23 = PrimitiveType::Void23.compile();
+        let void23 = PrimitiveType::Void23.compile(&CompileConfig::default());
         assert_eq!(quote!(::void23), quote!{#void23});
         
-        let b = PrimitiveType::Bool.compile();
+        let b = PrimitiveType::Bool.compile(&CompileConfig::default());
         assert_eq!(quote!(bool), quote!{#b});
         
-        let float64 = PrimitiveType::Float64.compile();
+        let float64 = PrimitiveType::Float64.compile(&CompileConfig::default());
         assert_eq!(quote!(f64), quote!{#float64});
     }
     
     #[test]
     fn compile_comment() {
-        let comment = Comment::from(" test comment").compile();
+        let comment = Comment::from(" test comment").compile(&CompileConfig::default());
         assert_eq!(quote!{#[doc = " test comment"]
         }, quote!{#comment});
     }
