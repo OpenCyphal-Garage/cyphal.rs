@@ -66,6 +66,7 @@ pub trait Compile<T> {
     fn compile(self, config: &CompileConfig) -> T;
 }
 
+/// Makes certain things in the compilation process configurable. `CompileConfig::default()` is generally safe to use.
 pub struct CompileConfig {
     pub data_type_signature: bool,
 }
