@@ -191,7 +191,6 @@ impl DSDL {
         };
 
         for line in lines {
-            println!("Im looking at line: {}", line);
             match line {
                 Line::Definition(
                     AttributeDefinition::Field(
