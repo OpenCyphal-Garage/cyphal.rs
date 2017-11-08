@@ -240,7 +240,11 @@ impl FileName {
     ///
     /// ```
     pub fn split_namespace(&self) -> Vec<String> {
-        self.namespace.split('.').map(|x| String::from(x)).collect()
+        if self.namespace == String::new() {
+            Vec::new()
+        } else {
+            self.namespace.split('.').map(|x| String::from(x)).collect()
+        }
     }
     
     /// Split a namespace into parts
@@ -260,7 +264,11 @@ impl FileName {
     ///
     /// ```
     pub fn rsplit_namespace(&self) -> Vec<String> {
-        self.namespace.rsplit('.').map(|x| String::from(x)).collect()
+        if self.namespace == String::new() {
+            Vec::new()
+        } else {
+            self.namespace.rsplit('.').map(|x| String::from(x)).collect()
+        }
     }
 
 }
