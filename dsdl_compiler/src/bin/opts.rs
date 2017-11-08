@@ -16,7 +16,6 @@ fn options() -> Options {
     opts.optopt("i", "input", "set input dir/file name", "NAME");
     
     opts.optflag("", "data-type-signature", "inserts data type signatures");
-
     
     opts.optflag("", "version", "print the version of this software");
     opts.optflag("h", "help", "print this help menu");
@@ -46,20 +45,13 @@ impl InputFlags {
             Ok(m) => { m }
             Err(f) => { panic!(f.to_string()) }
         };
-        let help = matches.opt_present("h");
-        let version = matches.opt_present("version");
-        
-        let output = matches.opt_str("o");
-        let input = matches.opt_str("i");
-        
-        let data_type_signature = matches.opt_present("data-type-signature");
 
         InputFlags{
-            input: input,
-            output: output,
-            data_type_signature: data_type_signature,
-            help: help,
-            version: version,
+            input: matches.opt_str("i"),
+            output: matches.opt_str("o"),
+            data_type_signature: matches.opt_present("data-type-signature"),
+            help: matches.opt_present("h"),
+            version: matches.opt_present("version"),
         }            
     }
 }
