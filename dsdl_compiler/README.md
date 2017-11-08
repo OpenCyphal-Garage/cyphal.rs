@@ -8,7 +8,7 @@ DSDL defines the data types transfered with uavcan. For full description of DSDL
 ## Binary
 
 ### Installation
-dsdlc` can be installed by running `cargo install dsdl_compiler`
+`dsdlc` can be installed by running `cargo install dsdl_compiler`
 
 ###  Usage
 To find documentation on usage. run `dsdlc -h` after installation
