@@ -169,7 +169,7 @@ macro_rules! impl_array{
             fn grow(&mut self, length: usize) where T: Default {
                 assert!(length > self.current_length);
                 for i in self.current_length..length {
-                    self.array[i] = T::default();
+                    unsafe{lib::core::ptr::write(&mut self.array[i], T::default())};
                 }
                 self.current_length = length;
             }
