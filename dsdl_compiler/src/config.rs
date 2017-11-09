@@ -1,3 +1,5 @@
+//! Configurable options relating to compilation
+
 use std::str::FromStr;
 
 /// Makes certain things in the compilation process configurable. `CompileConfig::default()` is generally safe to use.
@@ -18,7 +20,7 @@ impl Default for CompileConfig {
     }
 }
 
-/// A strategy for deriving the `Default` trait
+/// Strategy for deriving the `Default` trait
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum DeriveDefault {
 
