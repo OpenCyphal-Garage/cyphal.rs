@@ -158,7 +158,7 @@ macro_rules! impl_array{
             pub fn shrink(&mut self, length: usize) {
                 assert!(length <= self.current_length, "Dynamic::shrink() can only be used to shrink array");
                 for i in length..self.current_length {
-                    let mut temp: T = lib::core::mem::replace(&mut self.array[i], unsafe{ lib::core::mem::uninitialized() } );
+                    let temp: T = lib::core::mem::replace(&mut self.array[i], unsafe{ lib::core::mem::uninitialized() } );
                     drop(temp);
                 }
                 self.current_length = length;
