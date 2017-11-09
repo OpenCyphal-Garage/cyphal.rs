@@ -39,11 +39,13 @@ trait PrimitiveType : Sized + Copy + ::Serializable {
 ///
 /// # Examples
 /// ```
+/// use std::str;
 /// use uavcan::types::*;
 ///
 /// let dynamic_array = Dynamic::<[u8; 90]>::with_data("dynamic array".as_bytes());
 ///
 /// assert_eq!(dynamic_array.length(), 13);
+/// assert_eq!(str::from_utf8(dynamic_array.as_ref()).unwrap(), "dynamic array");
 ///
 /// ```
 #[derive(Clone)]
