@@ -48,7 +48,6 @@ trait PrimitiveType : Sized + Copy + ::Serializable {
 /// assert_eq!(str::from_utf8(dynamic_array.as_ref()).unwrap(), "dynamic array");
 ///
 /// ```
-#[derive(Clone)]
 pub struct Dynamic<T> {
     array: lib::core::mem::ManuallyDrop<T>,
     current_length: usize,
@@ -346,6 +345,16 @@ macro_rules! impl_array{
                     write!(f, "{:?}, ", self.array[i])?;
                 }
                 write!(f, "]}}")
+            }
+        }
+        
+        impl<T: Clone> Clone for Dynamic<[T; $size]> {
+            fn clone(&self) -> Self {
+                let mut a = Self::new();
+                for i in 0..self.current_length {
+                    a.push(self.array[i].clone());
+                }
+                a
             }
         }
         
@@ -756,6 +765,15 @@ mod tests {
         let d = Dynamic::<[u8; 15]>::with_data(&a);
         
         assert_eq!(d.as_ref(), &a);
+    }
+    
+    #[test]
+    fn dynamic_array_clone() {
+        let a: [u8; 5] = [1, 2, 3, 4, 5];
+        let d1 = Dynamic::<[u8; 15]>::with_data(&a);
+        let d2 = d1.clone();
+        
+        assert_eq!(d1, d2);
     }
     
     #[test]
