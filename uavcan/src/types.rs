@@ -749,6 +749,14 @@ mod tests {
     use types::*;
 
     #[test]
+    fn dynamic_array_with_data() {
+        let a: [u8; 5] = [1, 2, 3, 4, 5];
+        let d = Dynamic::<[u8; 15]>::with_data(&a);
+        
+        assert_eq!(d.as_ref(), &a);
+    }
+    
+    #[test]
     fn dynamic_array_push() {
         let mut a = Dynamic::<[u8; 15]>::new();
         assert_eq!(a.as_ref(), &[]);
