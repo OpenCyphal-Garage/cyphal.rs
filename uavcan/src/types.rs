@@ -50,6 +50,7 @@ trait PrimitiveType : Sized + Copy + ::Serializable {
 pub struct Dynamic<T> {
     array: lib::core::mem::ManuallyDrop<T>,
     current_length: usize,
+    deserialized_length: usize,
 }
 
 macro_rules! impl_array{
@@ -113,6 +114,7 @@ macro_rules! impl_array{
                 Self{
                     array: lib::core::mem::ManuallyDrop::new(unsafe{ lib::core::mem::uninitialized() }),
                     current_length: 0,
+                    deserialized_length: 0,
                 }
             }
             
@@ -245,38 +247,39 @@ macro_rules! impl_array{
                     
                     let buffer_len = buffer.bit_length();
                     if buffer_len + *bit < Self::LENGTH_BITS {
-                        self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
+                        self.deserialized_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
                         *bit += buffer_len;
                         return DeserializationResult::BufferInsufficient
                     } else {
-                        self.current_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
+                        self.deserialized_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
                         *flattened_field = 1;
                         *bit = 0;
                     }
                 }
-
-                if tail_array_optimization {
-                    self.set_length(Self::MAX_LENGTH);
-                }
                 
-                while *flattened_field - 1 < self.current_length {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
                     let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
                     match self.array[*flattened_field - 1].deserialize(&mut element_field, bit, false, buffer) {
                         DeserializationResult::Finished => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
+                            self.current_length = *flattened_field - 1;
+                            if !tail_array_optimization && self.current_length == self.deserialized_length {
+                                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                                *bit = 0;
+                                return DeserializationResult::Finished;
+                            }
                         },
                         DeserializationResult::BufferInsufficient => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
-                            if tail_array_optimization {
-                                self.current_length = *flattened_field - 1;
-                            }
+                            self.current_length = *flattened_field - 1;
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
                 }
                 
                 *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                self.current_length = *flattened_field - 1;
                 *bit = 0;
                 DeserializationResult::Finished
             }
@@ -492,7 +495,7 @@ macro_rules! impl_serializeable {
                     *bit = 0;
                     *flattened_field = 1;
                     DeserializationResult::Finished
-                } else if buffer_len == 0 && *bit != $bits {
+                } else if buffer_len == 0 && *bit < $bits {
                     DeserializationResult::BufferInsufficient
                 } else if buffer_len < $bits - *bit {
                     *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits(buffer_len) << *bit));
