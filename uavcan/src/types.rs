@@ -738,3 +738,25 @@ impl PrimitiveType for bool {
     }
 }
 impl_serializeable!(bool, 1);
+
+
+
+
+#[cfg(test)]
+mod tests {
+
+    use *;
+    use types::*;
+
+    #[test]
+    fn dynamic_array_push() {
+        let mut a = Dynamic::<[u8; 15]>::new();
+        assert_eq!(a.as_ref(), &[]);
+
+        a.push(12);
+        assert_eq!(a.as_ref(), &[12]);
+        
+        a.push(120);
+        assert_eq!(a.as_ref(), &[12, 120]);
+    }
+}
