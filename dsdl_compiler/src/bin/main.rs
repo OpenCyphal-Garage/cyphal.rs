@@ -7,16 +7,21 @@ extern crate dsdl_compiler;
 #[macro_use]
 extern crate quote;
 
+mod opts;
+
 use std::fs::File;
 use std::io::Write;
 
-mod opts;
+use std::str::FromStr;
+
 use opts::InputFlags;
 
 use dsdl_parser::DSDL;
 
 use dsdl_compiler::Compile;
 use dsdl_compiler::CompileConfig;
+
+use dsdl_compiler::config::*;
 
 fn main() {
     badlog::init(Some("info"));
@@ -59,6 +64,17 @@ fn main() {
 
     let mut compile_config = CompileConfig::default();
     compile_config.data_type_signature = flags.data_type_signature;
+    compile_config.derive_default = if let Some(s) = flags.derive_default {
+        if let Ok(derive_default) = DeriveDefault::from_str(&s) {
+            derive_default
+        } else {
+            error!("Error reading setting `derive-default`");
+            opts::print_usage();
+            return;
+        }
+    } else {
+        DeriveDefault::default()
+    };
 
     let items = dsdl.compile(&compile_config);
     

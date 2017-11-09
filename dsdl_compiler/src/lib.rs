@@ -57,26 +57,17 @@ extern crate inflections;
 use inflections::Inflect;
 
 pub mod bin;
+pub mod config;
 
 pub use dsdl_parser::DSDL;
+pub use config::CompileConfig;
+
+use config::*;
 
 /// The trait that must be implemented to compile from DSDL to code
 pub trait Compile<T> {
     /// The function used to compile from DSDL to code
     fn compile(self, config: &CompileConfig) -> T;
-}
-
-/// Makes certain things in the compilation process configurable. `CompileConfig::default()` is generally safe to use.
-pub struct CompileConfig {
-    pub data_type_signature: bool,
-}
-
-impl Default for CompileConfig {
-    fn default() -> CompileConfig {
-        CompileConfig {
-            data_type_signature: false,
-        }
-    }
 }
 
 impl Compile<Vec<syn::Item>> for DSDL {
@@ -403,18 +394,8 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
         }
         let mut attributes = current_comments.clone();
         let mut void_number = 0;
+        let mut only_primitive_types = true;
 
-        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), vec![
-            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
-            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
-            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
-        ])});
-        
-        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
-            syn::Ident::from("UavcanCrateName"),
-            syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
-        )});
-        
         if union {
             let mut variants = Vec::new();
             current_comments = Vec::new();
@@ -424,6 +405,9 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
                     dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
                     dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                        if let dsdl_parser::Ty::Composite(_) = def.field_type {
+                            only_primitive_types = false;
+                        }
                         if let Some(comment) = opt_comment {
                             current_comments.push(comment.compile(config));
                         }
@@ -452,6 +436,9 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
                     dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
                     dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                        if let dsdl_parser::Ty::Composite(_) = def.field_type {
+                            only_primitive_types = false;
+                        }
                         if let Some(comment) = opt_comment {
                             current_comments.push(comment.compile(config));
                         }
@@ -471,6 +458,27 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
             }
             items.push(syn::ItemKind::Struct(syn::VariantData::Struct(fields), syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}));
         }
+
+        let mut derives = vec![
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Debug"))),
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Clone"))),
+            syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("UavcanStruct")))
+        ];
+
+        match config.derive_default {
+            DeriveDefault::PrimitiveTypes => {
+                if !union && only_primitive_types {
+                    derives.push(syn::NestedMetaItem::MetaItem(syn::MetaItem::Word(syn::Ident::from("Default"))));
+                }
+            },
+        }
+        
+        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::List(syn::Ident::from("derive"), derives)});
+        
+        attributes.push(syn::Attribute{style: syn::AttrStyle::Outer, is_sugared_doc: false, value: syn::MetaItem::NameValue(
+            syn::Ident::from("UavcanCrateName"),
+            syn::Lit::Str(String::from("uavcan_rs"), syn::StrStyle::Cooked),
+        )});
 
         (items, attributes)
     }
@@ -869,7 +877,7 @@ mod tests {
             #[doc = ""]
             #[doc = " Any UAVCAN node is required to publish this message periodically."]
             #[doc = ""]
-            #[derive(Debug, Clone, UavcanStruct)]
+            #[derive(Debug, Clone, UavcanStruct, Default)]
             #[UavcanCrateName = "uavcan_rs"]
             #[DSDLSignature = "0xbe7710808d2ff575"] 
             #[DataTypeSignature = "0xbe7710808d2ff575"] 
@@ -922,7 +930,7 @@ mod tests {
                     #[doc = " Full node info request."]
                     #[doc = " Note that all fields of the response section are byte-aligned."]
                     #[doc = ""]
-                    #[derive(Debug, Clone, UavcanStruct)]
+                    #[derive(Debug, Clone, UavcanStruct, Default)]
                     #[UavcanCrateName = "uavcan_rs"]
                     #[DSDLSignature = "0xa80dc8995053e685"]
                     pub struct GetNodeInfoRequest {}
@@ -1016,7 +1024,7 @@ mod tests {
                     #[doc = ""]
                     #[doc = " Any UAVCAN node is required to publish this message periodically."]
                     #[doc = ""]
-                    #[derive(Debug, Clone, UavcanStruct)]
+                    #[derive(Debug, Clone, UavcanStruct, Default)]
                     #[UavcanCrateName = "uavcan_rs"]
                     #[DSDLSignature = "0xf0868d0c1a7c6f1"] 
                     pub struct NodeStatus {
@@ -1095,7 +1103,7 @@ mod tests {
         assert_eq!(quote!(
             #[doc = "about struct0"]
             #[doc = "about struct1"]
-            #[derive(Debug, Clone, UavcanStruct)]
+            #[derive(Debug, Clone, UavcanStruct, Default)]
             #[UavcanCrateName = "uavcan_rs"]
         ), quote!{#(#struct_attributes)*});
         

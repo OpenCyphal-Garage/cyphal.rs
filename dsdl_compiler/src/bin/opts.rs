@@ -6,6 +6,7 @@ pub(crate) struct InputFlags {
     pub input: Option<String>,
     pub output: Option<String>,
     pub data_type_signature: bool,
+    pub derive_default: Option<String>,
     pub help: bool,
     pub version: bool,
 }
@@ -16,6 +17,8 @@ fn options() -> Options {
     opts.optopt("i", "input", "set input dir/file name", "NAME");
     
     opts.optflag("", "data-type-signature", "inserts data type signatures");
+    
+    opts.optopt("", "derive-default", "Set how the default trait should be derived", "<primitive-types>");
     
     opts.optflag("", "version", "print the version of this software");
     opts.optflag("h", "help", "print this help menu");
@@ -50,6 +53,7 @@ impl InputFlags {
             input: matches.opt_str("i"),
             output: matches.opt_str("o"),
             data_type_signature: matches.opt_present("data-type-signature"),
+            derive_default: matches.opt_str("derive-default"),
             help: matches.opt_present("h"),
             version: matches.opt_present("version"),
         }            

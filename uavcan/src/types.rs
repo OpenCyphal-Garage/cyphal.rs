@@ -265,6 +265,17 @@ macro_rules! impl_array{
         }
 
         // This is needed since it can't be derived for arrays larger than 32 yet
+        impl<T: Default + Copy> Default for Dynamic<[T; $size]> {
+            fn default() -> Self {
+                Self {
+                    array: [T::default(); $size],
+                    current_length: 0,
+                }
+            }
+        }
+
+        
+        // This is needed since it can't be derived for arrays larger than 32 yet
         impl<T: cmp::PartialEq> cmp::PartialEq for Dynamic<[T; $size]> {
             fn eq(&self, other: &Self) -> bool {
                 if self.current_length != other.current_length {
