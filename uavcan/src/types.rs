@@ -48,7 +48,7 @@ trait PrimitiveType : Sized + Copy + ::Serializable {
 /// ```
 #[derive(Clone)]
 pub struct Dynamic<T> {
-    array: T,
+    array: lib::core::mem::ManuallyDrop<T>,
     current_length: usize,
 }
 
@@ -111,7 +111,7 @@ macro_rules! impl_array{
             /// Constructs a new empty `Dynamic` array
             pub fn new() -> Self {
                 Self{
-                    array: unsafe{ lib::core::mem::uninitialized() },
+                    array: lib::core::mem::ManuallyDrop::new(unsafe{ lib::core::mem::uninitialized() }),
                     current_length: 0,
                 }
             }
@@ -346,6 +346,17 @@ macro_rules! impl_array{
         
     };
 }
+
+impl<T> Drop for Dynamic<T> {
+    fn drop(&mut self) {
+        // Since const generics doesn't work we can't deconstruct elements inside arrays when it's beeing dropped
+        // This might in extreme cases cause memory leaks and other weirdness from deconstructors not running
+        // This isn't good but not UD or unsafe either.
+        // Fix as soon as const generics lands
+    }
+}
+        
+
 
 impl_array!([(1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3), (7, 3), (8, 4), (9, 4)]);
 impl_array!([(10, 4), (11, 4), (12, 4), (13, 4), (14, 4), (15, 4), (16, 5), (17, 5), (18, 5), (19, 5)]);
