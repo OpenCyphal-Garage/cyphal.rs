@@ -104,24 +104,69 @@ macro_rules! impl_array{
 
 
         
-        impl<T: ::Serializable> Dynamic<[T; $size]> {
+        impl<T> Dynamic<[T; $size]> {
             pub const LENGTH_BITS: usize = $length_bits;
             pub const MAX_LENGTH: usize = $size;
+
+            /// Constructs a new empty `Dynamic` array
+            pub fn new() -> Self {
+                Self{
+                    array: unsafe{ lib::core::mem::uninitialized() },
+                    current_length: 0,
+                }
+            }
             
-            pub fn with_data(data: &[T]) -> Self where T: Copy {
-                let mut s = Self{
-                    array: [data[0]; $size],
-                    current_length: data.len(),
-                };
-                s.array[0..data.len()].clone_from_slice(data);
+            /// Constructs a new `Dynamic` array with cloned data
+            pub fn with_data(data: &[T]) -> Self where T: Clone{
+                let mut s = Self::new();
+                for i in 0..data.len() {
+                    unsafe{lib::core::ptr::write(&mut s.array[i] as *mut T, data[i].clone())};
+                }
+                s.current_length = data.len();
                 s
             }
 
+            /// Push an item to the end of the `Dynamic` array. Size will increase by one after this operation.
+            pub fn push(&mut self, item: T) {
+                assert!(self.current_length < Self::MAX_LENGTH, "Can't push data to full array");
+                unsafe{lib::core::ptr::write(&mut self.array[self.current_length] as *mut T, item)};
+                self.current_length += 1;                
+            }
+
+            /// Returns the current length for the dynamic array
             pub fn length(&self) -> usize {
                 self.current_length
             }
 
-            pub fn set_length(&mut self, length: usize) {
+            /// Set lengths of the array.
+            ///
+            /// 
+            /// When array is shrinked, the elements that fall out of range is dropped.
+            /// When array is grown, `Default::default()` is inserted for the new values.
+            pub fn set_length(&mut self, length: usize) where T: Default {
+                if length < self.current_length {
+                    self.shrink(length);
+                } else if length > self.current_length {
+                    self.grow(length);
+                }
+            }
+
+            /// Shrinks array, dropping elements that fall out of range
+            pub fn shrink(&mut self, length: usize) {
+                assert!(length <= self.current_length, "Dynamic::shrink() can only be used to shrink array");
+                for i in length..self.current_length {
+                    let mut temp: T = lib::core::mem::replace(&mut self.array[i], unsafe{ lib::core::mem::uninitialized() } );
+                    drop(temp);
+                }
+                self.current_length = length;
+            }
+
+            /// Grow array, inserting the default element in the new spaces
+            fn grow(&mut self, length: usize) where T: Default {
+                assert!(length > self.current_length);
+                for i in self.current_length..length {
+                    self.array[i] = T::default();
+                }
                 self.current_length = length;
             }
 
@@ -264,13 +309,9 @@ macro_rules! impl_array{
             }
         }
 
-        // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: Default + Copy> Default for Dynamic<[T; $size]> {
+        impl<T> Default for Dynamic<[T; $size]> {
             fn default() -> Self {
-                Self {
-                    array: [T::default(); $size],
-                    current_length: 0,
-                }
+                Self::new()
             }
         }
 
