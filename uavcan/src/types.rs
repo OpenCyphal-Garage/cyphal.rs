@@ -215,7 +215,7 @@ macro_rules! impl_array{
                     }
                 }
 
-                while *flattened_field - 1 < self.current_length {
+                while *flattened_field - 1 < self.current_length*T::FLATTENED_FIELDS_NUMBER {
                     let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
                     match self[element].serialize(&mut element_field, bit, false, buffer) {
