@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct TransferCRC(u16);
 
 impl TransferCRC {
@@ -37,6 +38,12 @@ impl From<TransferCRC> for u16 {
     fn from(crc: TransferCRC) -> Self {
         let TransferCRC(value) = crc;
         value
+    }
+}
+
+impl From<u16> for TransferCRC {
+    fn from(crc: u16) -> Self {
+        TransferCRC(crc)
     }
 }
 

@@ -1,4 +1,4 @@
-use bit_field::BitField;
+use crc::TransferCRC;
 
 use transfer::{
     TransferFrame,
@@ -15,32 +15,33 @@ use deserializer::{
     Deserializer,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AssemblerResult {
     Ok,
     Finished,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AssemblerError {
     FirstFrameNotStartFrame,
-    BlockAddedAfterEndFrame,
+    FrameAfterEndFrame,
+    IDError,
     ToggleError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BuildError {
     CRCError,
-    IdError,
     NotFinishedParsing,
 }
 
 pub(crate) struct FrameAssembler<S: Struct> {
     deserializer: Deserializer<S>,
     started: bool,
+    finished: bool,
     id: TransferFrameID,
-    crc: u16,
-    crc_calculated: u16,
+    crc_received: Option<TransferCRC>,
+    crc_calculated: TransferCRC,
     toggle: bool,
     transfer_id: TransferID,    
 }
@@ -50,9 +51,10 @@ impl<S: Struct> FrameAssembler<S> {
         Self{
             deserializer: Deserializer::new(),
             started: false,
+            finished: false,
             id: TransferFrameID::new(0x00),
-            crc: 0x00,
-            crc_calculated: 0xffff,
+            crc_received: None,
+            crc_calculated: TransferCRC::from_signature(S::DATA_TYPE_SIGNATURE),
             toggle: false,
             transfer_id: TransferID::new(0x00),
         }
@@ -61,19 +63,31 @@ impl<S: Struct> FrameAssembler<S> {
     pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<AssemblerResult, AssemblerError> {
         let end_frame = frame.is_end_frame();
         
+        if self.finished {
+            return Err(AssemblerError::FrameAfterEndFrame);
+        }
+        
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(AssemblerError::FirstFrameNotStartFrame);
             }
+            
             if frame.tail_byte().toggle() {
                 return Err(AssemblerError::ToggleError);
             }
+            
+            if !end_frame {
+                self.crc_received = Some(TransferCRC::from((frame.data()[0] as u16) | (frame.data()[1] as u16) << 8));
+            }
+            
             self.toggle = false;
-            self.crc.set_bits(0..8, frame.data()[0] as u16)
-                .set_bits(8..16, frame.data()[1] as u16); 
             self.transfer_id = frame.tail_byte().transfer_id();
             self.id = frame.id();
             self.started = true;
+        }
+
+        if self.id != frame.id() {
+            return Err(AssemblerError::IDError);
         }
 
         let data_len = frame.data().len();
@@ -83,9 +97,11 @@ impl<S: Struct> FrameAssembler<S> {
             &mut frame.data_as_mut()[0..data_len-1]
         };
 
+        self.crc_calculated.add(payload);
         self.deserializer.deserialize(payload);            
 
         if end_frame {
+            self.finished = true;
             Ok(AssemblerResult::Finished)
         } else {
             Ok(AssemblerResult::Ok)
@@ -93,26 +109,20 @@ impl<S: Struct> FrameAssembler<S> {
     }
 
     pub fn build(self) -> Result<Frame<S>, BuildError> {
-        
-        let body = if let Ok(body) = self.deserializer.into_structure() {
-            body
+        if self.crc_calculated != self.crc_received.unwrap_or(self.crc_calculated) {
+            Result::Err(BuildError::CRCError)
+        } else if let Ok(body) = self.deserializer.into_structure() {
+            Ok(Frame::from_parts(self.id, body))
         } else {
-            return Err(BuildError::NotFinishedParsing)
-        };
-
-        Ok(Frame::from_parts(self.id, body))
-    }
-                
+            Err(BuildError::NotFinishedParsing)
+        }
+    }                
 }
 
 
 #[cfg(test)]
 mod tests {
 
-    use bit_field::BitField;
-
-    use uavcan;
-    
     use tests::{
         CanFrame,
     };
@@ -162,11 +172,15 @@ mod tests {
     fn deserialize_multi_frame() {
         
         #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        #[DSDLSignature = "0x711bf141af572346"]
+        #[DataTypeSignature = "0x711bf141af572346"]
         struct LogLevel {
             value: u3,
         }
-        
+
         #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        #[DataTypeSignature = "0xd654a48e0c049d75"]
+        #[DSDLSignature = "0xe9862b78d38762ba"]
         struct LogMessage {
             level: LogLevel,
             source: Dynamic<[u8; 31]>,
@@ -183,7 +197,7 @@ mod tests {
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
-        let crc = 0;
+        let crc = 0x6383;
         let mut message_builder = FrameAssembler::new();
         
         message_builder.add_transfer_frame(CanFrame{
@@ -211,7 +225,7 @@ mod tests {
         }).unwrap();
 
         assert_eq!(uavcan_frame.body.source.length(), 11);
-        assert_eq!(uavcan_frame, message_builder.build().unwrap());
+        assert_eq!(Ok(uavcan_frame), message_builder.build());
         
     }
    
