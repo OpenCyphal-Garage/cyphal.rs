@@ -166,11 +166,15 @@ mod tests {
     fn deserialize_multi_frame() {
         
         #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        #[DSDLSignature = "0x711bf141af572346"]
+        #[DataTypeSignature = "0x711bf141af572346"]
         struct LogLevel {
             value: u3,
         }
-        
+
         #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        #[DataTypeSignature = "0xd654a48e0c049d75"]
+        #[DSDLSignature = "0xe9862b78d38762ba"]
         struct LogMessage {
             level: LogLevel,
             source: Dynamic<[u8; 31]>,
