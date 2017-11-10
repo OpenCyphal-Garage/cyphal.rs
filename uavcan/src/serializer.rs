@@ -503,5 +503,44 @@ mod tests {
 
     }
 
+    #[test]
+    fn array_of_structs() {
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct Command {
+            pub actuator_id: u8,
+            pub command_type: u8,
+            pub command_value: f16,
+        }
+        
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct ArrayCommand {
+            pub commands: Dynamic<[Command; 15]>,
+        }
+
+        let mut actuator_command = Command {
+            actuator_id: 0,
+            command_type: 3,
+            command_value: f16::from_f32(1.0),
+        };
+        
+        let mut actuator_message = ArrayCommand {
+            commands: Dynamic::<[Command; 15]>::new(),
+        };
+
+        actuator_message.commands.push(actuator_command.clone());
+        
+        actuator_command.actuator_id = 1;
+        actuator_message.commands.push(actuator_command);
+        
+
+        let mut serializer: Serializer<ArrayCommand> = Serializer::from_structure(actuator_message);
+        let mut array: [u8; 8] = [0; 8];
+        let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
+
+        serializer.serialize(&mut buffer);
+        assert_eq!(buffer.data, [0, 3, f16::from_f32(1.0).as_bits() as u8, (f16::from_f32(1.0).as_bits() >> 8) as u8, 1, 3, (f16::from_f32(1.0).as_bits() as u8), (f16::from_f32(1.0).as_bits() >> 8) as u8]);                   
+
+    }
+
 }
 
