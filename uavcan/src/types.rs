@@ -39,17 +39,19 @@ trait PrimitiveType : Sized + Copy + ::Serializable {
 ///
 /// # Examples
 /// ```
+/// use std::str;
 /// use uavcan::types::*;
 ///
 /// let dynamic_array = Dynamic::<[u8; 90]>::with_data("dynamic array".as_bytes());
 ///
 /// assert_eq!(dynamic_array.length(), 13);
+/// assert_eq!(str::from_utf8(dynamic_array.as_ref()).unwrap(), "dynamic array");
 ///
 /// ```
-#[derive(Clone)]
 pub struct Dynamic<T> {
-    array: T,
+    array: lib::core::mem::ManuallyDrop<T>,
     current_length: usize,
+    deserialized_length: usize,
 }
 
 macro_rules! impl_array{
@@ -104,24 +106,70 @@ macro_rules! impl_array{
 
 
         
-        impl<T: ::Serializable> Dynamic<[T; $size]> {
+        impl<T> Dynamic<[T; $size]> {
             pub const LENGTH_BITS: usize = $length_bits;
             pub const MAX_LENGTH: usize = $size;
+
+            /// Constructs a new empty `Dynamic` array
+            pub fn new() -> Self {
+                Self{
+                    array: lib::core::mem::ManuallyDrop::new(unsafe{ lib::core::mem::uninitialized() }),
+                    current_length: 0,
+                    deserialized_length: 0,
+                }
+            }
             
-            pub fn with_data(data: &[T]) -> Self where T: Copy {
-                let mut s = Self{
-                    array: [data[0]; $size],
-                    current_length: data.len(),
-                };
-                s.array[0..data.len()].clone_from_slice(data);
+            /// Constructs a new `Dynamic` array with cloned data
+            pub fn with_data(data: &[T]) -> Self where T: Clone{
+                let mut s = Self::new();
+                for i in 0..data.len() {
+                    unsafe{lib::core::ptr::write(&mut s.array[i] as *mut T, data[i].clone())};
+                }
+                s.current_length = data.len();
                 s
             }
 
+            /// Push an item to the end of the `Dynamic` array. Size will increase by one after this operation.
+            pub fn push(&mut self, item: T) {
+                assert!(self.current_length < Self::MAX_LENGTH, "Can't push data to full array");
+                unsafe{lib::core::ptr::write(&mut self.array[self.current_length] as *mut T, item)};
+                self.current_length += 1;                
+            }
+
+            /// Returns the current length for the dynamic array
             pub fn length(&self) -> usize {
                 self.current_length
             }
 
-            pub fn set_length(&mut self, length: usize) {
+            /// Set lengths of the array.
+            ///
+            /// 
+            /// When array is shrinked, the elements that fall out of range is dropped.
+            /// When array is grown, `Default::default()` is inserted for the new values.
+            pub fn set_length(&mut self, length: usize) where T: Default {
+                if length < self.current_length {
+                    self.shrink(length);
+                } else if length > self.current_length {
+                    self.grow(length);
+                }
+            }
+
+            /// Shrinks array, dropping elements that fall out of range
+            pub fn shrink(&mut self, length: usize) {
+                assert!(length <= self.current_length, "Dynamic::shrink() can only be used to shrink array");
+                for i in length..self.current_length {
+                    let temp: T = lib::core::mem::replace(&mut self.array[i], unsafe{ lib::core::mem::uninitialized() } );
+                    drop(temp);
+                }
+                self.current_length = length;
+            }
+
+            /// Grow array, inserting the default element in the new spaces
+            fn grow(&mut self, length: usize) where T: Default {
+                assert!(length > self.current_length);
+                for i in self.current_length..length {
+                    unsafe{lib::core::ptr::write(&mut self.array[i], T::default())};
+                }
                 self.current_length = length;
             }
 
@@ -200,38 +248,39 @@ macro_rules! impl_array{
                     
                     let buffer_len = buffer.bit_length();
                     if buffer_len + *bit < Self::LENGTH_BITS {
-                        self.current_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
+                        self.deserialized_length.set_bits(*bit as u8..(*bit+buffer_len) as u8, buffer.pop_bits(buffer_len) as usize);
                         *bit += buffer_len;
                         return DeserializationResult::BufferInsufficient
                     } else {
-                        self.current_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
+                        self.deserialized_length.set_bits(*bit as u8..Self::LENGTH_BITS as u8, buffer.pop_bits(Self::LENGTH_BITS-*bit) as usize);
                         *flattened_field = 1;
                         *bit = 0;
                     }
                 }
-
-                if tail_array_optimization {
-                    self.set_length(Self::MAX_LENGTH);
-                }
                 
-                while *flattened_field - 1 < self.current_length {
+                while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
                     let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
                     match self.array[*flattened_field - 1].deserialize(&mut element_field, bit, false, buffer) {
                         DeserializationResult::Finished => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
+                            self.current_length = *flattened_field - 1;
+                            if !tail_array_optimization && self.current_length == self.deserialized_length {
+                                *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                                *bit = 0;
+                                return DeserializationResult::Finished;
+                            }
                         },
                         DeserializationResult::BufferInsufficient => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
-                            if tail_array_optimization {
-                                self.current_length = *flattened_field - 1;
-                            }
+                            self.current_length = *flattened_field - 1;
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
                 }
                 
                 *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
+                self.current_length = *flattened_field - 1;
                 *bit = 0;
                 DeserializationResult::Finished
             }
@@ -264,13 +313,9 @@ macro_rules! impl_array{
             }
         }
 
-        // This is needed since it can't be derived for arrays larger than 32 yet
-        impl<T: Default + Copy> Default for Dynamic<[T; $size]> {
+        impl<T> Default for Dynamic<[T; $size]> {
             fn default() -> Self {
-                Self {
-                    array: [T::default(); $size],
-                    current_length: 0,
-                }
+                Self::new()
             }
         }
 
@@ -303,8 +348,29 @@ macro_rules! impl_array{
             }
         }
         
+        impl<T: Clone> Clone for Dynamic<[T; $size]> {
+            fn clone(&self) -> Self {
+                let mut a = Self::new();
+                for i in 0..self.current_length {
+                    a.push(self.array[i].clone());
+                }
+                a
+            }
+        }
+        
     };
 }
+
+impl<T> Drop for Dynamic<T> {
+    fn drop(&mut self) {
+        // Since const generics doesn't work we can't deconstruct elements inside arrays when it's beeing dropped
+        // This might in extreme cases cause memory leaks and other weirdness from deconstructors not running
+        // This isn't good but not UD or unsafe either.
+        // Fix as soon as const generics lands
+    }
+}
+        
+
 
 impl_array!([(1, 1), (2, 2), (3, 2), (4, 3), (5, 3), (6, 3), (7, 3), (8, 4), (9, 4)]);
 impl_array!([(10, 4), (11, 4), (12, 4), (13, 4), (14, 4), (15, 4), (16, 5), (17, 5), (18, 5), (19, 5)]);
@@ -440,7 +506,7 @@ macro_rules! impl_serializeable {
                     *bit = 0;
                     *flattened_field = 1;
                     DeserializationResult::Finished
-                } else if buffer_len == 0 && *bit != $bits {
+                } else if buffer_len == 0 && *bit < $bits {
                     DeserializationResult::BufferInsufficient
                 } else if buffer_len < $bits - *bit {
                     *self = PrimitiveType::from_bits(PrimitiveType::to_bits(*self) | (buffer.pop_bits(buffer_len) << *bit));
@@ -683,3 +749,42 @@ impl PrimitiveType for bool {
     }
 }
 impl_serializeable!(bool, 1);
+
+
+
+
+#[cfg(test)]
+mod tests {
+
+    use *;
+    use types::*;
+
+    #[test]
+    fn dynamic_array_with_data() {
+        let a: [u8; 5] = [1, 2, 3, 4, 5];
+        let d = Dynamic::<[u8; 15]>::with_data(&a);
+        
+        assert_eq!(d.as_ref(), &a);
+    }
+    
+    #[test]
+    fn dynamic_array_clone() {
+        let a: [u8; 5] = [1, 2, 3, 4, 5];
+        let d1 = Dynamic::<[u8; 15]>::with_data(&a);
+        let d2 = d1.clone();
+        
+        assert_eq!(d1, d2);
+    }
+    
+    #[test]
+    fn dynamic_array_push() {
+        let mut a = Dynamic::<[u8; 15]>::new();
+        assert_eq!(a.as_ref(), &[]);
+
+        a.push(12);
+        assert_eq!(a.as_ref(), &[12]);
+        
+        a.push(120);
+        assert_eq!(a.as_ref(), &[12, 120]);
+    }
+}
