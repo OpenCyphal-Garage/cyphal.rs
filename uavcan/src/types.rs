@@ -215,7 +215,7 @@ macro_rules! impl_array{
                     }
                 }
 
-                while *flattened_field - 1 < self.current_length {
+                while *flattened_field - 1 < self.current_length*T::FLATTENED_FIELDS_NUMBER {
                     let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
                     match self[element].serialize(&mut element_field, bit, false, buffer) {
@@ -261,10 +261,10 @@ macro_rules! impl_array{
                 while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
                     let element = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = (*flattened_field - 1) % T::FLATTENED_FIELDS_NUMBER;
-                    match self.array[*flattened_field - 1].deserialize(&mut element_field, bit, false, buffer) {
+                    match self.array[element].deserialize(&mut element_field, bit, false, buffer) {
                         DeserializationResult::Finished => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
-                            self.current_length = *flattened_field - 1;
+                            self.current_length = element+1;
                             if !tail_array_optimization && self.current_length == self.deserialized_length {
                                 *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
                                 *bit = 0;
@@ -273,14 +273,14 @@ macro_rules! impl_array{
                         },
                         DeserializationResult::BufferInsufficient => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
-                            self.current_length = *flattened_field - 1;
+                            self.current_length = element;
                             return DeserializationResult::BufferInsufficient;
                         },
                     }
                 }
                 
                 *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
-                self.current_length = *flattened_field - 1;
+                self.current_length = (*flattened_field - 1) / T::FLATTENED_FIELDS_NUMBER;
                 *bit = 0;
                 DeserializationResult::Finished
             }
