@@ -25,13 +25,13 @@ pub enum AssemblerResult {
 pub enum AssemblerError {
     FirstFrameNotStartFrame,
     BlockAddedAfterEndFrame,
+    IDError,
     ToggleError,
 }
 
 #[derive(Debug)]
 pub enum BuildError {
     CRCError,
-    IdError,
     NotFinishedParsing,
 }
 
@@ -74,6 +74,10 @@ impl<S: Struct> FrameAssembler<S> {
             self.transfer_id = frame.tail_byte().transfer_id();
             self.id = frame.id();
             self.started = true;
+        }
+
+        if self.id != frame.id() {
+            return Err(AssemblerError::IDError);
         }
 
         let data_len = frame.data().len();
