@@ -24,7 +24,7 @@ pub enum AssemblerResult {
 #[derive(Debug, PartialEq, Eq)]
 pub enum AssemblerError {
     FirstFrameNotStartFrame,
-    BlockAddedAfterEndFrame,
+    FrameAfterEndFrame,
     IDError,
     ToggleError,
 }
@@ -38,6 +38,7 @@ pub enum BuildError {
 pub(crate) struct FrameAssembler<S: Struct> {
     deserializer: Deserializer<S>,
     started: bool,
+    finished: bool,
     id: TransferFrameID,
     crc_received: Option<TransferCRC>,
     crc_calculated: TransferCRC,
@@ -50,6 +51,7 @@ impl<S: Struct> FrameAssembler<S> {
         Self{
             deserializer: Deserializer::new(),
             started: false,
+            finished: false,
             id: TransferFrameID::new(0x00),
             crc_received: None,
             crc_calculated: TransferCRC::from_signature(S::DATA_TYPE_SIGNATURE),
@@ -61,6 +63,10 @@ impl<S: Struct> FrameAssembler<S> {
     pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<AssemblerResult, AssemblerError> {
         let end_frame = frame.is_end_frame();
         
+        if self.finished {
+            return Err(AssemblerError::FrameAfterEndFrame);
+        }
+        
         if !self.started {
             if !frame.is_start_frame() {
                 return Err(AssemblerError::FirstFrameNotStartFrame);
@@ -70,7 +76,7 @@ impl<S: Struct> FrameAssembler<S> {
                 return Err(AssemblerError::ToggleError);
             }
             
-            if !frame.is_end_frame() {
+            if !end_frame {
                 self.crc_received = Some(TransferCRC::from((frame.data()[0] as u16) | (frame.data()[1] as u16) << 8));
             }
             
@@ -95,6 +101,7 @@ impl<S: Struct> FrameAssembler<S> {
         self.deserializer.deserialize(payload);            
 
         if end_frame {
+            self.finished = true;
             Ok(AssemblerResult::Finished)
         } else {
             Ok(AssemblerResult::Ok)
