@@ -1,5 +1,7 @@
 use bit_field::BitField;
 
+use crc::TransferCRC;
+
 use transfer::{
     TransferFrame,
     TransferFrameID,
@@ -39,8 +41,8 @@ pub(crate) struct FrameAssembler<S: Struct> {
     deserializer: Deserializer<S>,
     started: bool,
     id: TransferFrameID,
-    crc: u16,
-    crc_calculated: u16,
+    crc_received: Option<TransferCRC>,
+    crc_calculated: TransferCRC,
     toggle: bool,
     transfer_id: TransferID,    
 }
@@ -51,8 +53,8 @@ impl<S: Struct> FrameAssembler<S> {
             deserializer: Deserializer::new(),
             started: false,
             id: TransferFrameID::new(0x00),
-            crc: 0x00,
-            crc_calculated: 0xffff,
+            crc_received: None,
+            crc_calculated: TransferCRC::from_signature(S::DATA_TYPE_SIGNATURE),
             toggle: false,
             transfer_id: TransferID::new(0x00),
         }
@@ -65,12 +67,16 @@ impl<S: Struct> FrameAssembler<S> {
             if !frame.is_start_frame() {
                 return Err(AssemblerError::FirstFrameNotStartFrame);
             }
+            
             if frame.tail_byte().toggle() {
                 return Err(AssemblerError::ToggleError);
             }
+            
+            if !frame.is_end_frame() {
+                self.crc_received = Some(TransferCRC::from((frame.data()[0] as u16) | (frame.data()[1] as u16) << 8));
+            }
+            
             self.toggle = false;
-            self.crc.set_bits(0..8, frame.data()[0] as u16)
-                .set_bits(8..16, frame.data()[1] as u16); 
             self.transfer_id = frame.tail_byte().transfer_id();
             self.id = frame.id();
             self.started = true;
@@ -87,6 +93,7 @@ impl<S: Struct> FrameAssembler<S> {
             &mut frame.data_as_mut()[0..data_len-1]
         };
 
+        self.crc_calculated.add(payload);
         self.deserializer.deserialize(payload);            
 
         if end_frame {
@@ -97,16 +104,14 @@ impl<S: Struct> FrameAssembler<S> {
     }
 
     pub fn build(self) -> Result<Frame<S>, BuildError> {
-        
-        let body = if let Ok(body) = self.deserializer.into_structure() {
-            body
+        if self.crc_calculated != self.crc_received.unwrap_or(self.crc_calculated) {
+            Result::Err(BuildError::CRCError)
+        } else if let Ok(body) = self.deserializer.into_structure() {
+            Ok(Frame::from_parts(self.id, body))
         } else {
-            return Err(BuildError::NotFinishedParsing)
-        };
-
-        Ok(Frame::from_parts(self.id, body))
-    }
-                
+            Err(BuildError::NotFinishedParsing)
+        }
+    }                
 }
 
 
@@ -191,7 +196,7 @@ mod tests {
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, NodeID::new(32));
 
-        let crc = 0;
+        let crc = 0x6383;
         let mut message_builder = FrameAssembler::new();
         
         message_builder.add_transfer_frame(CanFrame{
@@ -219,7 +224,7 @@ mod tests {
         }).unwrap();
 
         assert_eq!(uavcan_frame.body.source.length(), 11);
-        assert_eq!(uavcan_frame, message_builder.build().unwrap());
+        assert_eq!(Ok(uavcan_frame), message_builder.build());
         
     }
    
