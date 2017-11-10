@@ -1,5 +1,3 @@
-use bit_field::BitField;
-
 use crc::TransferCRC;
 
 use transfer::{
@@ -118,10 +116,6 @@ impl<S: Struct> FrameAssembler<S> {
 #[cfg(test)]
 mod tests {
 
-    use bit_field::BitField;
-
-    use uavcan;
-    
     use tests::{
         CanFrame,
     };
