@@ -189,4 +189,75 @@ mod tests {
     }
 
 
+    #[test]
+    fn dynamic_array_of_structs() {
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct Command {
+            pub actuator_id: u8,
+            pub command_type: u8,
+            pub command_value: f16,
+        }
+        
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct ArrayCommand {
+            pub commands: Dynamic<[Command; 15]>,
+        }
+
+        let mut actuator_command = Command {
+            actuator_id: 0,
+            command_type: 3,
+            command_value: f16::from_f32(1.0),
+        };
+        
+        let mut actuator_message = ArrayCommand {
+            commands: Dynamic::<[Command; 15]>::new(),
+        };
+
+        actuator_message.commands.push(actuator_command.clone());
+        
+        actuator_command.actuator_id = 1;
+        actuator_message.commands.push(actuator_command);
+        
+        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new();
+        deserializer.deserialize(&mut [0, 3, f16::from_f32(1.0).as_bits() as u8, (f16::from_f32(1.0).as_bits() >> 8) as u8, 1, 3, (f16::from_f32(1.0).as_bits() as u8), (f16::from_f32(1.0).as_bits() >> 8) as u8]);
+        
+        assert_eq!(deserializer.into_structure().unwrap(), actuator_message);                   
+
+    }
+
+    #[test]
+    fn static_array_of_structs() {
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct Command {
+            pub actuator_id: u8,
+            pub command_type: u8,
+            pub command_value: f16,
+        }
+        
+        #[derive(Debug, PartialEq, Clone, UavcanStruct)]
+        pub struct ArrayCommand {
+            pub commands: [Command; 2],
+        }
+
+        let mut actuator_command1 = Command {
+            actuator_id: 0,
+            command_type: 3,
+            command_value: f16::from_f32(1.0),
+        };
+
+        let actuator_command0 = actuator_command1.clone();
+        actuator_command1.actuator_id = 1;
+        
+        let mut actuator_message = ArrayCommand {
+            commands: [actuator_command0, actuator_command1],
+        };
+        
+        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new();
+        deserializer.deserialize(&mut [0, 3, f16::from_f32(1.0).as_bits() as u8, (f16::from_f32(1.0).as_bits() >> 8) as u8, 1, 3, (f16::from_f32(1.0).as_bits() as u8), (f16::from_f32(1.0).as_bits() >> 8) as u8]);
+        assert_eq!(deserializer.into_structure().unwrap(), actuator_message);                   
+        
+    }
+
+
+
 }
