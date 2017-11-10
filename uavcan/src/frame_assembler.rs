@@ -15,13 +15,13 @@ use deserializer::{
     Deserializer,
 };
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AssemblerResult {
     Ok,
     Finished,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AssemblerError {
     FirstFrameNotStartFrame,
     BlockAddedAfterEndFrame,
@@ -29,7 +29,7 @@ pub enum AssemblerError {
     ToggleError,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum BuildError {
     CRCError,
     NotFinishedParsing,
