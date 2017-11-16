@@ -16,7 +16,7 @@ categories = []
 license = "Apache-2.0/MIT"
 
 [dependencies]
-uavcan = {path = "../uavcan"}
+uavcan = {path = "../uavcan", default-features=false}
 
 [build-dependencies]
 quote = "0.3"
