@@ -62,6 +62,20 @@ saturated uint8[<=80] name");
 }
 
 #[test]
+fn normalize_actuator_status() {
+    let dsdl = DSDL::read("./tests/dsdl/").unwrap();
+    
+    assert_eq!(format!("{}", dsdl.get_file("uavcan.equipment.actuator.Status").unwrap().clone().normalize()),
+               "uavcan.equipment.actuator.Status
+saturated uint8 actuator_id
+saturated float16 position
+saturated float16 force
+saturated float16 speed
+void1
+saturated uint7 power_rating_pct");
+}
+
+#[test]
 fn normalize_node_status() {
     let dsdl = DSDL::read("./tests/dsdl/").unwrap();
     
@@ -82,6 +96,7 @@ fn verify_dsdl_signature() {
     assert_eq!(dsdl.get_file("uavcan.protocol.NodeStatus").unwrap().clone().normalize().dsdl_signature(), 0x0f0868d0c1a7c6f1);
     assert_eq!(dsdl.get_file("uavcan.protocol.AccessCommandShell").unwrap().clone().normalize().dsdl_signature(), 0x59276b5921c9246e);
     assert_eq!(dsdl.get_file("uavcan.equipment.actuator.Command").unwrap().clone().normalize().dsdl_signature(), 0x8d9a6a920c1d616c);
+    assert_eq!(dsdl.get_file("uavcan.equipment.actuator.Status").unwrap().clone().normalize().dsdl_signature(), 0x5e9bba44faf1ea04);
 
 }
 
