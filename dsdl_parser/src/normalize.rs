@@ -94,11 +94,20 @@ impl FieldDefinition {
         match self {
             // 3. Ensure that all cast specifiers are explicitly defined; if not, add default cast specifiers.
             FieldDefinition{cast_mode: None, field_type: Ty::Primitive(primitive_type), array, name} =>
-                FieldDefinition{
-                    cast_mode: Some(CastMode::Saturated),
-                    field_type: Ty::Primitive(primitive_type),
-                    array: array.normalize(),
-                    name: name,
+                if primitive_type.is_void() {
+                    FieldDefinition{
+                        cast_mode: None,
+                        field_type: Ty::Primitive(primitive_type),
+                        array: array.normalize(),
+                        name: name,
+                    }
+                } else {
+                    FieldDefinition{
+                        cast_mode: Some(CastMode::Saturated),
+                        field_type: Ty::Primitive(primitive_type),
+                        array: array.normalize(),
+                        name: name,
+                    }
                 },
             // 5. For nested data structures, replace all short names with full names.
             FieldDefinition{field_type: Ty::Composite(CompositeType{namespace: None, name: type_name}), cast_mode, array, name: field_name} =>
