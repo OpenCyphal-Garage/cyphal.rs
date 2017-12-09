@@ -125,15 +125,9 @@ impl<'a, I> Node for SimpleNode<'a, I>
             unimplemented!("Resolvation of type id is not supported yet")
         };
 
-        let identifier = FullTransferID {
-            frame_id: TransferFrameID::new(id),
-            transfer_id: TransferID::new(0),
-        };
-        let mask = FullTransferID {
-            frame_id: TransferFrameID::new(id),
-            transfer_id: TransferID::new(0),
-        };
-
+        let identifier = TransferFrameID::new(id);
+        let mask = TransferFrameID::new(id);
+        
         if let Some(id) = self.interface.completed_receive(identifier, mask) {
             let mut assembler = FrameAssembler::new();
             loop {
