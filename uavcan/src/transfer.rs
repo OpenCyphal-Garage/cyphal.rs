@@ -170,6 +170,26 @@ impl From<TransferFrameID> for u32 {
     }
 }
 
+/// A filter for `TransferFrameID`
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
+pub struct TransferFrameIDFilter{
+    mask: u32,
+    value: u32,
+}
+
+impl TransferFrameIDFilter {
+    fn new(mask: u32, value: u32) -> Self {
+        TransferFrameIDFilter{
+            mask: mask,
+            value: value,
+        }
+    }
+
+    fn is_match(&self, value: TransferFrameID) -> bool {
+        self.mask & u32::from(value) == self.mask & self.value
+    }
+}
+
 /// The 5-bit ID used to distinguish consecutive transfers
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub struct TransferID(u8);
