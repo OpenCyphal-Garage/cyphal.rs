@@ -66,6 +66,7 @@ pub trait Node<I: TransferInterface> {
 /// node_config.id = Some(NodeID::new(127));
 ///
 /// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NodeConfig {
     pub id: Option<NodeID>,
 }
@@ -79,6 +80,7 @@ impl Default for NodeConfig {
 }
 
 
+#[derive(Debug)]
 pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
     transfer_subscriber: I::Subscriber,
     phantom: PhantomData<T>,
@@ -116,6 +118,7 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
 /// A minimal featured Uavcan node
 ///
 /// Supports the features required by `Node` trait
+#[derive(Debug)]
 pub struct SimpleNode<I>
     where I: TransferInterface {
     interface: I,
