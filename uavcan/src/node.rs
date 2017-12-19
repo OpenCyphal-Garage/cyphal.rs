@@ -80,6 +80,7 @@ impl Default for NodeConfig {
 }
 
 
+/// A subscription handle used to receive a specific `Message`
 #[derive(Debug)]
 pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
     transfer_subscriber: I::Subscriber,
@@ -94,7 +95,10 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
         }
     }
 
-    pub fn receive_message(&self) -> Result<T, IOError> {
+    /// Receives a message that is subscribed on.
+    ///
+    /// Messages are returned in a manner that respects the `TransferFrameID` priority.
+    pub fn receive(&self) -> Result<T, IOError> {
         // TODO: mind the priority!
         if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
             let mut assembler = FrameAssembler::new();
