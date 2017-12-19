@@ -8,9 +8,10 @@ use {
 
 use transfer::{
     TransferInterface,
+    TransferFrame,
     TransferID,
-    TransferFrameID,
-    FullTransferID,
+    TransferFrameIDFilter,
+    TransferSubscriber,
 };
 
 use frame_disassembler::FrameDisassembler;
@@ -41,15 +42,15 @@ impl NodeID {
         assert_ne!(id, 0, "Uavcan node IDs can't be 0");
         assert!(id <= 127, "Uavcan node IDs must be 7bit (<127)");
         NodeID(id)
-    }
-}
+    }}
+
 
 /// The Uavcan node trait.
 ///
 /// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
-pub trait Node {
+pub trait Node<I: TransferInterface> {
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
-    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError>;
+    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()>;
 }
 
     
@@ -77,19 +78,54 @@ impl Default for NodeConfig {
     }
 }
 
-/// A minimal featured Uavcan node
-///
-/// Supports the features required by `Node` trait
-pub struct SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
-    interface: I,
-    config: NodeConfig,
-    phantom: PhantomData<&'a I>,
+
+pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
+    transfer_subscriber: I::Subscriber,
+    phantom: PhantomData<T>,
+}
+
+impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
+    pub fn new(transfer_subscriber: I::Subscriber) -> Self {
+        Subscriber{
+            transfer_subscriber: transfer_subscriber,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn receive_message(&self) -> Result<T, IOError> {
+        // TODO: mind the priority!
+        if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
+            let mut assembler = FrameAssembler::new();
+            loop {
+                match assembler.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
+                    Err(_) => return Err(IOError::Other), // fix error message
+                    Ok(AssemblerResult::Finished) => break,
+                    Ok(AssemblerResult::Ok) => (),
+                }
+            }
+            Ok(assembler.build().unwrap().into_parts().1)
+        } else {
+            Err(IOError::Other) // fix error message
+        }
+    }
+    
+    
 }
 
 
-impl<'a, I> SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
+/// A minimal featured Uavcan node
+///
+/// Supports the features required by `Node` trait
+pub struct SimpleNode<I>
+    where I: TransferInterface {
+    interface: I,
+    config: NodeConfig,
+    phantom: PhantomData<I>,
+}
+
+
+impl<I> SimpleNode<I>
+    where I: TransferInterface {
     pub fn new(interface: I, config: NodeConfig) -> Self {
         SimpleNode{
             interface: interface,
@@ -99,8 +135,9 @@ impl<'a, I> SimpleNode<'a, I>
     }
 }
 
-impl<'a, I> Node for SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
+
+impl<I> Node<I> for SimpleNode<I>
+    where I: TransferInterface {
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
@@ -118,29 +155,16 @@ impl<'a, I> Node for SimpleNode<'a, I>
         Ok(())
     }
 
-    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
+    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()> {
         let id = if let Some(type_id) = T::TYPE_ID {
             u32::from(type_id) << 8
         } else {
             unimplemented!("Resolvation of type id is not supported yet")
         };
 
-        let identifier = TransferFrameID::new(id);
-        let mask = TransferFrameID::new(id);
-        
-        if let Some(id) = self.interface.completed_receive(identifier, mask) {
-            let mut assembler = FrameAssembler::new();
-            loop {
-                match assembler.add_transfer_frame(self.interface.receive(&id).unwrap()) {
-                    Err(_) => return Err(IOError::Other), // fix error message
-                    Ok(AssemblerResult::Finished) => break,
-                    Ok(AssemblerResult::Ok) => (),
-                }
-            }
-            Ok(assembler.build().unwrap().into_parts().1)
-        } else {
-            Err(IOError::Other) // fix error message
-        }
+        let filter = TransferFrameIDFilter::new(id, 0x1ff << 7);
+    
+        Ok(Subscriber::new(self.interface.subscribe(filter)?))
     }
 }
 

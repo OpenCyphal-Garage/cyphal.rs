@@ -15,33 +15,40 @@ pub use embedded_types::io::Error as IOError;
 /// while making sure that transfer frames with the same ID is transmitted in the same order as they was added in the transmit buffer.
 ///
 /// Receiving frames must be returned in the same order they were received by the interface.
-pub trait TransferInterface<'a> {
+pub trait TransferInterface {
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
+    type Subscriber: TransferSubscriber<Frame=Self::Frame>;
 
+        
     /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or return `Err(IOError::BufferExhausted)` if buffer is full.
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
     fn transmit(&self, frame: &Self::Frame) -> Result<(), IOError>;
+    
+    /// Create a receive buffer
+    ///
+    /// The TransferFrames matching the filter will be put in this buffer. 
+    fn subscribe(&self, filter: TransferFrameIDFilter) -> Result<Self::Subscriber, ()>;
+}
 
-    /// Receive a transfer frame matching `identifier`.
+/// A subscription to a set of `TransferFrames`
+///
+/// Orderings referes to:
+///
+/// 1. Should be ordered after the `TransferFrameID` Priority.
+/// 2. For equal `TransferFrameID` should ordered after receive order.
+pub trait TransferSubscriber {
+    type Frame: TransferFrame;
+    
+    /// Receive a frame matching the indentifier.
     ///
     /// It's important that `receive` returns frames in the same order they were received from the bus.
     fn receive(&self, identifier: &TransferFrameID) -> Option<Self::Frame>;
 
-    /// Returns a FullTransferID that satisfies the following:
-    ///
-    /// 1. Matches `identifier` when masked.
-    ///
-    /// 2. There exists an end_frame (`TransferFrame::is_end_frame(&self)`is asserted) with this `FullTransferID` in the receive buffer.
-    ///
-    /// 3. If multiple completed transfers matches, the one with highest priority will be returned (based on arbitration off `TransferFrameID`).
-    fn completed_receive(
-        &self,
-        identifier: TransferFrameID,
-        mask: TransferFrameID,
-    ) -> Option<TransferFrameID>;
+    /// Returns a reference to the first frame satisfying the predicate. Does not remove the frame from the buffer.
+    fn find<P>(&self, predicate: P) -> Option<Self::Frame> where P: FnMut(&Self::Frame) -> bool;
 }
 
 /// `TransferFrame` is a CAN like frame that can be sent over a network
@@ -173,19 +180,19 @@ impl From<TransferFrameID> for u32 {
 /// A filter for `TransferFrameID`
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct TransferFrameIDFilter{
-    mask: u32,
     value: u32,
+    mask: u32,
 }
 
 impl TransferFrameIDFilter {
-    fn new(mask: u32, value: u32) -> Self {
+    pub fn new(value: u32, mask: u32) -> Self {
         TransferFrameIDFilter{
             mask: mask,
             value: value,
         }
     }
 
-    fn is_match(&self, value: TransferFrameID) -> bool {
+    pub fn is_match(&self, value: TransferFrameID) -> bool {
         self.mask & u32::from(value) == self.mask & self.value
     }
 }
