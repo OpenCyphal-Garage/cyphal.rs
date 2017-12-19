@@ -87,7 +87,7 @@ pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
 }
 
 impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
-    pub fn new(transfer_subscriber: I::Subscriber) -> Self {
+    fn new(transfer_subscriber: I::Subscriber) -> Self {
         Subscriber{
             transfer_subscriber: transfer_subscriber,
             phantom: PhantomData,
