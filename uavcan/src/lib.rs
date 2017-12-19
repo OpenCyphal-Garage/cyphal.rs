@@ -53,7 +53,7 @@ mod deserializer;
 mod frame_assembler;
 mod serializer;
 mod frame_disassembler;
-mod node;
+pub mod node;
 
 use bit_field::BitField;
 
