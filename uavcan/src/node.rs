@@ -1,3 +1,5 @@
+//! Everything related to Uavcan Nodes
+
 use lib::core::marker::PhantomData;
 
 use {
@@ -49,7 +51,11 @@ impl NodeID {
 ///
 /// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
 pub trait Node<I: TransferInterface> {
+
+    /// Broadcast a `Message` on the Uavcan network. 
     fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
+
+    /// Subscribe to broadcasts of a specific `Message`.
     fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()>;
 }
 
@@ -68,6 +74,10 @@ pub trait Node<I: TransferInterface> {
 /// ```
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NodeConfig {
+
+    /// An optional Uavcan `NodeId`
+    ///
+    /// Nodes with `id = None` is, in Uavcan terms, an anonymous Node.
     pub id: Option<NodeID>,
 }
 
@@ -98,6 +108,7 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
     /// Receives a message that is subscribed on.
     ///
     /// Messages are returned in a manner that respects the `TransferFrameID` priority.
+    /// For equal priority, FIFO logic is used.
     pub fn receive(&self) -> Result<T, IOError> {
         // TODO: mind the priority!
         if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
@@ -119,9 +130,10 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
 }
 
 
-/// A minimal featured Uavcan node
+/// A minimal featured Uavcan node.
 ///
-/// Supports the features required by `Node` trait
+/// This type of node lack some features that the `FullNode` provides,
+/// but is in turn suitable for highly resource constrained systems.
 #[derive(Debug)]
 pub struct SimpleNode<'a, I>
     where I: 'a + TransferInterface {
