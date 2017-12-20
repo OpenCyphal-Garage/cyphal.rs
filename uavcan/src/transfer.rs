@@ -27,9 +27,9 @@ pub trait TransferInterface {
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
     fn transmit(&self, frame: &Self::Frame) -> Result<(), IOError>;
     
-    /// Create a receive buffer
+    /// Create a `TransferSubscriber` with a receive buffer for incoming `TransferFrames` that matches `filter`.
     ///
-    /// The TransferFrames matching the filter will be put in this buffer. 
+    /// All TransferFrames matching `filter` will be put in this buffer. 
     fn subscribe(&self, filter: TransferFrameIDFilter) -> Result<Self::Subscriber, ()>;
 }
 
@@ -38,16 +38,18 @@ pub trait TransferInterface {
 /// Orderings referes to:
 ///
 /// 1. Should be ordered after the `TransferFrameID` Priority.
-/// 2. For equal `TransferFrameID` should ordered after receive order.
+/// 2. For equal `TransferFrameID`, frames should be in the same order they were received.
 pub trait TransferSubscriber {
     type Frame: TransferFrame;
     
     /// Receive a frame matching the indentifier.
     ///
-    /// It's important that `receive` returns frames in the same order they were received from the bus.
+    /// When a frame is received it will be removed from the buffer.
+    ///
+    /// It's important that `receive` returns frames in the correct order.
     fn receive(&self, identifier: &TransferFrameID) -> Option<Self::Frame>;
 
-    /// Returns a reference to the first frame satisfying the predicate. Does not remove the frame from the buffer.
+    /// Returns a copy of the first frame satisfying the predicate. Does not remove the frame from the buffer.
     fn find<P>(&self, predicate: P) -> Option<Self::Frame> where P: FnMut(&Self::Frame) -> bool;
 }
 
