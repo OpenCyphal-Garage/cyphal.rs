@@ -11,6 +11,7 @@ use {
 use transfer::{
     TransferInterface,
     TransferFrame,
+    TransferFrameID,
     TransferID,
     TransferFrameIDFilter,
     TransferSubscriber,
@@ -19,6 +20,8 @@ use transfer::{
 use frame_disassembler::FrameDisassembler;
 use frame_assembler::FrameAssembler;
 use frame_assembler::AssemblerResult;
+use frame_assembler::AssemblerError;
+use frame_assembler::BuildError;
 
 use embedded_types::io::Error as IOError;
 
@@ -109,26 +112,59 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
     ///
     /// Messages are returned in a manner that respects the `TransferFrameID` priority.
     /// For equal priority, FIFO logic is used.
-    pub fn receive(&self) -> Result<T, IOError> {
-        // TODO: mind the priority!
+    pub fn receive(&self) -> Option<Result<T, ReceiveError>> {
         if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
             let mut assembler = FrameAssembler::new();
             loop {
                 match assembler.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
-                    Err(_) => return Err(IOError::Other), // fix error message
-                    Ok(AssemblerResult::Finished) => break,
+                    Err(AssemblerError::ToggleError) => {
+                        self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                        return Some(Err(ReceiveError {
+                            transfer_frame_id: end_frame.id(),
+                            transfer_id: end_frame.tail_byte().transfer_id(),
+                            error_code: ReceiveErrorCode::ToggleError,
+                        }));
+                    },
+                    Err(_) => panic!("Unexpected error from FrameAssembler"),
+                    Ok(AssemblerResult::Finished) => {
+                        match assembler.build() {
+                            Ok(frame) => return Some(Ok(frame.into_parts().1)),
+                            Err(BuildError::CRCError) => {
+                                self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                                return Some(Err(ReceiveError {
+                                    transfer_frame_id: end_frame.id(),
+                                    transfer_id: end_frame.tail_byte().transfer_id(),
+                                    error_code: ReceiveErrorCode::CRCError,
+                                }));
+                            },
+                            Err(_) => panic!("Unexpected error from FrameAssembler"),
+                        }
+                    },
                     Ok(AssemblerResult::Ok) => (),
                 }
             }
-            Ok(assembler.build().unwrap().into_parts().1)
         } else {
-            Err(IOError::Other) // fix error message
+            None
         }
     }
     
     
 }
 
+/// Full Error status from a failed receive
+#[derive(Debug, PartialEq, Eq)]
+pub struct ReceiveError {
+    pub transfer_frame_id: TransferFrameID,
+    pub transfer_id: TransferID,
+    pub error_code: ReceiveErrorCode,
+}
+
+/// The error kind for a failed receive
+#[derive(Debug, PartialEq, Eq)]
+pub enum ReceiveErrorCode {
+    CRCError,
+    ToggleError,
+}
 
 /// A minimal featured Uavcan node.
 ///

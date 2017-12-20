@@ -49,6 +49,12 @@ pub trait TransferSubscriber {
     /// It's important that `receive` returns frames in the correct order.
     fn receive(&self, identifier: &TransferFrameID) -> Option<Self::Frame>;
 
+    /// Retains only the elements specified by the predicate.
+    ///
+    /// In other words, remove all elements e such that `f(&e)` returns false.
+    /// This method must operate in place and preserves the order of the retained elements.
+    fn retain<F>(&self, f: F) where F: FnMut(&Self::Frame) -> bool;
+
     /// Returns a copy of the first frame satisfying the predicate. Does not remove the frame from the buffer.
     fn find<P>(&self, predicate: P) -> Option<Self::Frame> where P: FnMut(&Self::Frame) -> bool;
 }
