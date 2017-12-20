@@ -123,17 +123,17 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
 ///
 /// Supports the features required by `Node` trait
 #[derive(Debug)]
-pub struct SimpleNode<I>
-    where I: TransferInterface {
-    interface: I,
+pub struct SimpleNode<'a, I>
+    where I: 'a + TransferInterface {
+    interface: &'a I,
     config: NodeConfig,
     phantom: PhantomData<I>,
 }
 
 
-impl<I> SimpleNode<I>
-    where I: TransferInterface {
-    pub fn new(interface: I, config: NodeConfig) -> Self {
+impl<'a, I> SimpleNode<'a, I>
+    where I: 'a + TransferInterface {
+    pub fn new(interface: &'a I, config: NodeConfig) -> Self {
         SimpleNode{
             interface: interface,
             config: config,
@@ -143,8 +143,8 @@ impl<I> SimpleNode<I>
 }
 
 
-impl<I> Node<I> for SimpleNode<I>
-    where I: TransferInterface {
+impl<'a, I> Node<I> for SimpleNode<'a, I>
+    where I: 'a + TransferInterface {
     fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
