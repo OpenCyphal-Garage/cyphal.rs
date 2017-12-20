@@ -1,3 +1,5 @@
+//! Everything related to Uavcan Nodes
+
 use lib::core::marker::PhantomData;
 
 use {
@@ -8,14 +10,18 @@ use {
 
 use transfer::{
     TransferInterface,
-    TransferID,
+    TransferFrame,
     TransferFrameID,
-    FullTransferID,
+    TransferID,
+    TransferFrameIDFilter,
+    TransferSubscriber,
 };
 
 use frame_disassembler::FrameDisassembler;
 use frame_assembler::FrameAssembler;
 use frame_assembler::AssemblerResult;
+use frame_assembler::AssemblerError;
+use frame_assembler::BuildError;
 
 use embedded_types::io::Error as IOError;
 
@@ -41,15 +47,19 @@ impl NodeID {
         assert_ne!(id, 0, "Uavcan node IDs can't be 0");
         assert!(id <= 127, "Uavcan node IDs must be 7bit (<127)");
         NodeID(id)
-    }
-}
+    }}
+
 
 /// The Uavcan node trait.
 ///
 /// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
-pub trait Node {
-    fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
-    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError>;
+pub trait Node<I: TransferInterface> {
+
+    /// Broadcast a `Message` on the Uavcan network. 
+    fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
+
+    /// Subscribe to broadcasts of a specific `Message`.
+    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()>;
 }
 
     
@@ -65,7 +75,12 @@ pub trait Node {
 /// node_config.id = Some(NodeID::new(127));
 ///
 /// ```
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NodeConfig {
+
+    /// An optional Uavcan `NodeId`
+    ///
+    /// Nodes with `id = None` is, in Uavcan terms, an anonymous Node.
     pub id: Option<NodeID>,
 }
 
@@ -77,31 +92,109 @@ impl Default for NodeConfig {
     }
 }
 
-/// A minimal featured Uavcan node
+
+/// A subscription handle used to receive a specific `Message`
+#[derive(Debug)]
+pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
+    transfer_subscriber: I::Subscriber,
+    phantom: PhantomData<T>,
+}
+
+impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
+    fn new(transfer_subscriber: I::Subscriber) -> Self {
+        Subscriber{
+            transfer_subscriber: transfer_subscriber,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Receives a message that is subscribed on.
+    ///
+    /// Messages are returned in a manner that respects the `TransferFrameID` priority.
+    /// For equal priority, FIFO logic is used.
+    pub fn receive(&self) -> Option<Result<T, ReceiveError>> {
+        if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
+            let mut assembler = FrameAssembler::new();
+            loop {
+                match assembler.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
+                    Err(AssemblerError::ToggleError) => {
+                        self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                        return Some(Err(ReceiveError {
+                            transfer_frame_id: end_frame.id(),
+                            transfer_id: end_frame.tail_byte().transfer_id(),
+                            error_code: ReceiveErrorCode::ToggleError,
+                        }));
+                    },
+                    Err(_) => panic!("Unexpected error from FrameAssembler"),
+                    Ok(AssemblerResult::Finished) => {
+                        match assembler.build() {
+                            Ok(frame) => return Some(Ok(frame.into_parts().1)),
+                            Err(BuildError::CRCError) => {
+                                self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                                return Some(Err(ReceiveError {
+                                    transfer_frame_id: end_frame.id(),
+                                    transfer_id: end_frame.tail_byte().transfer_id(),
+                                    error_code: ReceiveErrorCode::CRCError,
+                                }));
+                            },
+                            Err(_) => panic!("Unexpected error from FrameAssembler"),
+                        }
+                    },
+                    Ok(AssemblerResult::Ok) => (),
+                }
+            }
+        } else {
+            None
+        }
+    }
+    
+    
+}
+
+/// Full Error status from a failed receive
+#[derive(Debug, PartialEq, Eq)]
+pub struct ReceiveError {
+    pub transfer_frame_id: TransferFrameID,
+    pub transfer_id: TransferID,
+    pub error_code: ReceiveErrorCode,
+}
+
+/// The error kind for a failed receive
+#[derive(Debug, PartialEq, Eq)]
+pub enum ReceiveErrorCode {
+    CRCError,
+    ToggleError,
+}
+
+/// A minimal featured Uavcan node.
 ///
-/// Supports the features required by `Node` trait
-pub struct SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
-    interface: I,
+/// This type of node lack some features that the `FullNode` provides,
+/// but is in turn suitable for highly resource constrained systems.
+#[derive(Debug)]
+pub struct SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
+    interface: D,
     config: NodeConfig,
-    phantom: PhantomData<&'a I>,
 }
 
 
-impl<'a, I> SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
-    pub fn new(interface: I, config: NodeConfig) -> Self {
+impl<I, D> SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
+    pub fn new(interface: D, config: NodeConfig) -> Self {
         SimpleNode{
             interface: interface,
             config: config,
-            phantom: PhantomData,
         }
     }
 }
 
-impl<'a, I> Node for SimpleNode<'a, I>
-    where I: TransferInterface<'a> + 'a {
-    fn transmit_message<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
+
+impl<I, D> Node<I> for SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
+    fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
         
@@ -118,35 +211,16 @@ impl<'a, I> Node for SimpleNode<'a, I>
         Ok(())
     }
 
-    fn receive_message<T: Struct + Message>(&self) -> Result<T, IOError> {
+    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()> {
         let id = if let Some(type_id) = T::TYPE_ID {
             u32::from(type_id) << 8
         } else {
             unimplemented!("Resolvation of type id is not supported yet")
         };
 
-        let identifier = FullTransferID {
-            frame_id: TransferFrameID::new(id),
-            transfer_id: TransferID::new(0),
-        };
-        let mask = FullTransferID {
-            frame_id: TransferFrameID::new(id),
-            transfer_id: TransferID::new(0),
-        };
-
-        if let Some(id) = self.interface.completed_receive(identifier, mask) {
-            let mut assembler = FrameAssembler::new();
-            loop {
-                match assembler.add_transfer_frame(self.interface.receive(&id).unwrap()) {
-                    Err(_) => return Err(IOError::Other), // fix error message
-                    Ok(AssemblerResult::Finished) => break,
-                    Ok(AssemblerResult::Ok) => (),
-                }
-            }
-            Ok(assembler.build().unwrap().into_parts().1)
-        } else {
-            Err(IOError::Other) // fix error message
-        }
+        let filter = TransferFrameIDFilter::new(id, 0x1ff << 7);
+    
+        Ok(Subscriber::new(self.interface.subscribe(filter)?))
     }
 }
 
