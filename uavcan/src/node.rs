@@ -135,28 +135,29 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
 /// This type of node lack some features that the `FullNode` provides,
 /// but is in turn suitable for highly resource constrained systems.
 #[derive(Debug)]
-pub struct SimpleNode<'a, I>
-    where I: 'a + TransferInterface {
-    interface: &'a I,
+pub struct SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
+    interface: D,
     config: NodeConfig,
-    phantom: PhantomData<I>,
 }
 
 
-impl<'a, I> SimpleNode<'a, I>
-    where I: 'a + TransferInterface {
-    pub fn new(interface: &'a I, config: NodeConfig) -> Self {
+impl<I, D> SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
+    pub fn new(interface: D, config: NodeConfig) -> Self {
         SimpleNode{
             interface: interface,
             config: config,
-            phantom: PhantomData,
         }
     }
 }
 
 
-impl<'a, I> Node<I> for SimpleNode<'a, I>
-    where I: 'a + TransferInterface {
+impl<I, D> Node<I> for SimpleNode<I, D>
+    where I: TransferInterface,
+          D: ::lib::core::ops::Deref<Target=I> {
     fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
