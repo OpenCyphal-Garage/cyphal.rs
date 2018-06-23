@@ -79,9 +79,8 @@ use versioning::{
 #[doc(hidden)]
 pub use serializer::{
     SerializationResult,
-    SerializationBuffer,        
+    SerializationBuffer,
 };
-
 /// These data type is only exposed so `Struct` can be derived.
 /// It is not intended for use outside the derive macro and
 /// must not be considered as a stable part of the API.
@@ -90,7 +89,6 @@ pub use deserializer::{
     DeserializationResult,
     DeserializationBuffer,
 };
-
 
 /// The trait that needs to be implemented for all types that will be sent over Uavcan
 ///

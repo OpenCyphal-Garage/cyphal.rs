@@ -12,8 +12,11 @@ use transfer::{
     TransferID,
 };
 
-use serializer::*;
-
+use serializer::{
+    Serializer,
+    SerializationResult,
+    SerializationBuffer,
+};
 
 
 pub(crate) struct FrameDisassembler<S: Struct> {
@@ -72,7 +75,7 @@ impl<S: Struct> FrameDisassembler<S> {
                 let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
                 if SerializationResult::Finished == self.serializer.serialize(&mut buffer){
                     self.finished = true;
-                    ((buffer.bit_length()+7)/8 + 1, true)
+                    ((buffer.bits_serialized()+7)/8 + 1, true)
                 } else {
                     (max_data_length, false)
                 }

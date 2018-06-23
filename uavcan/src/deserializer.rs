@@ -1,6 +1,6 @@
 use lib::core::mem;
 
-pub use serializer::SerializationBuffer as DeserializationBuffer;
+use bit_field::BitField;
 
 use {
     Struct,
@@ -12,12 +12,68 @@ pub enum DeserializationResult {
     BufferInsufficient,
 }
 
-
+#[derive(Debug, PartialEq)]
+pub struct DeserializationBuffer<'a> {
+    pub data: &'a mut [u8],
+    start_bit_index: usize,
+    stop_bit_index: usize,
+}
 
 pub struct Deserializer<T: Struct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
+}
+
+
+impl<'a> DeserializationBuffer<'a> {
+    pub fn with_full_buffer(buffer: &'a mut [u8]) -> Self {
+        let data_len = buffer.len() * 8;
+        Self { data: buffer, start_bit_index: 0, stop_bit_index: data_len }
+    }
+
+    pub fn bit_length(&self) -> usize { self.stop_bit_index - self.start_bit_index }
+
+    pub fn pop_bits(&mut self, bit_length: usize) -> u64 {
+        assert!(bit_length <= 64);
+        assert!(bit_length <= self.bit_length());
+
+        let mut bits = 0u64;
+        let mut bit = 0;
+
+        let mut remaining_bits = bit_length - bit;
+
+        let byte_start = self.start_bit_index / 8;
+        let bit_start = self.start_bit_index % 8;
+
+        // first get rid of the odd bits
+        if bit_start != 0 && remaining_bits >= (8 - bit_start) {
+            bits.set_bits(0..(8 - bit_start as u8), self.data[byte_start].get_bits(0..(8 - bit_start as u8)) as u64);
+            self.start_bit_index += 8 - bit_start;
+            bit += 8 - bit_start;
+        } else if bit_start != 0 && remaining_bits < (8 - bit_start) {
+            bits.set_bits(0..(remaining_bits as u8), self.data[byte_start].get_bits(((8 - bit_start - remaining_bits) as u8)..(8 - bit_start as u8)) as u64);
+            self.start_bit_index += remaining_bits;
+            bit += remaining_bits;
+        }
+
+        remaining_bits = bit_length - bit;
+
+        while remaining_bits != 0 {
+            if remaining_bits >= 8 {
+                bits.set_bits((bit as u8)..(bit as u8 + 8), self.data[self.start_bit_index / 8] as u64);
+                bit += 8;
+                self.start_bit_index += 8;
+            } else {
+                bits.set_bits((bit as u8)..(bit_length as u8), self.data[self.start_bit_index / 8].get_bits((8 - remaining_bits as u8)..8) as u64);
+                bit += remaining_bits;
+                self.start_bit_index += remaining_bits;
+            }
+            remaining_bits = bit_length - bit;
+        }
+
+        bits
+    }
 }
 
 impl<T: Struct> Deserializer<T> {
