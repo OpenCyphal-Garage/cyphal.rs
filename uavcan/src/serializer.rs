@@ -193,7 +193,6 @@ impl<T: Struct> Serializer<T> {
 mod tests {
     
     use *;    
-    use uavcan;
     use serializer::*;
     use types::*;
 
@@ -565,7 +564,7 @@ mod tests {
         let actuator_command0 = actuator_command1.clone();
         actuator_command1.actuator_id = 1;
         
-        let mut actuator_message = ArrayCommand {
+        let actuator_message = ArrayCommand {
             commands: [actuator_command0, actuator_command1],
         };
 

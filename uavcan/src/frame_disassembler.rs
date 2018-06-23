@@ -94,8 +94,6 @@ impl<S: Struct> FrameDisassembler<S> {
 #[cfg(test)]
 mod tests {
 
-    use uavcan;
-    
     use bit_field::BitField;
     
     use tests::{
