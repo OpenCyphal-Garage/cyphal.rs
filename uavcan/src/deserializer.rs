@@ -43,8 +43,6 @@ impl<T: Struct> Deserializer<T> {
 #[cfg(test)]
 mod tests {
 
-    use uavcan;
-    
     use bit_field::BitField;
     
     use *;
@@ -170,12 +168,7 @@ mod tests {
         struct Message {
             a: [u16; 4],
         }
-        
-        
-        let message = Message{
-            a: [5, 6, 7, 8],
-        };
-        
+
         let mut deserializer: Deserializer<Message> = Deserializer::new();
         deserializer.deserialize(&mut [5, 0, 6, 0, 7, 0, 8, 0]);
         let parsed = deserializer.into_structure().unwrap();
@@ -248,7 +241,7 @@ mod tests {
         let actuator_command0 = actuator_command1.clone();
         actuator_command1.actuator_id = 1;
         
-        let mut actuator_message = ArrayCommand {
+        let actuator_message = ArrayCommand {
             commands: [actuator_command0, actuator_command1],
         };
         

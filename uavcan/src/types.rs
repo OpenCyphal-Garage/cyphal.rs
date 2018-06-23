@@ -488,12 +488,12 @@ macro_rules! impl_serializeable {
                 } else if buffer_bits_remaining == 0 {
                     SerializationResult::BufferFull
                 } else if buffer_bits_remaining >= type_bits_remaining {
-                    buffer.push_bits(type_bits_remaining, (PrimitiveType::to_bits(*self) >> *bit));
+                    buffer.push_bits(type_bits_remaining, PrimitiveType::to_bits(*self) >> *bit);
                     *bit = 0;
                     *flattened_field = 1;
                     SerializationResult::Finished
                 } else {
-                    buffer.push_bits(buffer_bits_remaining, (PrimitiveType::to_bits(*self) >> *bit));
+                    buffer.push_bits(buffer_bits_remaining, PrimitiveType::to_bits(*self) >> *bit);
                     *bit += buffer_bits_remaining;
                     SerializationResult::BufferFull
                 }
@@ -756,7 +756,6 @@ impl_serializeable!(bool, 1);
 #[cfg(test)]
 mod tests {
 
-    use *;
     use types::*;
 
     #[test]
