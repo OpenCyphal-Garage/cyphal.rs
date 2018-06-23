@@ -8,6 +8,10 @@ use {
     Message,
 };
 
+use versioning::{
+    ProtocolVersion,
+};
+
 use transfer::{
     TransferInterface,
     TransferFrame,
@@ -199,7 +203,7 @@ impl<I, D> Node<I> for SimpleNode<I, D>
         let transfer_id = TransferID::new(0);
         
         let mut generator = if let Some(ref node_id) = self.config.id {
-            FrameDisassembler::from_uavcan_frame(Frame::from_message(message, priority, *node_id), transfer_id)
+            FrameDisassembler::from_uavcan_frame(Frame::from_message(message, priority, ProtocolVersion::Version0, *node_id), transfer_id)
         } else {
             unimplemented!("Anonymous transfers not implemented")
         };

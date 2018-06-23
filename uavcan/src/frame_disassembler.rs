@@ -27,12 +27,12 @@ pub(crate) struct FrameDisassembler<S: Struct> {
 
 impl<S: Struct> FrameDisassembler<S> {
     pub fn from_uavcan_frame(frame: Frame<S>, transfer_id: TransferID) -> Self {
-        let (id, body) = frame.into_parts();
+        let (header, body) = frame.into_parts();
         Self{
             serializer: Serializer::from_structure(body),
             started: false,
             finished: false,
-            id: id,
+            id: TransferFrameID::from(header),
             toggle: false,
             transfer_id: transfer_id,
         }
@@ -101,6 +101,7 @@ mod tests {
     };
     
     use *;
+    use versioning::*;
     use types::*;
     use frame_disassembler::*;
 
@@ -128,7 +129,7 @@ mod tests {
             mode: u3::new(3),
             sub_mode: u3::new(4),
             vendor_specific_status_code: 5,
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
@@ -161,7 +162,7 @@ mod tests {
             level: LogLevel{value: u3::new(0)},
             source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
         let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 

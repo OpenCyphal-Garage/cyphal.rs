@@ -49,22 +49,29 @@ pub use uavcan_derive::*;
 pub mod transfer;
 pub mod types;
 mod crc;
+mod header;
+pub mod versioning;
 mod deserializer;
 mod frame_assembler;
 mod serializer;
 mod frame_disassembler;
 pub mod node;
 
-use bit_field::BitField;
-
-use transfer::TransferFrameID;
-
-
 pub use node::NodeConfig;
 pub use node::NodeID;
 pub use node::Node;
 pub use node::SimpleNode;
 
+use header::{
+    Header,
+    MessageHeader,
+    AnonymousHeader,
+    ServiceHeader,
+};
+
+use versioning::{
+    ProtocolVersion,
+};
 
 /// These data type is only exposed so `Struct` can be derived.
 /// It is not intended for use outside the derive macro and
@@ -209,23 +216,17 @@ pub trait Response: Struct {
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct Frame<T: Struct> {
-    id: TransferFrameID,
+    header: Header,
     body: T,
 }
 
 impl<T: Struct> Frame<T> {
 
     
-    pub fn from_message(message: T, priority: u8, source_node: NodeID) -> Self where T: Message {
+    pub fn from_message(message: T, priority: u8, protocol_version: ProtocolVersion, source_node: NodeID) -> Self where T: Message {
         if let Some(type_id) = T::TYPE_ID {
-            let mut id = 0;
-            id.set_bits(0..7, u32::from(source_node));
-            id.set_bit(7, false);
-            id.set_bits(8..24, u32::from(type_id));
-            id.set_bits(24..29, u32::from(priority));
-            
             Frame::from_parts(
-                TransferFrameID::new(id),
+                Header::Message(MessageHeader::new(priority, protocol_version.is_odd(), type_id, source_node)),
                 message,
             )
         } else {
@@ -233,17 +234,10 @@ impl<T: Struct> Frame<T> {
         }
     }
 
-    pub fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
+    pub fn from_anonymous_message(message: T, priority: u8, protocol_version: ProtocolVersion, discriminator: u16) -> Self where T: Message {
         if let Some(type_id) = T::TYPE_ID {
-            let mut id = 0;
-            id.set_bits(0..7, 0);
-            id.set_bit(7, false);
-            id.set_bits(8..10, u32::from(type_id));
-            id.set_bits(10..24, u32::from(discriminator));
-            id.set_bits(24..29, u32::from(priority));
-            
             Frame::from_parts(
-                TransferFrameID::new(id),
+                Header::Anonymous(AnonymousHeader::new(priority, protocol_version.is_odd(), type_id as u8, discriminator)),
                 message,
             )
         } else {
@@ -252,18 +246,10 @@ impl<T: Struct> Frame<T> {
 
     }
 
-    pub fn from_request(request: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
+    pub fn from_request(request: T, priority: u8, protocol_version: ProtocolVersion, source_node: NodeID, destination_node: NodeID) -> Self where T: Request{
         if let Some(type_id) = T::TYPE_ID {
-            let mut id = 0;
-            id.set_bits(0..7, u32::from(source_node));
-            id.set_bit(7, false);
-            id.set_bits(8..15, u32::from(destination_node));
-            id.set_bit(15, true);
-            id.set_bits(16..24, u32::from(type_id));
-            id.set_bits(24..29, u32::from(priority));
-            
             Frame::from_parts(
-                TransferFrameID::new(id),
+                Header::Service(ServiceHeader::new(priority, protocol_version.is_odd(), type_id, source_node, destination_node, true)),
                 request,
             )
         } else {
@@ -272,18 +258,10 @@ impl<T: Struct> Frame<T> {
 
     }
 
-    pub fn from_response(response: T, priority: u8, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
+    pub fn from_response(response: T, priority: u8, protocol_version: ProtocolVersion, source_node: NodeID, destination_node: NodeID) -> Self where T: Response {
         if let Some(type_id) = T::TYPE_ID {
-            let mut id = 0;
-            id.set_bits(0..7, u32::from(source_node));
-            id.set_bit(7, false);
-            id.set_bits(8..15, u32::from(destination_node));
-            id.set_bit(15, true);
-            id.set_bits(16..24, u32::from(type_id));
-            id.set_bits(24..29, u32::from(priority));
-
             Frame::from_parts(
-                TransferFrameID::new(id),
+                Header::Service(ServiceHeader::new(priority, protocol_version.is_odd(), type_id, source_node, destination_node, false)),
                 response,
             )
         } else {
@@ -293,12 +271,12 @@ impl<T: Struct> Frame<T> {
     }
 
     
-    fn from_parts(id: TransferFrameID, body: T) -> Self {
-        Frame{id: id, body: body}
+    fn from_parts(header: Header, body: T) -> Self {
+        Frame{header: header, body: body}
     }
     
-    fn into_parts(self) -> (TransferFrameID, T) {
-        (self.id, self.body)
+    fn into_parts(self) -> (Header, T) {
+        (self.header, self.body)
     }
 }
 
@@ -311,6 +289,7 @@ impl<T: Struct> Frame<T> {
 mod tests {
 
     use *;
+    use transfer::TransferFrameID;
 
     // Implementing some types common for several tests
     

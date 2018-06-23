@@ -1,5 +1,7 @@
 use crc::TransferCRC;
 
+use header::Header;
+
 use transfer::{
     TransferFrame,
     TransferFrameID,
@@ -112,7 +114,7 @@ impl<S: Struct> FrameAssembler<S> {
         if self.crc_calculated != self.crc_received.unwrap_or(self.crc_calculated) {
             Result::Err(BuildError::CRCError)
         } else if let Ok(body) = self.deserializer.into_structure() {
-            Ok(Frame::from_parts(self.id, body))
+            Ok(Frame::from_parts(Header::from(self.id), body))
         } else {
             Err(BuildError::NotFinishedParsing)
         }
@@ -122,6 +124,8 @@ impl<S: Struct> FrameAssembler<S> {
 
 #[cfg(test)]
 mod tests {
+
+    use bit_field::BitField;
 
     use tests::{
         CanFrame,
@@ -164,7 +168,7 @@ mod tests {
         assert_eq!(parsed_message.body.mode, u3::new(3));
         assert_eq!(parsed_message.body.sub_mode, u3::new(4));
         assert_eq!(parsed_message.body.vendor_specific_status_code, 5);
-        assert_eq!(parsed_message.id, TransferFrameID::new(0));
+        assert_eq!(TransferFrameID::from(parsed_message.header), TransferFrameID::new(0));
                                               
     }
     
@@ -195,7 +199,7 @@ mod tests {
             level: LogLevel{value: u3::new(0)},
             source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
         let crc = 0x6383;
         let mut message_builder = FrameAssembler::new();
