@@ -189,8 +189,21 @@ pub trait Serializable {
     /// ```
     const FLATTENED_FIELDS_NUMBER: usize;
 
-    fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult;
-    fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult;
+    fn serialize(
+        &self,
+        flattened_field: &mut usize,
+        bit: &mut usize,
+        optimize_tail_array: bool,
+        buffer: &mut SerializationBuffer
+    ) -> SerializationResult;
+
+    fn deserialize(
+        &mut self,
+        flattened_field: &mut usize,
+        bit: &mut usize,
+        optimize_tail_array: bool,
+        buffer: &mut DeserializationBuffer
+    ) -> DeserializationResult;
 }
 
 pub trait Struct: Sized + Serializable {

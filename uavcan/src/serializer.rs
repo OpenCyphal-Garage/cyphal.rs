@@ -22,6 +22,7 @@ pub struct Serializer<T: Struct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
+    optimize_tail_array: bool,
 }
 
 
@@ -74,11 +75,12 @@ impl<'a> SerializationBuffer<'a> {
 }
 
 impl<T: Struct> Serializer<T> {
-    pub fn from_structure(structure: T) -> Self {
+    pub fn new(structure: T, optimize_tail_array: bool) -> Self {
         Self{
             structure: structure,
             field_index: 0,
             bit_index: 0,
+            optimize_tail_array,
         }
     }
     
@@ -89,8 +91,11 @@ impl<T: Struct> Serializer<T> {
     /// 2. structure is exahusted (all data have been serialized)
     /// When the serialization is finished the return value will 
     /// contain the number of bits that was serialized
-    pub fn serialize(&mut self, buffer: &mut SerializationBuffer) -> SerializationResult {
-        self.structure.serialize(&mut self.field_index, &mut self.bit_index, true, buffer)
+    pub fn serialize(
+        &mut self,
+        buffer: &mut SerializationBuffer
+    ) -> SerializationResult {
+        self.structure.serialize(&mut self.field_index, &mut self.bit_index, self.optimize_tail_array, buffer)
     }
 
     pub fn peek_serialize(&self, buffer: &mut SerializationBuffer) -> SerializationResult {
@@ -290,7 +295,7 @@ mod tests {
             v4: 23,
         };
 
-        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut serializer: Serializer<Message> = Serializer::new(message, true);
         let mut array: [u8; 8] = [0; 8];
 
         
@@ -314,7 +319,7 @@ mod tests {
             a: [5, 6, 7, 8],
         };
 
-        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut serializer: Serializer<Message> = Serializer::new(message, true);
         let mut array: [u8; 8] = [0; 8];
 
         
@@ -347,7 +352,7 @@ mod tests {
             vendor_specific_status_code: 5,
         };
 
-        let mut serializer: Serializer<NodeStatus> = Serializer::from_structure(message);
+        let mut serializer: Serializer<NodeStatus> = Serializer::new(message, true);
         let mut array: [u8; 7] = [0; 7];
 
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
@@ -377,7 +382,7 @@ mod tests {
             .. Default::default()
         };
 
-        let mut serializer: Serializer<Message> = Serializer::from_structure(message);
+        let mut serializer: Serializer<Message> = Serializer::new(message, true);
         let mut array: [u8; 8] = [0; 8];
 
         
@@ -415,7 +420,7 @@ mod tests {
 
         
 
-        let mut serializer: Serializer<TestStruct> = Serializer::from_structure(test_struct);
+        let mut serializer: Serializer<TestStruct> = Serializer::new(test_struct, true);
         let mut array: [u8; 8] = [0; 8];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
 
@@ -454,7 +459,7 @@ mod tests {
         actuator_message.commands.push(actuator_command);
         
 
-        let mut serializer: Serializer<ArrayCommand> = Serializer::from_structure(actuator_message);
+        let mut serializer: Serializer<ArrayCommand> = Serializer::new(actuator_message, true);
         let mut array: [u8; 8] = [0; 8];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
 
@@ -490,7 +495,7 @@ mod tests {
             commands: [actuator_command0, actuator_command1],
         };
 
-        let mut serializer: Serializer<ArrayCommand> = Serializer::from_structure(actuator_message);
+        let mut serializer: Serializer<ArrayCommand> = Serializer::new(actuator_message, true);
         let mut array: [u8; 8] = [0; 8];
         let mut buffer = SerializationBuffer::with_empty_buffer(&mut array);
 

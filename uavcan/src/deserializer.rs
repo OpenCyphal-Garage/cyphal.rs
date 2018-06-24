@@ -23,6 +23,7 @@ pub struct Deserializer<T: Struct> {
     structure: T,
     field_index: usize,
     bit_index: usize,
+    optimize_tail_array: bool,
 }
 
 
@@ -77,17 +78,22 @@ impl<'a> DeserializationBuffer<'a> {
 }
 
 impl<T: Struct> Deserializer<T> {
-    pub fn new() -> Deserializer<T> {
+    pub fn new(optimize_tail_array: bool) -> Deserializer<T> {
         let structure: T;
         unsafe {
             structure = mem::zeroed();
         };            
-        Deserializer{structure: structure, field_index: 0, bit_index: 0}
+        Deserializer{
+            structure,
+            field_index: 0,
+            bit_index: 0,
+            optimize_tail_array,
+        }
     }
 
     pub fn deserialize(&mut self, input: &mut [u8]) -> DeserializationResult {
         let mut buffer = DeserializationBuffer::with_full_buffer(input);
-        self.structure.deserialize(&mut self.field_index, &mut self.bit_index, true, &mut buffer)
+        self.structure.deserialize(&mut self.field_index, &mut self.bit_index, self.optimize_tail_array, &mut buffer)
     }
 
     pub fn into_structure(self) -> Result<T, ()> {
@@ -116,7 +122,7 @@ mod tests {
             v4: u8,
         }
 
-        let mut deserializer: Deserializer<Message> = Deserializer::new();
+        let mut deserializer: Deserializer<Message> = Deserializer::new(true);
 
         deserializer.deserialize(&mut [17, 19, 0, 0, 0, 21, 0, 23]);
 
@@ -146,7 +152,7 @@ mod tests {
         }
 
         
-        let mut deserializer: Deserializer<NodeStatus> = Deserializer::new();
+        let mut deserializer: Deserializer<NodeStatus> = Deserializer::new(true);
 
         deserializer.deserialize(&mut [1, 0, 0, 0, 0b10011100, 5, 0]);
 
@@ -171,7 +177,7 @@ mod tests {
             text2: Dynamic<[u8; 8]>,
         }
         
-        let mut deserializer: Deserializer<TestMessage> = Deserializer::new();
+        let mut deserializer: Deserializer<TestMessage> = Deserializer::new(true);
 
         deserializer.deserialize(&mut [0u8.set_bits(0..3, 4).get_bits(0..8), b't', b'e', b's', b't', b'l', b'o', b'l']);
         
@@ -209,7 +215,7 @@ mod tests {
             t2: dynamic_array_struct.clone(),
         };
         
-        let mut deserializer: Deserializer<TestStruct> = Deserializer::new();
+        let mut deserializer: Deserializer<TestStruct> = Deserializer::new(true);
         deserializer.deserialize(&mut [3, 4, 5, 6, 4, 5, 6]);
         let parsed_struct = deserializer.into_structure().unwrap();
         
@@ -225,7 +231,7 @@ mod tests {
             a: [u16; 4],
         }
 
-        let mut deserializer: Deserializer<Message> = Deserializer::new();
+        let mut deserializer: Deserializer<Message> = Deserializer::new(true);
         deserializer.deserialize(&mut [5, 0, 6, 0, 7, 0, 8, 0]);
         let parsed = deserializer.into_structure().unwrap();
 
@@ -267,7 +273,7 @@ mod tests {
         actuator_command.actuator_id = 1;
         actuator_message.commands.push(actuator_command);
         
-        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new();
+        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new(true);
         deserializer.deserialize(&mut [0, 3, f16::from_f32(1.0).as_bits() as u8, (f16::from_f32(1.0).as_bits() >> 8) as u8, 1, 3, (f16::from_f32(1.0).as_bits() as u8), (f16::from_f32(1.0).as_bits() >> 8) as u8]);
         
         assert_eq!(deserializer.into_structure().unwrap(), actuator_message);                   
@@ -301,7 +307,7 @@ mod tests {
             commands: [actuator_command0, actuator_command1],
         };
         
-        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new();
+        let mut deserializer: Deserializer<ArrayCommand> = Deserializer::new(true);
         deserializer.deserialize(&mut [0, 3, f16::from_f32(1.0).as_bits() as u8, (f16::from_f32(1.0).as_bits() >> 8) as u8, 1, 3, (f16::from_f32(1.0).as_bits() as u8), (f16::from_f32(1.0).as_bits() >> 8) as u8]);
         assert_eq!(deserializer.into_structure().unwrap(), actuator_message);                   
         

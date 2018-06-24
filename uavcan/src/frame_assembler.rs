@@ -51,7 +51,7 @@ pub(crate) struct FrameAssembler<S: Struct> {
 impl<S: Struct> FrameAssembler<S> {
     pub fn new() -> Self {
         Self{
-            deserializer: Deserializer::new(),
+            deserializer: Deserializer::new(true),
             started: false,
             finished: false,
             id: TransferFrameID::new(0x00),

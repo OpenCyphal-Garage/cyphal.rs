@@ -63,7 +63,7 @@ macro_rules! impl_array{
             const BIT_LENGTH_MIN: usize = $size * T::BIT_LENGTH_MIN;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER;
             
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _optimize_tail_array: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
                 while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
                     let element = *flattened_field  / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = *flattened_field % T::FLATTENED_FIELDS_NUMBER;
@@ -83,7 +83,7 @@ macro_rules! impl_array{
                 SerializationResult::Finished
             }
             
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _optimize_tail_array: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 while *flattened_field < Self::FLATTENED_FIELDS_NUMBER {
                     let element = *flattened_field / T::FLATTENED_FIELDS_NUMBER;
                     let mut element_field = *flattened_field % T::FLATTENED_FIELDS_NUMBER;
@@ -187,7 +187,7 @@ macro_rules! impl_array{
             const BIT_LENGTH_MIN: usize = $length_bits;
             const FLATTENED_FIELDS_NUMBER: usize = $size * T::FLATTENED_FIELDS_NUMBER + 1;
             
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, optimize_tail_array: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
 
                 let buffer_bits_remaining = buffer.bits_remaining();
 
@@ -196,7 +196,7 @@ macro_rules! impl_array{
                 }                
                 
                 // check for tail optimization
-                if T::BIT_LENGTH_MIN >= 8 && last_field && *flattened_field == 0 {
+                if T::BIT_LENGTH_MIN >= 8 && optimize_tail_array && *flattened_field == 0 {
                     *flattened_field = 1;
                 }
                 
@@ -234,12 +234,9 @@ macro_rules! impl_array{
                 SerializationResult::Finished
             }
 
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, optimize_tail_array: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
 
-                // check for tail optimization
-                let tail_array_optimization = last_field && (T::BIT_LENGTH_MIN >= 8);
-
-                if tail_array_optimization && *flattened_field == 0 {
+                if T::BIT_LENGTH_MIN >= 8 && optimize_tail_array && *flattened_field == 0 {
                     *flattened_field = 1;
                 }
                 
@@ -265,7 +262,7 @@ macro_rules! impl_array{
                         DeserializationResult::Finished => {
                             *flattened_field = element*T::FLATTENED_FIELDS_NUMBER + 1 + element_field;
                             self.current_length = element+1;
-                            if !tail_array_optimization && self.current_length == self.deserialized_length {
+                            if !(T::BIT_LENGTH_MIN >= 8 && optimize_tail_array) && self.current_length == self.deserialized_length {
                                 *flattened_field = Self::FLATTENED_FIELDS_NUMBER;
                                 *bit = 0;
                                 return DeserializationResult::Finished;
@@ -476,7 +473,7 @@ macro_rules! impl_serializeable {
 
             const FLATTENED_FIELDS_NUMBER: usize = 1;
             
-            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
+            fn serialize(&self, flattened_field: &mut usize, bit: &mut usize, _optimize_tail_array: bool, buffer: &mut SerializationBuffer) -> SerializationResult {
                 assert_eq!(*flattened_field, 0);
                 let type_bits_remaining = $bits - *bit;
                 let buffer_bits_remaining = buffer.bits_remaining();
@@ -499,7 +496,7 @@ macro_rules! impl_serializeable {
                 }
             }
             
-            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _last_field: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
+            fn deserialize(&mut self, flattened_field: &mut usize, bit: &mut usize, _optimize_tail_array: bool, buffer: &mut DeserializationBuffer) -> DeserializationResult {
                 assert_eq!(*flattened_field, 0);
                 let buffer_len = buffer.bit_length();
                 if buffer_len == 0 && *bit == $bits {
