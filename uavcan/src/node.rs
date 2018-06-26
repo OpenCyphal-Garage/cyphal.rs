@@ -21,13 +21,14 @@ use transfer::{
     TransferSubscriber,
 };
 
-use versioning::version0::framer::Framer;
-use versioning::version0::deframer::Deframer;
+use versioning::version0::framer::Version0Framer;
+use versioning::version0::deframer::Version0Deframer;
 
 use framing::{
+    Framer,
+    Deframer,
     DeframingError,
     DeframingResult,
-    BuildError,
 };
 
 use embedded_types::io::Error as IOError;
@@ -121,9 +122,9 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
     /// For equal priority, FIFO logic is used.
     pub fn receive(&self) -> Option<Result<T, ReceiveError>> {
         if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
-            let mut deframer = Deframer::new();
+            let mut deframer = Version0Deframer::new();
             loop {
-                match deframer.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
+                match deframer.add_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
                     Err(DeframingError::ToggleError) => {
                         self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
                         return Some(Err(ReceiveError {
@@ -132,20 +133,17 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
                             error_code: ReceiveErrorCode::ToggleError,
                         }));
                     },
+                    Err(DeframingError::CRCError) => {
+                        self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                        return Some(Err(ReceiveError {
+                            transfer_frame_id: end_frame.id(),
+                            transfer_id: end_frame.tail_byte().transfer_id(),
+                            error_code: ReceiveErrorCode::CRCError,
+                        }));
+                    },
                     Err(_) => panic!("Unexpected error from FrameAssembler"),
-                    Ok(DeframingResult::Finished) => {
-                        match deframer.build() {
-                            Ok(frame) => return Some(Ok(frame.into_parts().1)),
-                            Err(BuildError::CRCError) => {
-                                self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
-                                return Some(Err(ReceiveError {
-                                    transfer_frame_id: end_frame.id(),
-                                    transfer_id: end_frame.tail_byte().transfer_id(),
-                                    error_code: ReceiveErrorCode::CRCError,
-                                }));
-                            },
-                            Err(_) => panic!("Unexpected error from FrameAssembler"),
-                        }
+                    Ok(DeframingResult::Finished(frame)) => {
+                        return Some(Ok(frame.into_parts().1));
                     },
                     Ok(DeframingResult::Ok) => (),
                 }
@@ -206,12 +204,12 @@ impl<I, D> Node<I> for SimpleNode<I, D>
         let transfer_id = TransferID::new(0);
         
         let mut framer = if let Some(ref node_id) = self.config.id {
-            Framer::from_uavcan_frame(Frame::from_message(message, priority, ProtocolVersion::Version0, *node_id), transfer_id)
+            Version0Framer::new(Frame::from_message(message, priority, ProtocolVersion::Version0, *node_id), transfer_id)
         } else {
             unimplemented!("Anonymous transfers not implemented")
         };
         
-        while let Some(can_frame) = framer.next_transfer_frame() {
+        while let Some(can_frame) = framer.next_frame() {
             self.interface.transmit(&can_frame)?;
         }
 

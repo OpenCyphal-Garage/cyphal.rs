@@ -225,7 +225,7 @@ pub trait Response: Struct {
 }
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct Frame<T: Struct> {
+pub struct Frame<T: Struct> {
     header: Header,
     body: T,
 }

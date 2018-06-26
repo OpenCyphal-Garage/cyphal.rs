@@ -7,20 +7,20 @@ use node::NodeID;
 use transfer::TransferFrameID;
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) enum Header {
+pub enum Header {
     Message(MessageHeader),
     Anonymous(AnonymousHeader),
     Service(ServiceHeader),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) struct MessageHeader(u32);
+pub struct MessageHeader(u32);
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) struct AnonymousHeader(u32);
+pub struct AnonymousHeader(u32);
 
 #[derive(Debug, PartialEq, Clone, Copy)]
-pub(crate) struct ServiceHeader(u32);
+pub struct ServiceHeader(u32);
 
 impl MessageHeader {
     pub fn new(priority: u8, odd_protocol_version: bool, message_type_id: u16, source_node: NodeID) -> Self {
