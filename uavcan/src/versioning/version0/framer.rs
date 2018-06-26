@@ -19,7 +19,7 @@ use serializer::{
 };
 
 
-pub(crate) struct FrameDisassembler<S: Struct> {
+pub(crate) struct Framer<S: Struct> {
     serializer: Serializer<S>,
     started: bool,
     finished: bool,
@@ -28,7 +28,7 @@ pub(crate) struct FrameDisassembler<S: Struct> {
     transfer_id: TransferID,
 }
 
-impl<S: Struct> FrameDisassembler<S> {
+impl<S: Struct> Framer<S> {
     pub fn from_uavcan_frame(frame: Frame<S>, transfer_id: TransferID) -> Self {
         let (header, body) = frame.into_parts();
         Self{
@@ -106,7 +106,7 @@ mod tests {
     use *;
     use versioning::*;
     use types::*;
-    use frame_disassembler::*;
+    use super::*;
 
     
     #[test]
@@ -134,10 +134,10 @@ mod tests {
             vendor_specific_status_code: 5,
         }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
+        let mut framer = Framer::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
-        assert_eq!(frame_generator.next_transfer_frame(), Some(can_frame));
-        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
+        assert_eq!(framer.next_transfer_frame(), Some(can_frame));
+        assert_eq!(framer.next_transfer_frame::<CanFrame>(), None);
         
     }
     
@@ -167,13 +167,13 @@ mod tests {
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
         }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
+        let mut framer = Framer::from_uavcan_frame(uavcan_frame, TransferID::new(0));
 
-        let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
+        let crc = framer.serializer.crc(0xd654a48e0c049d75);
 
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_transfer_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -182,7 +182,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_transfer_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -191,7 +191,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_transfer_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -200,7 +200,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_transfer_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 3,
@@ -208,7 +208,7 @@ mod tests {
             })
         );
 
-        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
+        assert_eq!(framer.next_transfer_frame::<CanFrame>(), None);
        
     }
 

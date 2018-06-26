@@ -1,5 +1,7 @@
 //! Everything that can be changed by changing protocol version.
 
+pub mod version0;
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord)]
 pub enum ProtocolVersion {
     Version0 = 0,

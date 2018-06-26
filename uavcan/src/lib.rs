@@ -48,13 +48,12 @@ pub use uavcan_derive::*;
 
 pub mod transfer;
 pub mod types;
+pub mod framing;
 mod crc;
 mod header;
 pub mod versioning;
 mod deserializer;
-mod frame_assembler;
 mod serializer;
-mod frame_disassembler;
 pub mod node;
 
 pub use node::NodeConfig;
