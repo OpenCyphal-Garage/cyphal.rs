@@ -63,6 +63,7 @@ use std::collections::HashMap;
 
 use nom::IResult;
 
+mod lexer;
 mod parse;
 mod display;
 mod normalize;
