@@ -502,6 +502,10 @@ pub enum Directive {
     /// Such a data structure contains one implicit field, a union tag that indicates what particular field the data structure is holding at the moment.
     /// Unions are required to have at least two fields.
     Union,
+
+    /// A marker variant that tells the compiler that users of this enum cannot match it exhaustively.
+    #[doc(hidden)]
+    __Nonexhaustive,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

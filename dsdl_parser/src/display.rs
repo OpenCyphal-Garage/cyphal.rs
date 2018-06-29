@@ -51,6 +51,7 @@ impl Display for Directive {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
             Directive::Union => write!(f, "@union"),
+            Directive::__Nonexhaustive => unreachable!("The `_Nonexhaustive` variant should never be created"),
         }
     }
 }
