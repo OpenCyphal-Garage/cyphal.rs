@@ -66,16 +66,16 @@ impl Display for ArrayInfo {
     }
 }
 
-impl Display for Const {
+impl Display for Lit {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Const::Dec(ref x) => write!(f, "{}", x),
-            Const::Hex(ref x) => write!(f, "{}", x),
-            Const::Bin(ref x) => write!(f, "{}", x),
-            Const::Oct(ref x) => write!(f, "{}", x),
-            Const::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
-            Const::Char(ref x) => write!(f, "'{}'", x),
-            Const::Float(ref x) => write!(f, "{}", x),
+            Lit::Dec(ref x) => write!(f, "{}", x),
+            Lit::Hex(ref x) => write!(f, "{}", x),
+            Lit::Bin(ref x) => write!(f, "{}", x),
+            Lit::Oct(ref x) => write!(f, "{}", x),
+            Lit::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
+            Lit::Char(ref x) => write!(f, "'{}'", x),
+            Lit::Float(ref x) => write!(f, "{}", x),
         }
     }
 }
@@ -103,7 +103,7 @@ impl Display for ConstDefinition {
             None => ()
         };
 
-        write!(f, "{} {} = {}", self.field_type, self.name, self.constant)
+        write!(f, "{} {} = {}", self.field_type, self.name, self.literal)
     }
 }
 
@@ -462,7 +462,7 @@ mod tests {
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint2),
                                    name: Ident(String::from("HEALTH_OK")),
-                                   constant: Const::Dec(String::from("0")),
+                                   literal: Lit::Dec(String::from("0")),
                                }),
                                Some(Comment(String::from(" test comment"))))),
                    "uint2 HEALTH_OK = 0 # test comment"
