@@ -495,6 +495,16 @@ pub enum Directive {
     __Nonexhaustive,
 }
 
+impl Directive {
+    pub(crate) fn try_from(ident: Ident) -> Result<Self, ParseDirectiveError> {
+        // Until TryFrom trait is stabilized
+        match ident.as_ref() {
+            "union" => Ok(Directive::Union),
+            _ => Err(ParseDirectiveError::NotDirective(String::from(ident))),
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseDirectiveError {
     NotDirective(String),
