@@ -793,13 +793,12 @@ pub enum PrimitiveType {
     Void57, Void58, Void59, Void60, Void61, Void62, Void63, Void64,
 }
 
+/// The error returned when attempting to parse something that is not a `PrimitiveType`
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParsePrimitiveTypeError {
-    NotPrimitiveType(String),
-}
+pub struct NotPrimitiveTypeError;
 
 impl FromStr for PrimitiveType {
-    type Err = ParsePrimitiveTypeError;
+    type Err = NotPrimitiveTypeError;
     
     fn from_str(s: &str) -> Result<PrimitiveType, Self::Err> {    
         match s {
@@ -1004,7 +1003,7 @@ impl FromStr for PrimitiveType {
             "float16" => Ok(PrimitiveType::Float16),
             "float32" => Ok(PrimitiveType::Float32),
             "float64" => Ok(PrimitiveType::Float64),
-            _ => Err(ParsePrimitiveTypeError::NotPrimitiveType(String::from(s))),
+            _ => Err(NotPrimitiveTypeError),
         }
     }
 }

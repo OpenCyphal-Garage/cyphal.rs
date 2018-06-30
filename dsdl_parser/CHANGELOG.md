@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 ### Changed
  - Renamed `Const` to `Lit`
+ - Changed enum with one variant `ParsePrimitiveTypeError::NotPrimitiveType` to empty struct `NotPrimitiveTypeError`
 ### Deprecated
 ### Removed
 ### Fixed
