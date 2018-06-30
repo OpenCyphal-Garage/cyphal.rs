@@ -472,20 +472,6 @@ impl FromStr for CompositeType {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Comment(String);
 
-impl<'a> From<&'a str> for Comment {
-    fn from(s: &'a str) -> Comment {
-        Comment(String::from(s))
-    }
-}
-
-impl FromStr for Comment {
-    type Err = ();
-    
-    fn from_str(s: &str) -> Result<Comment, Self::Err> {
-        Ok(Comment::from(s))
-    }
-}
-
 impl AsRef<str> for Comment {
     fn as_ref(&self) -> &str {
         self.0.as_ref()

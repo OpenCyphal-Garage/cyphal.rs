@@ -105,8 +105,9 @@ impl<'input> Iterator for Lexer<'input> {
         match self.chars.next() {
             // Comments
             Some((i, '#')) => {
-                let length = self.skip_while(|c| c!='\r' && c!='\n');
-                Some(Ok((i, Token::Comment(Comment(String::from(&self.input[i+1..i+1+length] ))), i + length + 1)))
+                let length = self.skip_while(|c| c!='\r' && c!='\n') + 1;
+                let comment = Comment::from_str(&self.input[i..i+length]).expect("Only legal symbols for comments are included");
+                Some(Ok((i, Token::Comment(comment), i + length + 1)))
             },
 
 
@@ -281,6 +282,27 @@ impl FromStr for Lit {
         }
     }
 
+}
+
+/// Errors that may occur when parsing a `Comment`
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ParseCommentError {
+    NoStartingHash,
+    ContainsEol,
+}
+
+impl FromStr for Comment {
+    type Err = ParseCommentError;
+
+    fn from_str(s: &str) -> Result<Comment, Self::Err> {
+        if !s.starts_with("#") {
+            Err(ParseCommentError::NoStartingHash)
+        } else if s.contains("\n") || s.contains("\r") {
+            Err(ParseCommentError::ContainsEol)
+        } else {
+            Ok(Comment(String::from(&s[1..])))
+        }
+    }
 }
 
 // Helper functions for parsing

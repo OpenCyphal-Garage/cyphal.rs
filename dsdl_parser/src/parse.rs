@@ -18,8 +18,11 @@ named!(pub id<String>, map!(map_res!(verify!(take_while!(is_digit), |x:&[u8]| x.
 
 named!(pub file_name<FileName>, map_res!(map_res!(take_while!(is_allowed_in_file_name), str::from_utf8), FileName::from_str));
 
-
-named!(comment<Comment>, map!(map_res!(complete!(preceded!(tag!("#"), not_line_ending)), str::from_utf8), Comment::from));
+named!(comment<Comment>, complete!(do_parse!(
+    hash: tag!("#") >>
+    text: map_res!(not_line_ending, str::from_utf8) >>
+    (Comment(String::from(text)))
+)));
 
 named!(directive<Directive>, map_res!(map_res!(do_parse!(_tag: tag!("@") >> name: take_while!(is_allowed_in_directive_name) >> (name)), str::from_utf8), Directive::from_str));
 
