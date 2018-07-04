@@ -6,6 +6,7 @@ use std::str::FromStr;
 use {
     PrimitiveType,
     CastMode,
+    Sign,
     Lit,
     Comment,
     Ident,
@@ -225,59 +226,89 @@ impl FromStr for Lit {
             if let Some((pos, c)) = s.chars().enumerate().skip(2).find(|(_, c)| !is_hex_digit(*c)) {
                 Err(ParseLitError::NotValidHex(pos, c))
             } else {
-                Ok(Lit::Hex(String::from(s)))
+                Ok(Lit::Hex{sign: Sign::Implicit, value: String::from(&s[2..])})
             }
-        } else if s.starts_with("+0x") || s.starts_with("-0x") {
+        } else if s.starts_with("+0x") {
             if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_hex_digit(*c)) {
                 Err(ParseLitError::NotValidHex(pos, c))
             } else {
-                Ok(Lit::Hex(String::from(s)))
+                Ok(Lit::Hex{sign: Sign::Positive, value: String::from(&s[3..])})
+            }
+        } else if s.starts_with("-0x") {
+            if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_hex_digit(*c)) {
+                Err(ParseLitError::NotValidHex(pos, c))
+            } else {
+                Ok(Lit::Hex{sign: Sign::Negative, value: String::from(&s[3..])})
             }
         } else if s.starts_with("0o") {
             if let Some((pos, c)) = s.chars().enumerate().skip(2).find(|(_, c)| !is_oct_digit(*c)) {
                 Err(ParseLitError::NotValidOct(pos, c))
             } else {
-                Ok(Lit::Oct(String::from(s)))
+                Ok(Lit::Oct{sign: Sign::Implicit, value: String::from(&s[2..])})
             }
-        } else if s.starts_with("+0o") || s.starts_with("-0o") {
+        } else if s.starts_with("+0o") {
             if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_oct_digit(*c)) {
                 Err(ParseLitError::NotValidOct(pos, c))
             } else {
-                Ok(Lit::Oct(String::from(s)))
+                Ok(Lit::Oct{sign: Sign::Positive, value: String::from(&s[3..])})
+            }
+        } else if s.starts_with("-0o") {
+            if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_oct_digit(*c)) {
+                Err(ParseLitError::NotValidOct(pos, c))
+            } else {
+                Ok(Lit::Oct{sign: Sign::Negative, value: String::from(&s[3..])})
             }
         } else if s.starts_with("0b") {
             if let Some((pos, c)) = s.chars().enumerate().skip(2).find(|(_, c)| !is_bin_digit(*c)) {
                 Err(ParseLitError::NotValidBin(pos, c))
             } else {
-                Ok(Lit::Bin(String::from(s)))
+                Ok(Lit::Bin{sign: Sign::Implicit, value: String::from(&s[2..])})
             }
-        } else if s.starts_with("+0b") || s.starts_with("-0b") {
+        } else if s.starts_with("+0b") {
             if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_bin_digit(*c)) {
                 Err(ParseLitError::NotValidOct(pos, c))
             } else {
-                Ok(Lit::Bin(String::from(s)))
+                Ok(Lit::Bin{sign: Sign::Positive, value: String::from(&s[3..])})
+            }
+        } else if s.starts_with("-0b") {
+            if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_bin_digit(*c)) {
+                Err(ParseLitError::NotValidOct(pos, c))
+            } else {
+                Ok(Lit::Bin{sign: Sign::Negative, value: String::from(&s[3..])})
             }
         } else if s.contains(".") || s.contains("e") || s.contains("E") {
             // TODO: More sanitization needs to be done. Only one e or E and one . should be allowed
             if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !allowed_in_float_literal(*c)) {
                 Err(ParseLitError::NotValidFloat(pos, c))
             } else {
-                Ok(Lit::Float(String::from(s)))
+                if s.starts_with('+') {
+                    Ok(Lit::Float{sign: Sign::Positive, value: String::from(&s[1..])})
+                } else if s.starts_with('-') {
+                    Ok(Lit::Float{sign: Sign::Negative, value: String::from(&s[1..])})
+                } else {
+                    Ok(Lit::Float{sign: Sign::Implicit, value: String::from(s)})
+                }
             }
-        } else if s.starts_with("-0") {
-            Err(ParseLitError::DecStartsWithNegZero)
-        } else if s.starts_with("+0") {
-            Err(ParseLitError::DecStartsWithPosZero)
-        } else if s.starts_with("0") {
-            Err(ParseLitError::DecStartsWithZero)
         } else if s.starts_with("'") && s.ends_with("'") {
             // TODO: More sanitization of chars
             Ok(Lit::Char(String::from(&s[1..s.len()-1])))
         } else {
-            if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_numeric(*c)) {
+            if s.starts_with("-0") {
+                Err(ParseLitError::DecStartsWithNegZero)
+            } else if s.starts_with("+0") {
+                Err(ParseLitError::DecStartsWithPosZero)
+            } else if s.starts_with("0") {
+                Err(ParseLitError::DecStartsWithZero)
+            } else if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_numeric(*c)) {
                 Err(ParseLitError::NotValidDec(pos, c))
             } else {
-                Ok(Lit::Dec(String::from(s)))
+                if s.starts_with('+') {
+                    Ok(Lit::Dec{sign: Sign::Positive, value: String::from(&s[1..])})
+                } else if s.starts_with('-') {
+                    Ok(Lit::Dec{sign: Sign::Negative, value: String::from(&s[1..])})
+                } else {
+                    Ok(Lit::Dec{sign: Sign::Implicit, value: String::from(s)})
+                }
             }
         }
     }
@@ -644,16 +675,16 @@ mod tests {
         let mut lexer = Lexer::new("[<=123][456][<789]");
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::LeftBracket);
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::LessEq);
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("123"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("123")}));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::RightBracket);
 
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::LeftBracket);
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("456"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("456")}));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::RightBracket);
 
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::LeftBracket);
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Less);
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("789"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("789")}));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::RightBracket);
 
         assert_eq!(lexer.next(), None);
@@ -687,27 +718,27 @@ mod tests {
     fn tokenize_literal() {
         let mut lexer = Lexer::new("12354 -12 +12 0x123 -0x12 +0x123 0b1101 -0b101101 +0b101101 -0o123 0o777 +0o777 15.75 1.575E1 1575e-2 -2.5e-3 +25e-4 true false 'a' '\\x61' '\\n'");
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("12354"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("-12"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec(String::from("+12"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("12354")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Negative, value: String::from("12")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Positive, value: String::from("12")}));
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex(String::from("0x123"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex(String::from("-0x12"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex(String::from("+0x123"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex{sign: Sign::Implicit, value: String::from("123")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex{sign: Sign::Negative, value: String::from("12")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Hex{sign: Sign::Positive, value: String::from("123")}));
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin(String::from("0b1101"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin(String::from("-0b101101"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin(String::from("+0b101101"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin{sign: Sign::Implicit, value: String::from("1101")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin{sign: Sign::Negative, value: String::from("101101")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bin{sign: Sign::Positive, value: String::from("101101")}));
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct(String::from("-0o123"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct(String::from("0o777"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct(String::from("+0o777"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct{sign: Sign::Negative, value: String::from("123")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct{sign: Sign::Implicit, value: String::from("777")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Oct{sign: Sign::Positive, value: String::from("777")}));
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float(String::from("15.75"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float(String::from("1.575E1"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float(String::from("1575e-2"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float(String::from("-2.5e-3"))));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float(String::from("+25e-4"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Implicit, value: String::from("15.75")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Implicit, value: String::from("1.575E1")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Implicit, value: String::from("1575e-2")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Negative, value: String::from("2.5e-3")}));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Positive, value: String::from("25e-4")}));
 
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bool(true)));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bool(false)));

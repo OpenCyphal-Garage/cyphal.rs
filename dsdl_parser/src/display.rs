@@ -67,16 +67,26 @@ impl Display for ArrayInfo {
     }
 }
 
+impl Display for Sign {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        match self {
+            Sign::Implicit => write!(f, ""),
+            Sign::Positive => write!(f, "+"),
+            Sign::Negative => write!(f, "-"),
+        }
+    }
+}
+
 impl Display for Lit {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
-            Lit::Dec(ref x) => write!(f, "{}", x),
-            Lit::Hex(ref x) => write!(f, "{}", x),
-            Lit::Bin(ref x) => write!(f, "{}", x),
-            Lit::Oct(ref x) => write!(f, "{}", x),
-            Lit::Bool(ref x) => write!(f, "{}", match *x {true => "true", false => "false"}),
-            Lit::Char(ref x) => write!(f, "'{}'", x),
-            Lit::Float(ref x) => write!(f, "{}", x),
+        match self {
+            Lit::Dec{sign: s, value: v} => write!(f, "{}{}", s, v),
+            Lit::Hex{sign: s, value: v} => write!(f, "{}0x{}", s, v),
+            Lit::Bin{sign: s, value: v} => write!(f, "{}0b{}", s, v),
+            Lit::Oct{sign: s, value: v} => write!(f, "{}0o{}", s, v),
+            Lit::Bool(x) => write!(f, "{}", match x {true => "true", false => "false"}),
+            Lit::Char(x) => write!(f, "'{}'", x),
+            Lit::Float{sign: s, value: v} => write!(f, "{}{}", s, v),
         }
     }
 }
@@ -463,7 +473,7 @@ mod tests {
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint2),
                                    name: Ident(String::from("HEALTH_OK")),
-                                   literal: Lit::Dec(String::from("0")),
+                                   literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
                                }),
                                Some(Comment(String::from(" test comment"))))),
                    "uint2 HEALTH_OK = 0 # test comment"

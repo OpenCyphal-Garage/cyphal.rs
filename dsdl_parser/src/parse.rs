@@ -31,20 +31,22 @@ named!(service_response_marker<ServiceResponseMarker>, do_parse!(_srm: tag!("---
 named!(literal<Lit>, alt!(
     complete!(do_parse!(_value: tag!("true") >> (Lit::Bool(true)) )) |
     complete!(do_parse!(_value: tag!("false") >> (Lit::Bool(false)) )) |
-    complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex(String::from("0x") + value)))) |
-    complete!(do_parse!(_format: tag!("+0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex(String::from("+0x") + value)))) |
-    complete!(do_parse!(_format: tag!("-0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex(String::from("-0x") + value)))) |
-    complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin(String::from("0b") + value)))) |
-    complete!(do_parse!(_format: tag!("+0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin(String::from("+0b") + value)))) |
-    complete!(do_parse!(_format: tag!("-0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin(String::from("-0b") + value)))) |
-    complete!(do_parse!(_format: tag!("0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct(String::from("0o") + value)))) |
-    complete!(do_parse!(_format: tag!("+0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct(String::from("+0o") + value)))) |
-    complete!(do_parse!(_format: tag!("-0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct(String::from("-0o") + value)))) |
+    complete!(do_parse!(_format: tag!("0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex{sign: Sign::Implicit, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("+0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex{sign: Sign::Positive, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("-0x") >> value: map_res!(take_while!(is_hex_digit), str::from_utf8) >> (Lit::Hex{sign: Sign::Negative, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin{sign: Sign::Implicit, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("+0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin{sign: Sign::Positive, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("-0b") >> value: map_res!(take_while!(is_bin_digit), str::from_utf8) >> (Lit::Bin{sign: Sign::Negative, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct{sign: Sign::Implicit, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("+0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct{sign: Sign::Positive, value: String::from(value)}))) |
+    complete!(do_parse!(_format: tag!("-0o") >> value: map_res!(take_while!(is_oct_digit), str::from_utf8) >> (Lit::Oct{sign: Sign::Negative, value: String::from(value)}))) |
     complete!(do_parse!(achar: delimited!(tag!("'"), map_res!(take_until!("'"), str::from_utf8), tag!("'")) >> (Lit::Char(String::from(achar))))) |
-    complete!(do_parse!(_sign: tag!("-") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec(String::from("-") + value)))) |
-    complete!(do_parse!(_sign: tag!("+") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec(String::from("+") + value)))) |
-    complete!(do_parse!(value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec(String::from(value))))) |
-    complete!(do_parse!(value: map_res!(take_while!(is_allowed_in_float), str::from_utf8) >> (Lit::Float(String::from(value)))))
+    complete!(do_parse!(_sign: tag!("-") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec{sign: Sign::Negative, value: String::from(value)}))) |
+    complete!(do_parse!(_sign: tag!("+") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec{sign: Sign::Positive, value: String::from(value)}))) |
+    complete!(do_parse!(value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_digit(*x))), str::from_utf8) >> (Lit::Dec{sign: Sign::Implicit, value: String::from(value)}))) |
+    complete!(do_parse!(_sign: tag!("-") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_allowed_in_float(*x))), str::from_utf8) >> (Lit::Float{sign: Sign::Negative, value: String::from(value)}))) |
+    complete!(do_parse!(_sign: tag!("+") >> value: map_res!(verify!(take_while!(is_allowed_in_const), |x:&[u8]| x.iter().all(|x| is_allowed_in_float(*x))), str::from_utf8) >> (Lit::Float{sign: Sign::Positive, value: String::from(value)}))) |
+    complete!(do_parse!(value: map_res!(take_while!(is_allowed_in_float), str::from_utf8) >> (Lit::Float{sign: Sign::Implicit, value: String::from(value)})))
 ));
 
 named!(cast_mode<CastMode>, map_res!(map_res!(
@@ -256,27 +258,27 @@ mod tests {
 
     #[test]
     fn parse_literal() {
-        assert_eq!(literal(&b"12354"[..]), IResult::Done(&b""[..], Lit::Dec(String::from("12354"))));
-        assert_eq!(literal(&b"-12"[..]), IResult::Done(&b""[..], Lit::Dec(String::from("-12"))));
-        assert_eq!(literal(&b"+12"[..]), IResult::Done(&b""[..], Lit::Dec(String::from("+12"))));
+        assert_eq!(literal(&b"12354"[..]), IResult::Done(&b""[..], Lit::Dec{sign: Sign::Implicit, value: String::from("12354")}));
+        assert_eq!(literal(&b"-12"[..]), IResult::Done(&b""[..], Lit::Dec{sign: Sign::Negative, value: String::from("12")}));
+        assert_eq!(literal(&b"+12"[..]), IResult::Done(&b""[..], Lit::Dec{sign: Sign::Positive, value: String::from("12")}));
         
-        assert_eq!(literal(&b"0x123"[..]), IResult::Done(&b""[..], Lit::Hex(String::from("0x123"))));
-        assert_eq!(literal(&b"-0x12"[..]), IResult::Done(&b""[..], Lit::Hex(String::from("-0x12"))));
-        assert_eq!(literal(&b"+0x123"[..]), IResult::Done(&b""[..], Lit::Hex(String::from("+0x123"))));
+        assert_eq!(literal(&b"0x123"[..]), IResult::Done(&b""[..], Lit::Hex{sign: Sign::Implicit, value: String::from("123")}));
+        assert_eq!(literal(&b"-0x12"[..]), IResult::Done(&b""[..], Lit::Hex{sign: Sign::Negative, value: String::from("12")}));
+        assert_eq!(literal(&b"+0x123"[..]), IResult::Done(&b""[..], Lit::Hex{sign: Sign::Positive, value: String::from("123")}));
         
-        assert_eq!(literal(&b"0b1101"[..]), IResult::Done(&b""[..], Lit::Bin(String::from("0b1101"))));
-        assert_eq!(literal(&b"-0b101101"[..]), IResult::Done(&b""[..], Lit::Bin(String::from("-0b101101"))));
-        assert_eq!(literal(&b"+0b101101"[..]), IResult::Done(&b""[..], Lit::Bin(String::from("+0b101101"))));
+        assert_eq!(literal(&b"0b1101"[..]), IResult::Done(&b""[..], Lit::Bin{sign: Sign::Implicit, value: String::from("1101")}));
+        assert_eq!(literal(&b"-0b101101"[..]), IResult::Done(&b""[..], Lit::Bin{sign: Sign::Negative, value: String::from("101101")}));
+        assert_eq!(literal(&b"+0b101101"[..]), IResult::Done(&b""[..], Lit::Bin{sign: Sign::Positive, value: String::from("101101")}));
         
-        assert_eq!(literal(&b"0o123"[..]), IResult::Done(&b""[..], Lit::Oct(String::from("0o123"))));
-        assert_eq!(literal(&b"-0o777"[..]), IResult::Done(&b""[..], Lit::Oct(String::from("-0o777"))));
-        assert_eq!(literal(&b"+0o777"[..]), IResult::Done(&b""[..], Lit::Oct(String::from("+0o777"))));
+        assert_eq!(literal(&b"-0o123"[..]), IResult::Done(&b""[..], Lit::Oct{sign: Sign::Negative, value: String::from("123")}));
+        assert_eq!(literal(&b"0o777"[..]), IResult::Done(&b""[..], Lit::Oct{sign: Sign::Implicit, value: String::from("777")}));
+        assert_eq!(literal(&b"+0o777"[..]), IResult::Done(&b""[..], Lit::Oct{sign: Sign::Positive, value: String::from("777")}));
         
-        assert_eq!(literal(&b"15.75"[..]), IResult::Done(&b""[..], Lit::Float(String::from("15.75"))));
-        assert_eq!(literal(&b"1.575E1"[..]), IResult::Done(&b""[..], Lit::Float(String::from("1.575E1"))));
-        assert_eq!(literal(&b"1575e-2"[..]), IResult::Done(&b""[..], Lit::Float(String::from("1575e-2"))));
-        assert_eq!(literal(&b"-2.5e-3"[..]), IResult::Done(&b""[..], Lit::Float(String::from("-2.5e-3"))));
-        assert_eq!(literal(&b"+25e-4"[..]), IResult::Done(&b""[..], Lit::Float(String::from("+25e-4"))));
+        assert_eq!(literal(&b"15.75"[..]), IResult::Done(&b""[..], Lit::Float{sign: Sign::Implicit, value: String::from("15.75")}));
+        assert_eq!(literal(&b"1.575E1"[..]), IResult::Done(&b""[..], Lit::Float{sign: Sign::Implicit, value: String::from("1.575E1")}));
+        assert_eq!(literal(&b"1575e-2"[..]), IResult::Done(&b""[..], Lit::Float{sign: Sign::Implicit, value: String::from("1575e-2")}));
+        assert_eq!(literal(&b"-2.5e-3"[..]), IResult::Done(&b""[..], Lit::Float{sign: Sign::Negative, value: String::from("2.5e-3")}));
+        assert_eq!(literal(&b"+25e-4"[..]), IResult::Done(&b""[..], Lit::Float{sign: Sign::Positive, value: String::from("25e-4")}));
         
         assert_eq!(literal(&b"true"[..]), IResult::Done(&b""[..], Lit::Bool(true)));
         assert_eq!(literal(&b"false"[..]), IResult::Done(&b""[..], Lit::Bool(false)));
@@ -403,7 +405,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
-                literal: Lit::Dec(String::from("0")),
+                literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
             })
         );
 
@@ -442,7 +444,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint2),
                 name: Ident(String::from("HEALTH_OK")),
-                literal: Lit::Dec(String::from("0")),
+                literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
             }))
         );
 
@@ -521,7 +523,7 @@ mod tests {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint2),
                     name: Ident(String::from("HEALTH_OK")),
-                    literal: Lit::Dec(String::from("0")),
+                    literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
                 }),
                 None,
             ))
