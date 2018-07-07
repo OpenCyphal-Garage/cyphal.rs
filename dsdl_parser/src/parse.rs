@@ -81,8 +81,7 @@ named!(type_name<Ty>, alt!(
 named!(array_info<ArrayInfo>, alt!(
     complete!(do_parse!(intro: tag!("[<=") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::DynamicLeq(Size::from_str(num).unwrap())))) |
     complete!(do_parse!(intro: tag!("[<") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::DynamicLess(Size::from_str(num).unwrap())))) |
-    complete!(do_parse!(intro: tag!("[") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::Static(Size::from_str(num).unwrap())))) |
-    complete!(do_parse!(empty: tag!("") >> (ArrayInfo::Single)))
+    complete!(do_parse!(intro: tag!("[") >> num: map_res!(take_while!(is_digit), str::from_utf8) >> exit: tag!("]") >> (ArrayInfo::Static(Size::from_str(num).unwrap()))))
 ));
 
 
@@ -92,14 +91,14 @@ named!(array_info<ArrayInfo>, alt!(
 named!(void_definition<FieldDefinition>, sep!(whitespace, 
                                              do_parse!(
                                                  type_name: verify!(primitive_type, |x:PrimitiveType| x.is_void()) >>
-                                                     (FieldDefinition{cast_mode: None, field_type: Ty::Primitive(type_name), array: ArrayInfo::Single, name: None}))
+                                                     (FieldDefinition{cast_mode: None, field_type: Ty::Primitive(type_name), array: None, name: None}))
 ));
 
 
 named!(field_definition<FieldDefinition>, sep!(whitespace, do_parse!(
     cast_mode: opt!(cast_mode) >>
         field_type: type_name >>
-        array: array_info >>
+        array: opt!(array_info) >>
         name: field_name >>
         (FieldDefinition{cast_mode: cast_mode, field_type: field_type, array: array, name: Some(name)})
 )));
@@ -349,7 +348,6 @@ mod tests {
 
     #[test]
     fn parse_array_info() {
-        assert_eq!(array_info(&b""[..]), IResult::Done(&b""[..], ArrayInfo::Single));
         assert_eq!(array_info(&b"[<=4]"[..]), IResult::Done(&b""[..], ArrayInfo::DynamicLeq(Size::from_str("4").unwrap())));
         assert_eq!(array_info(&b"[<5]"[..]), IResult::Done(&b""[..], ArrayInfo::DynamicLess(Size::from_str("5").unwrap())));
         
@@ -376,7 +374,7 @@ mod tests {
             IResult::Done(&b""[..], FieldDefinition{
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Void2),
-                array: ArrayInfo::Single,
+                array: None,
                 name: None,
             })
         );        
@@ -389,7 +387,7 @@ mod tests {
             IResult::Done(&b""[..], FieldDefinition{
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
-                array: ArrayInfo::Single,
+                array: None,
                 name: Some(Ident(String::from("uptime_sec"))),
             })
         );
@@ -423,7 +421,7 @@ mod tests {
             IResult::Done(&b""[..], AttributeDefinition::Field(FieldDefinition{
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Void2),
-                array: ArrayInfo::Single,
+                array: None,
                 name: None,
             }))
         );
@@ -433,7 +431,7 @@ mod tests {
             IResult::Done(&b""[..], AttributeDefinition::Field(FieldDefinition{
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
-                array: ArrayInfo::Single,
+                array: None,
                 name: Some(Ident(String::from("uptime_sec"))),
             }))
         );
@@ -470,7 +468,7 @@ mod tests {
                 AttributeDefinition::Field(FieldDefinition{
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void2),
-                    array: ArrayInfo::Single,
+                    array: None,
                     name: None,
                 }),
                 None
@@ -483,7 +481,7 @@ mod tests {
                 AttributeDefinition::Field(FieldDefinition{
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void3),
-                    array: ArrayInfo::Single,
+                    array: None,
                     name: None,
                 }),
                 None
@@ -496,7 +494,7 @@ mod tests {
                 AttributeDefinition::Field(FieldDefinition{
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void2),
-                    array: ArrayInfo::Single,
+                    array: None,
                     name: None
                 }),
                 Some(Comment(String::from(" test comment")))
@@ -509,7 +507,7 @@ mod tests {
                 AttributeDefinition::Field(FieldDefinition{
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint32),
-                    array: ArrayInfo::Single,
+                    array: None,
                     name: Some(Ident(String::from("uptime_sec"))),
                 }),
                 None,
@@ -541,11 +539,11 @@ void3
 
 void2 # test comment"[..]),
             IResult::Done(&b""[..], vec!(
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), None),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), None),
                 Line::Comment(Comment(String::from(" test comment"))),
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: ArrayInfo::Single, name: None}), None),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: None, name: None}), None),
                 Line::Empty,
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: ArrayInfo::Single, name: None}), Some(Comment(String::from(" test comment")))),
+                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), Some(Comment(String::from(" test comment")))),
             ))  
         );
         

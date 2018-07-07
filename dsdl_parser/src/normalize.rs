@@ -98,14 +98,14 @@ impl FieldDefinition {
                     FieldDefinition{
                         cast_mode: None,
                         field_type: Ty::Primitive(primitive_type),
-                        array: array.normalize(),
+                        array: array.map(|x| x.normalize()),
                         name: name,
                     }
                 } else {
                     FieldDefinition{
                         cast_mode: Some(CastMode::Saturated),
                         field_type: Ty::Primitive(primitive_type),
-                        array: array.normalize(),
+                        array: array.map(|x| x.normalize()),
                         name: name,
                     }
                 },
@@ -114,7 +114,7 @@ impl FieldDefinition {
                 FieldDefinition{
                     cast_mode: cast_mode,
                     field_type: Ty::Composite(CompositeType{namespace: Some(Ident::from(file_name.clone().namespace)), name: type_name}),
-                    array: array.normalize(),
+                    array: array.map(|x| x.normalize()),
                     name: field_name,
                 },
             x => x,

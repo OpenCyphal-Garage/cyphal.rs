@@ -59,7 +59,6 @@ impl Display for Directive {
 impl Display for ArrayInfo {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            ArrayInfo::Single => write!(f, ""),
             ArrayInfo::DynamicLess(ref num) => write!(f, "[<{}]", num),
             ArrayInfo::DynamicLeq(ref num) => write!(f, "[<={}]", num),
             ArrayInfo::Static(ref num) => write!(f, "[{}]", num),
@@ -98,7 +97,12 @@ impl Display for FieldDefinition {
             None => ()
         };
 
-        write!(f, "{}{}", self.field_type, self.array)?;
+        write!(f, "{}", self.field_type)?;
+
+        match self.array {
+            Some(ref x) => write!(f, "{}", x)?,
+            None => ()
+        };
 
         match self.name {
             Some(ref x) => write!(f, " {}", x),
@@ -448,7 +452,7 @@ mod tests {
                                AttributeDefinition::Field(FieldDefinition{
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint32),
-                                   array: ArrayInfo::Single,
+                                   array: None,
                                    name: Some(Ident(String::from("uptime_sec"))),
                                }),
                                None)),
@@ -460,7 +464,7 @@ mod tests {
                                AttributeDefinition::Field(FieldDefinition{
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint32),
-                                   array: ArrayInfo::Single,
+                                   array: None,
                                    name: Some(Ident(String::from("uptime_sec"))),
                                }),
                                Some(Comment(String::from(" test comment"))))),
