@@ -126,7 +126,7 @@ impl ArrayInfo {
     fn normalize(self) -> Self {
         // 4. For dynamic arrays, replace the max length specifier in the form [<X] to the form [<=Y]
         match self {
-            ArrayInfo::DynamicLess(Size(num)) => ArrayInfo::DynamicLeq(Size(num-1)),
+            ArrayInfo::DynamicLess(num) => ArrayInfo::DynamicLeq(num-1),
             x => x,
         }
     }

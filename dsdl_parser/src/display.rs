@@ -35,12 +35,6 @@ impl Display for Comment {
     }
 }
 
-impl Display for Size {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        write!(f, "{}", self.0)
-    }
-}
-
 impl Display for Ident {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         write!(f, "{}", self.0)

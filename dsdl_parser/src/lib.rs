@@ -561,48 +561,6 @@ impl From<String> for Ident {
     }
 }
 
-/// Used to determin size of e.g. DynamicArray or a StaticArray
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Size(u64);
-
-impl FromStr for Size {
-    type Err = std::num::ParseIntError;
-    
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Size(u64::from_str(s)?))
-    }
-}
-
-impl From<Size> for u64 {
-    fn from(i: Size) -> u64 {
-        i.0
-    }
-}
-
-impl From<u8> for Size {
-    fn from(i: u8) -> Size {
-        Size(u64::from(i))
-    }
-}
-
-impl From<u16> for Size {
-    fn from(i: u16) -> Size {
-        Size(u64::from(i))
-    }
-}
-
-impl From<u32> for Size {
-    fn from(i: u32) -> Size {
-        Size(u64::from(i))
-    }
-}
-
-impl From<u64> for Size {
-    fn from(i: u64) -> Size {
-        Size(i)
-    }
-}
-
 /// A sign of a signed literal (dec int, hex int, float etc)
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Sign {
@@ -678,11 +636,11 @@ impl FromStr for CastMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ArrayInfo {
     /// Dynamic array on the less than form (i.e. `uint2[<5]`)
-    DynamicLess(Size),
+    DynamicLess(u64),
     /// Dynamic array on the less or equal form (i.e. `uint2[<=5]`)
-    DynamicLeq(Size),
+    DynamicLeq(u64),
     /// Static array on the less or equal form (i.e. `uint2[5]`)
-    Static(Size),
+    Static(u64),
 }
 
 
