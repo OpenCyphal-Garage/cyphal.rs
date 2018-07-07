@@ -181,15 +181,6 @@ impl<'input> Iterator for Lexer<'input> {
 /// Errors that may occur when parsing `Lit`
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ParseLitError {
-    /// Decimal number starts with `+0`
-    DecStartsWithPosZero,
-
-    /// Decimal number starts with `-0`
-    DecStartsWithNegZero,
-
-    /// Decimal number starts with `0`
-    DecStartsWithZero,
-
     /// String started with "(+|-)0x" and encountered a char that is not a valid hexadecimal digit (0-f).
     NotValidHex(usize, char),
 
@@ -293,13 +284,7 @@ impl FromStr for Lit {
             // TODO: More sanitization of chars
             Ok(Lit::Char(String::from(&s[1..s.len()-1])))
         } else {
-            if s.starts_with("-0") {
-                Err(ParseLitError::DecStartsWithNegZero)
-            } else if s.starts_with("+0") {
-                Err(ParseLitError::DecStartsWithPosZero)
-            } else if s.starts_with("0") {
-                Err(ParseLitError::DecStartsWithZero)
-            } else if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_numeric(*c)) {
+            if let Some((pos, c)) = s.chars().enumerate().skip(3).find(|(_, c)| !is_numeric(*c)) {
                 Err(ParseLitError::NotValidDec(pos, c))
             } else {
                 if s.starts_with('+') {
