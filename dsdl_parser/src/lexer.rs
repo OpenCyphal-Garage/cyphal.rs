@@ -142,10 +142,32 @@ impl<'input> Iterator for Lexer<'input> {
 
             Some((i, '=')) => Some(Ok((i, Token::Eq, i+1))),
 
+            // char literals
+            Some((i, '\'')) => {
+                let mut literal_length = 1;
+                let mut escaped = false;
+                loop {
+                    let c = match self.chars.next() {
+                        Some((_, c)) => c,
+                        None => unimplemented!("TODO: give some error (end of file reached while parsing char literal)"),
+                    };
+                    literal_length += 1;
 
-            // All literals except true and false will match this rule
-            Some((i, c)) if allowed_as_literal_start(c) => {
-                let literal_length = self.skip_while(allowed_in_literal) + 1;
+                    if c == '\'' && !escaped {
+                        break;
+                    }
+
+                    escaped = c == '\\' && !escaped;
+                }
+                match Lit::from_str(&self.input[i..i + literal_length]) {
+                    Ok(lit) => Some(Ok((i, Token::Lit(lit), i + literal_length))),
+                    Err(e) => unimplemented!("TODO: propage errors for bad formated literals: {:?}", e)
+                }
+            }
+
+            // All numeric literals will match this rule
+            Some((i, c)) if allowed_as_numeric_literal_start(c) => {
+                let literal_length = self.skip_while(allowed_in_numeric_literal) + 1;
                 match Lit::from_str(&self.input[i..i+literal_length]) {
                     Ok(lit) => Some(Ok((i, Token::Lit(lit), i+literal_length))),
                     Err(e) => unimplemented!("TODO: propage errors for bad formated literals: {:?}", e)
@@ -171,7 +193,7 @@ impl<'input> Iterator for Lexer<'input> {
                 }
             }
 
-            Some(_) => unimplemented!(),
+            Some(x) => unimplemented!("TODO: Implement some error: Unrecognized token: {:?}", x),
             None => None, // End of file
         }
     }
@@ -281,7 +303,7 @@ impl FromStr for Lit {
                     Ok(Lit::Float{sign: Sign::Implicit, value: String::from(s)})
                 }
             }
-        } else if s.starts_with("'") && s.ends_with("'") {
+        } else if s.starts_with("'") && s.ends_with("'") && s.len() > 2 {
             // TODO: More sanitization of chars
             Ok(Lit::Char(String::from(&s[1..s.len()-1])))
         } else {
@@ -554,22 +576,18 @@ fn allowed_in_identifier(c: char) -> bool {
         || c == '.'
 }
 
-fn allowed_as_literal_start(c: char) -> bool {
+fn allowed_as_numeric_literal_start(c: char) -> bool {
     c == '+'
     || c == '-'
-    || c == '\''
     || is_numeric(c)
 }
 
-fn allowed_in_literal(c: char) -> bool {
-    c == '+'
-    || c == '-'
-    || c == '.'
-    || c == '\''
-    || c == '\\'
-    || (c >= 'a' && c <= 'z')
-    || (c >= 'A' && c <= 'Z')
-    || is_numeric(c)
+fn allowed_in_numeric_literal(c: char) -> bool {
+    allowed_in_float_literal(c)
+    || c == 'x'
+    || c == 'o'
+    || c == 'b'
+    || is_hex_digit(c)
 }
 
 fn allowed_in_float_literal(c: char) -> bool {
@@ -588,6 +606,7 @@ fn is_numeric(c: char) -> bool {
 fn is_hex_digit(c: char) -> bool {
     (c >= '0' && c <= '9')
         || (c >= 'a' && c <= 'f')
+        || (c >= 'A' && c <= 'F')
 }
 
 fn is_oct_digit(c: char) -> bool {
@@ -701,8 +720,8 @@ mod tests {
     }
 
     #[test]
-    fn tokenize_literal() {
-        let mut lexer = Lexer::new("12354 -12 +12 0x123 -0x12 +0x123 0b1101 -0b101101 +0b101101 -0o123 0o777 +0o777 15.75 1.575E1 1575e-2 -2.5e-3 +25e-4 true false 'a' '\\x61' '\\n'");
+    fn tokenize_numeric_literal() {
+        let mut lexer = Lexer::new("12354 -12 +12 0x123 -0x12 +0x123 0b1101 -0b101101 +0b101101 -0o123 0o777 +0o777 15.75 1.575E1 1575e-2 -2.5e-3 +25e-4");
 
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("12354")}));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Dec{sign: Sign::Negative, value: String::from("12")}));
@@ -726,15 +745,22 @@ mod tests {
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Negative, value: String::from("2.5e-3")}));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Float{sign: Sign::Positive, value: String::from("25e-4")}));
 
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bool(true)));
-        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Bool(false)));
+        assert_eq!(lexer.next(), None);
+    }
+
+    #[test]
+    fn tokenize_char_literal() {
+        let mut lexer = Lexer::new("'a' '\\x61' '\\n' '\\'' '\\\\'");
 
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Char(String::from("a"))));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Char(String::from("\\x61"))));
         assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Char(String::from("\\n"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Char(String::from("\\\'"))));
+        assert_eq!(lexer.next().unwrap().unwrap().1, Token::Lit(Lit::Char(String::from("\\\\"))));
 
         assert_eq!(lexer.next(), None);
     }
+
 
     #[test]
     fn tokenize_directive() {
