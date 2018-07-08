@@ -50,6 +50,8 @@ extern crate nom;
 #[macro_use]
 extern crate log;
 
+extern crate lalrpop_util;
+
 use std::io::Read;
 
 use std::fs;
@@ -64,6 +66,7 @@ use std::collections::HashMap;
 use nom::IResult;
 
 mod lexer;
+mod parser;
 mod parse;
 mod display;
 mod normalize;

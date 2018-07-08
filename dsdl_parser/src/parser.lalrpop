@@ -1,0 +1,107 @@
+use std::str::FromStr;
+
+use lexer;
+use lexer::Token;
+
+use {
+    Comment,
+    Ident,
+    Sign,
+    Lit,
+    PrimitiveType,
+    CastMode,
+
+    ArrayInfo,
+    AttributeDefinition,
+    Directive,
+    TypeDefinition,
+    MessageDefinition,
+    ServiceDefinition,
+    FieldDefinition,
+    ConstDefinition,
+    Line,
+    Ty,
+    CompositeType,
+};
+
+grammar;
+
+extern {
+
+    type Location = usize;
+    type Error = lexer::LexicalError;
+
+    enum lexer::Token {
+        // Tokens
+        comment => Token::Comment(<Comment>),
+        ident => Token::Ident(<Ident>),
+        lit => Token::Lit(<Lit>),
+        primitive_type => Token::PrimitiveType(<PrimitiveType>),
+        "@" => Token::DirectiveMarker,
+        cast_mode => Token::CastMode(<CastMode>),
+        "[" => Token::LeftBracket,
+        "]" => Token::RightBracket,
+        "<" => Token::Less,
+        "<=" => Token::LessEq,
+        "=" => Token::Eq,
+        "---" => Token::ServiceResponseMarker,
+        eol => Token::Eol,
+    }
+}
+
+Size: u64 = {
+    lit =>
+        if let Lit::Dec{sign: Sign::Implicit, value: v} = <> {
+            u64::from_str(&v).unwrap()
+        } else {
+            unimplemented!("TODO: Insert error handling (only implicit sign dec literals are valid size)")
+        },
+}
+
+pub(crate) ArrayInfo: ArrayInfo = {
+    "[" <Size> "]" => ArrayInfo::Static(<>),
+    "[" "<" <Size> "]" => ArrayInfo::DynamicLess(<>),
+    "[" "<=" <Size> "]" => ArrayInfo::DynamicLeq(<>),
+}
+
+pub(crate) Directive: Directive = {
+    "@" <ident> =>
+        match <>.as_ref() {
+            "union" => Directive::Union,
+            _ => unimplemented!("TODO: Insert error handling (x not recongized as valid directive)"),
+        },
+}
+
+pub(crate) FieldDefinition: FieldDefinition = {
+    <cast_mode:cast_mode?> <field_type:primitive_type> <array:ArrayInfo?> <name:ident?> => FieldDefinition{cast_mode, field_type: Ty::from(field_type), array, name},
+    <cast_mode:cast_mode?> <field_type:ident> <array:ArrayInfo?> <name:ident?> => FieldDefinition{cast_mode, field_type: Ty::from(CompositeType::from_str(field_type.as_ref()).expect("TODO: Insert error handling (x not valid typename)")), array, name},
+}
+
+pub(crate) ConstDefinition: ConstDefinition = {
+    <cast_mode:cast_mode?> <field_type:primitive_type> <name:ident> "=" <literal:lit> => ConstDefinition{cast_mode, field_type: Ty::from(field_type), name, literal},
+}
+
+pub(crate) AttributeDefinition: AttributeDefinition = {
+    ConstDefinition => AttributeDefinition::Const(<>),
+    FieldDefinition => AttributeDefinition::Field(<>),
+}
+
+pub(crate) Line: Line = {
+    <comment> eol => Line::Comment(<>),
+    <directive:Directive> <comment:comment?> eol => Line::Directive{directive, comment},
+    <definition:AttributeDefinition> <comment:comment?> eol => Line::Definition{definition, comment},
+    eol => Line::Empty,
+}
+
+pub(crate) MessageDefinition: MessageDefinition = {
+    <Line*> => MessageDefinition(<>),
+}
+
+pub(crate) ServiceDefinition: ServiceDefinition = {
+    <request:MessageDefinition> "---" eol <response:MessageDefinition> => ServiceDefinition{request, response},
+}
+
+pub(crate) TypeDefinition: TypeDefinition = {
+    ServiceDefinition => TypeDefinition::from(<>),
+    MessageDefinition => TypeDefinition::from(<>),
+}

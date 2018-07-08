@@ -14,8 +14,9 @@ use {
 
 pub type Spanned<Token, Loc, Error> = Result<(Loc, Token, Loc), Error>;
 
+// This needs to be pub due to a weirdness in lalrpop, look into it.
 #[derive(Clone, PartialEq, Debug)]
-pub(crate) enum Token {
+pub enum Token {
     /// A comment
     Comment(Comment),
 
