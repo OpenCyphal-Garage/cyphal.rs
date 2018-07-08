@@ -127,19 +127,19 @@ impl Display for Ty {
 
 impl Display for Line {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
-        match *self {
+        match self {
             Line::Empty => write!(f, ""),
             Line::Comment(ref comment) => write!(f, "#{}", comment),
-            Line::Definition(ref def, ref opt_comment) => {
-                match *opt_comment {
-                    Some(ref comment) => write!(f, "{} #{}", def, comment),
-                    None => write!(f, "{}", def),
+            Line::Definition{definition, comment} => {
+                match comment {
+                    Some(comment) => write!(f, "{} #{}", definition, comment),
+                    None => write!(f, "{}", definition),
                 }
             },
-            Line::Directive(ref dir, ref opt_comment) => {
-                match *opt_comment {
-                    Some(ref comment) => write!(f, "{} #{}", dir, comment),
-                    None => write!(f, "{}", dir),
+            Line::Directive{directive, comment} => {
+                match comment {
+                    Some(comment) => write!(f, "{} #{}", directive, comment),
+                    None => write!(f, "{}", directive),
                 }
             },
         }
@@ -442,45 +442,45 @@ mod tests {
         assert_eq!(format!("{}", Line::Comment(Comment(String::from(" test comment")))), "# test comment");   
 
         assert_eq!(format!("{}",
-                           Line::Definition(
-                               AttributeDefinition::Field(FieldDefinition{
+                           Line::Definition{
+                               definition: AttributeDefinition::Field(FieldDefinition{
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint32),
                                    array: None,
                                    name: Some(Ident(String::from("uptime_sec"))),
                                }),
-                               None)),
+                               comment: None}),
                    "uint32 uptime_sec"
         );
 
         assert_eq!(format!("{}",
-                           Line::Definition(
-                               AttributeDefinition::Field(FieldDefinition{
+                           Line::Definition{
+                               definition: AttributeDefinition::Field(FieldDefinition{
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint32),
                                    array: None,
                                    name: Some(Ident(String::from("uptime_sec"))),
                                }),
-                               Some(Comment(String::from(" test comment"))))),
+                               comment: Some(Comment(String::from(" test comment")))}),
                    "uint32 uptime_sec # test comment"
         );
 
         assert_eq!(format!("{}",
-                           Line::Definition(
-                               AttributeDefinition::Const(ConstDefinition{
+                           Line::Definition{
+                               definition: AttributeDefinition::Const(ConstDefinition{
                                    cast_mode: None,
                                    field_type: Ty::Primitive(PrimitiveType::Uint2),
                                    name: Ident(String::from("HEALTH_OK")),
                                    literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
                                }),
-                               Some(Comment(String::from(" test comment"))))),
+                               comment: Some(Comment(String::from(" test comment")))}),
                    "uint2 HEALTH_OK = 0 # test comment"
         );
 
         assert_eq!(format!("{}",
-                           Line::Directive(
-                               Directive::Union,
-                               Some(Comment(String::from(" test comment"))))),
+                           Line::Directive{
+                               directive: Directive::Union,
+                               comment: Some(Comment(String::from(" test comment")))}),
                    "@union # test comment"
         );
                            

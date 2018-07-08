@@ -127,16 +127,16 @@ named!(attribute_definition<AttributeDefinition>, complete!(sep!(whitespace, alt
 
 named!(line<Line>, sep!(whitespace, alt!(
     do_parse!(
-        attribute_definition: attribute_definition >>
+        definition: attribute_definition >>
             comment: opt!(comment) >>
             _eol: verify!(not_line_ending, |x:&[u8]| x.len() == 0) >>
-            (Line::Definition(attribute_definition, comment))
+            (Line::Definition{definition, comment})
     ) |
     do_parse!(
         directive: directive >>
             comment: opt!(comment) >>
             _eol: verify!(not_line_ending, |x:&[u8]| x.len() == 0) >>
-            (Line::Directive(directive, comment))
+            (Line::Directive{directive, comment})
     ) |
     do_parse!(
         comment: comment >>
@@ -464,67 +464,67 @@ mod tests {
         
         assert_eq!(
             line(&b"void2\n"[..]),
-            IResult::Done(&b"\n"[..], Line::Definition(
-                AttributeDefinition::Field(FieldDefinition{
+            IResult::Done(&b"\n"[..], Line::Definition {
+                definition: AttributeDefinition::Field(FieldDefinition {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void2),
                     array: None,
                     name: None,
                 }),
-                None
-            ))
+                comment: None
+            })
         );
         
         assert_eq!(
             line(&b"void3"[..]),
-            IResult::Done(&b""[..], Line::Definition(
-                AttributeDefinition::Field(FieldDefinition{
+            IResult::Done(&b""[..], Line::Definition {
+                definition: AttributeDefinition::Field(FieldDefinition {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void3),
                     array: None,
                     name: None,
                 }),
-                None
-            ))
+                comment: None
+            })
         );
 
         assert_eq!(
             line(&b"void2 # test comment\n"[..]),
-            IResult::Done(&b"\n"[..], Line::Definition(
-                AttributeDefinition::Field(FieldDefinition{
+            IResult::Done(&b"\n"[..], Line::Definition {
+                definition: AttributeDefinition::Field(FieldDefinition {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Void2),
                     array: None,
                     name: None
                 }),
-                Some(Comment(String::from(" test comment")))
-            ))
+                comment: Some(Comment(String::from(" test comment")))
+            })
         );
 
         assert_eq!(
             line(&b"uint32 uptime_sec"[..]),
-            IResult::Done(&b""[..], Line::Definition(
-                AttributeDefinition::Field(FieldDefinition{
+            IResult::Done(&b""[..], Line::Definition {
+                definition: AttributeDefinition::Field(FieldDefinition {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint32),
                     array: None,
                     name: Some(Ident(String::from("uptime_sec"))),
                 }),
-                None,
-            ))
+                comment: None,
+            })
         );
         
         assert_eq!(
             line(&b"uint2 HEALTH_OK              = 0"[..]),
-            IResult::Done(&b""[..], Line::Definition(
-                AttributeDefinition::Const(ConstDefinition{
+            IResult::Done(&b""[..], Line::Definition {
+                definition: AttributeDefinition::Const(ConstDefinition {
                     cast_mode: None,
                     field_type: Ty::Primitive(PrimitiveType::Uint2),
                     name: Ident(String::from("HEALTH_OK")),
-                    literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
+                    literal: Lit::Dec { sign: Sign::Implicit, value: String::from("0") },
                 }),
-                None,
-            ))
+                comment: None,
+            })
         );
         
     }
@@ -539,11 +539,11 @@ void3
 
 void2 # test comment"[..]),
             IResult::Done(&b""[..], vec!(
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), None),
+                Line::Definition{definition: AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), comment: None},
                 Line::Comment(Comment(String::from(" test comment"))),
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: None, name: None}), None),
+                Line::Definition{definition: AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void3), array: None, name: None}), comment: None},
                 Line::Empty,
-                Line::Definition(AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), Some(Comment(String::from(" test comment")))),
+                Line::Definition{definition: AttributeDefinition::Field(FieldDefinition{cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None}), comment: Some(Comment(String::from(" test comment")))},
             ))  
         );
         

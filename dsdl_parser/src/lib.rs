@@ -193,16 +193,24 @@ impl DSDL {
 
         for line in lines {
             match line {
-                Line::Definition(
-                    AttributeDefinition::Field(
-                        FieldDefinition{field_type: Ty::Composite(
-                            CompositeType{namespace: None, ref name}), ..}), _)
-                    => crc.extend(self.data_type_signature((String::from(current_namespace.clone()) + "." + name.as_ref()).as_str()).unwrap()),
-                Line::Definition(
-                    AttributeDefinition::Field(
-                        FieldDefinition{field_type: Ty::Composite(
-                            CompositeType{namespace: Some(ref namespace), ref name}), .. }), _)
-                    => crc.extend(self.data_type_signature(String::from(namespace.clone()) + "." + name.as_ref()).unwrap()),
+                Line::Definition{
+                    definition: AttributeDefinition::Field(
+                        FieldDefinition {
+                            field_type: Ty::Composite(CompositeType{namespace: None, ref name}),
+                            ..
+                        },
+                    ),
+                    ..
+                } => crc.extend(self.data_type_signature((String::from(current_namespace.clone()) + "." + name.as_ref()).as_str()).unwrap()),
+                Line::Definition{
+                    definition: AttributeDefinition::Field(
+                        FieldDefinition {
+                            field_type: Ty::Composite(CompositeType { namespace: Some(ref namespace), ref name }),
+                            ..
+                        }
+                    ),
+                    ..
+                } => crc.extend(self.data_type_signature(String::from(namespace.clone()) + "." + name.as_ref()).unwrap()),
                 _ => (),
             }
 
@@ -386,8 +394,8 @@ pub struct ServiceDefinition{
 pub enum Line {
     Empty,
     Comment(Comment),
-    Definition(AttributeDefinition, Option<Comment>),
-    Directive(Directive, Option<Comment>),
+    Definition{definition: AttributeDefinition, comment: Option<Comment>},
+    Directive{directive: Directive, comment: Option<Comment>},
 }
 
 impl Line {
@@ -402,7 +410,7 @@ impl Line {
     /// returns true if the `Line` contains a directive
     pub fn is_directive(&self) -> bool {
         match *self {
-            Line::Directive(_,_) => true,
+            Line::Directive{..} => true,
             _ => false,
         }
     }
@@ -410,7 +418,7 @@ impl Line {
     /// returns true if the `Line` contains a definiition
     pub fn is_definition(&self) -> bool {
         match *self {
-            Line::Definition(_,_) => true,
+            Line::Definition{..} => true,
             _ => false,
         }
     }
@@ -427,8 +435,8 @@ impl Line {
     pub fn has_comment(&self) -> bool {
         match *self {
             Line::Comment(_) => true,
-            Line::Directive(_,Some(_)) => true,
-            Line::Definition(_,Some(_)) => true,
+            Line::Directive{comment: Some(_), ..} => true,
+            Line::Definition{comment: Some(_), ..} => true,
             _ => false,
         }
     }
@@ -857,28 +865,28 @@ mod tests {
                            Line::Comment(Comment(String::from(" Publication period may vary within these limits."))),
                            Line::Comment(Comment(String::from(" It is NOT recommended to change it at run time."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1000")} }), None),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), None),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1000")} }), comment: None},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" If a node fails to publish this message in this amount of time, it should be considered offline."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3000")} }), None),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3000")} }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Uptime counter should never overflow."))),
                            Line::Comment(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: None, name: Some(Ident(String::from("uptime_sec"))) }), None),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: None, name: Some(Ident(String::from("uptime_sec"))) }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Abstract node health."))),
                            Line::Comment(Comment(String::from(""))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), Some(Comment(String::from(" The node is functioning properly.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), Some(Comment(String::from(" The node encountered a major failure.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), Some(Comment(String::from(" The node suffered a fatal malfunction.")))),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: None, name: Some(Ident(String::from("health"))) }), None),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment(String::from(" The node is functioning properly.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment(String::from(" The node encountered a major failure.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment(String::from(" The node suffered a fatal malfunction.")))},
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: None, name: Some(Ident(String::from("health"))) }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::from(""))),
                            Line::Comment(Comment(String::from(" Current mode."))),
@@ -889,22 +897,22 @@ mod tests {
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Reserved values can be used in future revisions of the specification."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), Some(Comment(String::from(" Normal operating mode.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), Some(Comment(String::from(" New software/firmware is being loaded.")))),
-                           Line::Definition(AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("7")} }), Some(Comment(String::from(" The node is no longer available.")))),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("mode"))) }), None),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment(String::from(" Normal operating mode.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment(String::from(" New software/firmware is being loaded.")))},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("7")} }), comment: Some(Comment(String::from(" The node is no longer available.")))},
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("mode"))) }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Not used currently, keep zero when publishing, ignore when receiving."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("sub_mode"))) }), None),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("sub_mode"))) }), comment: None},
                            Line::Empty,
                            Line::Comment(Comment(String::new())),
                            Line::Comment(Comment(String::from(" Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."))),
                            Line::Comment(Comment(String::new())),
-                           Line::Definition(AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident(String::from("vendor_specific_status_code"))) }), None),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident(String::from("vendor_specific_status_code"))) }), comment: None},
                        ))),}
         );        
     }

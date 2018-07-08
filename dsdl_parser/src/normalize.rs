@@ -71,10 +71,11 @@ impl Line {
         match self {
             Line::Empty => None,
             Line::Comment(_) => None,
-            Line::Definition(def, _) => match def.normalize(file_name) {
-                Some(norm_def) => Some(Line::Definition(norm_def, None)),
-                None => None,},
-            Line::Directive(dir, _) => Some(Line::Directive(dir, None)),
+            Line::Definition{definition, ..} => match definition.normalize(file_name) {
+                Some(norm_def) => Some(Line::Definition { definition: norm_def, comment: None }),
+                None => None,
+            },
+            Line::Directive{directive, ..} => Some(Line::Directive{directive, comment: None}),
         }
     }
 }
