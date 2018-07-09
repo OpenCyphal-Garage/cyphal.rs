@@ -15,7 +15,6 @@ license = "Apache-2.0/MIT"
 
 [dependencies]
 lalrpop-util = "0.15.2"
-nom = "^3.2"
 log = "^0.3.8"
 
 [build-dependencies]

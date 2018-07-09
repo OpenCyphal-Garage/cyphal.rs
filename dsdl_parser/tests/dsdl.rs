@@ -28,7 +28,7 @@ fn verify_display() {
             filename = filename + dsdl_file.name.namespace.replace(".", "/").as_str() + "/";
         }
         if let Some(ref id) = dsdl_file.name.id {
-            filename = filename + id.as_str() + ".";
+            filename = filename + &id.to_string() + ".";
         }
         if let Some(ref version) = dsdl_file.name.version {
             filename = filename + format!(".{}", version).as_str();

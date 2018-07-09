@@ -63,7 +63,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: None,
-                name: Some(Ident(String::from("uptime_sec"))),
+                name: Some(Ident::from_str("uptime_sec").unwrap()),
             },
             FieldDefinitionParser::new()
                 .parse(lexer::Lexer::new("uint32 uptime_sec"))
@@ -75,7 +75,7 @@ mod tests {
                 cast_mode: Some(CastMode::Truncated),
                 field_type: Ty::Primitive(PrimitiveType::Uint32),
                 array: None,
-                name: Some(Ident(String::from("test"))),
+                name: Some(Ident::from_str("test").unwrap()),
             },
             FieldDefinitionParser::new()
                 .parse(lexer::Lexer::new("truncated uint32 test"))
@@ -87,7 +87,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Composite(CompositeType{namespace: None, name: Ident::from(String::from("Test"))}),
                 array: None,
-                name: Some(Ident(String::from("test"))),
+                name: Some(Ident::from_str("test").unwrap()),
             },
             FieldDefinitionParser::new()
                 .parse(lexer::Lexer::new("Test test"))
@@ -99,7 +99,7 @@ mod tests {
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint8),
                 array: Some(ArrayInfo::Static(10)),
-                name: Some(Ident(String::from("test"))),
+                name: Some(Ident::from_str("test").unwrap()),
             },
             FieldDefinitionParser::new()
                 .parse(lexer::Lexer::new("uint8[10] test"))
@@ -113,7 +113,7 @@ mod tests {
             ConstDefinition{
                 cast_mode: None,
                 field_type: Ty::Primitive(PrimitiveType::Uint2),
-                name: Ident(String::from("HEALTH_OK")),
+                name: Ident::from_str("HEALTH_OK").unwrap(),
                 literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")},
             },
             ConstDefinitionParser::new()
@@ -158,7 +158,7 @@ mod tests {
                 TypeDefinition::Message(MessageDefinition(
                     vec!(
                         Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None }), comment: None },
-                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident(String::from("vendor_specific_status_code"))) }), comment: None },
+                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident::from_str("vendor_specific_status_code").unwrap()) }), comment: None },
                         Line::Empty,
                     )
             )),
@@ -176,7 +176,7 @@ uint16 vendor_specific_status_code
                 TypeDefinition::Message(MessageDefinition(
                     vec!(
                         Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None }), comment: None },
-                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident(String::from("vendor_specific_status_code"))) }), comment: None },
+                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident::from_str("vendor_specific_status_code").unwrap()) }), comment: None },
                     )
             )),
             TypeDefinitionParser::new()
@@ -194,7 +194,7 @@ uint16 vendor_specific_status_code
                         Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void32), array: None, name: None }), comment: None },
                     ]),
                     response: MessageDefinition(vec![
-                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None }), comment: Some(Comment(String::from(" test comment"))) },
+                        Line::Definition { definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Void2), array: None, name: None }), comment: Some(Comment::from_str("# test comment").unwrap()) },
                     ]),
                 }),
             TypeDefinitionParser::new()

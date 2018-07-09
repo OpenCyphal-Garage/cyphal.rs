@@ -45,880 +45,140 @@
 
 
 #[macro_use]
-extern crate nom;
-
-#[macro_use]
 extern crate log;
 
 extern crate lalrpop_util;
 
-use std::io::Read;
 
-use std::fs;
-
-use std::path::Path;
-
-use std::str;
-use std::str::FromStr;
-
-use std::collections::HashMap;
-
-use nom::IResult;
 
 mod lexer;
+mod ast;
 mod parser;
-mod parse;
-mod display;
-mod normalize;
 mod crc;
 
-use crc::CRC64WE as CRC;
 
-pub use normalize::NormalizedFile;
 
-/// The `DSDL` struct contains a number of data type definition
-#[derive(Debug, PartialEq, Eq)]
-pub struct DSDL {
-    files: HashMap<String, File>,
-}
 
-impl DSDL {
-    /// Reads `DSDL` definition recursively if path is a directory. Reads one `DSDL` definition if path is a definition.
-    ///
-    /// ## Example
-    /// ```
-    /// use dsdl_parser::DSDL;
-    ///
-    /// assert!(DSDL::read("tests/dsdl/").is_ok());
-    ///
-    /// ```
-    pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
-        let mut dsdl = DSDL{files: HashMap::new()};
 
-        if path.as_ref().is_dir() {
-            for entry in fs::read_dir(path)? {
-                let current_path = entry?.path();
-                DSDL::read_uavcan_files(current_path.as_ref(), String::new(), &mut dsdl.files)?;
-            }
-        } else {
-            DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
-        }
+// Re-export ast
 
-        Ok(dsdl)
-    }
+pub use ast::ty::Ty;
+pub use ast::ty::CompositeType;
+pub use ast::ty::PrimitiveType;
 
-    fn read_uavcan_files(path: &Path, namespace: String, files: &mut HashMap<String, File>) -> std::io::Result<()> {
-        let uavcan_path = if namespace.as_str() == "" {
-            String::from(path.file_name().unwrap().to_str().unwrap())
-        } else {
-            namespace.clone() + "." + path.file_name().unwrap().to_str().unwrap()
-        };
-        if path.is_dir() {
-            for entry in fs::read_dir(path)? {
-                let current_path = entry?.path();
-                DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), files)?;
-            }
-        } else if let IResult::Done(_i, file_name) = parse::file_name(uavcan_path.as_bytes()) {
-            let mut file = fs::File::open(path)?;
-            let mut bytes = Vec::new();
-            file.read_to_end(&mut bytes)?;
-            let bytes_slice = bytes.into_boxed_slice();
-            let (remaining, definition) = parse::type_definition(&bytes_slice).unwrap();
-            
-            assert!(remaining == &b""[..], "Parsing failed at file: {}, with the following data remaining: {}", uavcan_path, str::from_utf8(remaining).unwrap());
-                                
-            let qualified_name = if file_name.namespace.as_str() == "" {
-                file_name.name.clone()
-            } else {
-                file_name.namespace.clone() + "." + file_name.name.as_str()
-            };
-            files.insert(qualified_name, File{name: file_name, definition: definition});
-        } else {
-            warn!("The file, {}, was not recognized as a DSDL file. DSDL files need to have the .uavcan extension", uavcan_path);
-        }
-        
-        Ok(())
-    }
+pub use ast::ident::Ident;
 
-    /// Return a file if there exists one, returns `None` otherwise
-    ///
-    /// ## Example
-    /// ```
-    /// use dsdl_parser::DSDL;
-    ///
-    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
-    ///
-    /// assert!(dsdl.get_file("uavcan.protocol.NodeStatus").is_some());
-    ///
-    /// ```
-    pub fn get_file<T: AsRef<str>>(&self, name: T) -> Option<&File> {
-        self.files.get(name.as_ref())
-    }
+pub use ast::comment::Comment;
 
-    /// Returns a vector containing references to all files
-    ///
-    /// ## Example
-    /// ```
-    /// use dsdl_parser::DSDL;
-    ///
-    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
-    ///
-    /// assert!(dsdl.files().len() >= 1);
-    ///
-    /// ```
-    pub fn files(&self) -> Vec<&File> {
-        self.files.values().collect()
-    }
+pub use ast::directive::Directive;
 
-    /// Returns the data type signature of a data type
-    ///
-    /// ## Example
-    /// ```
-    /// use dsdl_parser::DSDL;
-    ///
-    /// let dsdl = DSDL::read("tests/dsdl/").unwrap();
-    ///
-    /// assert_eq!(dsdl.data_type_signature("uavcan.protocol.GetNodeInfo").unwrap(), 0xee468a8121c46a9e);
-    ///
-    /// ```
-    pub fn data_type_signature<T: AsRef<str>>(&self, name: T) -> Option<u64> {
-        let normalized_file = match self.get_file(name) {
-            Some(file) => file.clone().normalize(),
-            None => return None,
-        };
-        let current_namespace = normalized_file.as_file().clone().name.namespace;
-        let mut crc = CRC::from_value(normalized_file.dsdl_signature());
+pub use ast::attribute_definition::AttributeDefinition;
+pub use ast::attribute_definition::ConstDefinition;
+pub use ast::attribute_definition::FieldDefinition;
 
-        let lines = match normalized_file.as_file().definition {
-            TypeDefinition::Message(MessageDefinition(ref lines)) => lines.clone(),
-            TypeDefinition::Service(ServiceDefinition{request: MessageDefinition(ref request), response: MessageDefinition(ref response)}) => {let mut lines = request.clone(); lines.append(&mut response.clone()); lines},
-        };
+pub use ast::file_name::FileName;
+pub use ast::file_name::Version;
 
-        for line in lines {
-            match line {
-                Line::Definition{
-                    definition: AttributeDefinition::Field(
-                        FieldDefinition {
-                            field_type: Ty::Composite(CompositeType{namespace: None, ref name}),
-                            ..
-                        },
-                    ),
-                    ..
-                } => crc.extend(self.data_type_signature((String::from(current_namespace.clone()) + "." + name.as_ref()).as_str()).unwrap()),
-                Line::Definition{
-                    definition: AttributeDefinition::Field(
-                        FieldDefinition {
-                            field_type: Ty::Composite(CompositeType { namespace: Some(ref namespace), ref name }),
-                            ..
-                        }
-                    ),
-                    ..
-                } => crc.extend(self.data_type_signature(String::from(namespace.clone()) + "." + name.as_ref()).unwrap()),
-                _ => (),
-            }
+pub use ast::array::ArrayInfo;
 
-        }
-        Some(crc.value())
-        
-    }
-        
-}
+pub use ast::cast_mode::CastMode;
 
-/// Uniquely defines a DSDL file
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FileName {
-    pub id: Option<String>,
-    pub namespace: String,
-    pub name: String,
-    pub version: Option<Version>,
-}
+pub use ast::lit::Lit;
+pub use ast::lit::Sign;
 
-impl FileName {
-    /// Split a namespace into parts
-    ///
-    /// # Examples
-    /// ```
-    /// use dsdl_parser::FileName;
-    ///
-    /// let name = FileName {
-    ///                     id: Some(String::from("341")),
-    ///                     namespace: String::from("uavcan.protocol"),
-    ///                     name: String::from("NodeStatus"),
-    ///                     version: None,
-    /// };
-    ///
-    /// assert_eq!(name.split_namespace(), vec!["uavcan", "protocol"]);
-    ///
-    /// ```
-    pub fn split_namespace(&self) -> Vec<String> {
-        if self.namespace == String::new() {
-            Vec::new()
-        } else {
-            self.namespace.split('.').map(|x| String::from(x)).collect()
-        }
-    }
-    
-    /// Split a namespace into parts
-    ///
-    /// # Examples
-    /// ```
-    /// use dsdl_parser::FileName;
-    ///
-    /// let name = FileName {
-    ///                     id: Some(String::from("341")),
-    ///                     namespace: String::from("uavcan.protocol"),
-    ///                     name: String::from("NodeStatus"),
-    ///                     version: None,
-    /// };
-    ///
-    /// assert_eq!(name.rsplit_namespace(), vec!["protocol", "uavcan"]);
-    ///
-    /// ```
-    pub fn rsplit_namespace(&self) -> Vec<String> {
-        if self.namespace == String::new() {
-            Vec::new()
-        } else {
-            self.namespace.rsplit('.').map(|x| String::from(x)).collect()
-        }
-    }
+pub use ast::type_definition::TypeDefinition;
+pub use ast::type_definition::MessageDefinition;
+pub use ast::type_definition::ServiceDefinition;
 
-}
+pub use ast::line::Line;
 
+pub use ast::file::File;
+pub use ast::file::NormalizedFile;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseFileNameError {
-    Extension,
-    Format,
-    VersionFormat,
-}
+pub use ast::dsdl::DSDL;
 
-impl FromStr for FileName {
-    type Err = ParseFileNameError;
 
-    fn from_str(s: &str) -> Result<FileName, Self::Err> {
-        let mut split = s.rsplit('.').peekable();
-        
-        if let Some("uavcan") = split.next() {
-        } else {
-            return Err(ParseFileNameError::Extension);
-        }
 
-        let version = match u32::from_str(split.peek().ok_or(ParseFileNameError::Format)?) {
-            Ok(minor_version) => {
-                split.next().unwrap(); // remove minor version
-                let major_version = u32::from_str(split.next().ok_or(ParseFileNameError::Format)?).map_err(|_| ParseFileNameError::VersionFormat)?;
-                Some(Version{major: major_version, minor: minor_version})
-            },
-            Err(_) => None,
-        };
-
-        let name = String::from(split.next().unwrap());
-
-        let id = if let IResult::Done(_i, o) = parse::id(split.peek().unwrap_or(&"").as_bytes()) {
-            split.next().unwrap();
-            Some(o)
-        } else {
-            None
-        };
-
-        let mut namespace = String::from(split.next().unwrap_or(""));
-        while let Some(namespace_part) = split.next() {
-            namespace = String::from(namespace_part) + "." + namespace.as_str();
-        }
-
-        Ok(FileName{id: id, namespace: namespace, name: name, version: version})
-    }
-}
-
-
-/// A dsdl file version
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Version {
-    pub major: u32,
-    pub minor: u32,
-}
-
-/// A DSDL file
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct File {
-    pub name: FileName,
-    pub definition: TypeDefinition,
-}
-
-/// A DSDL type definition.
-///
-/// Each DSDL definition specifies exactly one data structure that can be used for message broadcasting
-/// or a pair of structures that can be used for service invocation data exchange.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum TypeDefinition {
-    Message(MessageDefinition),
-    Service(ServiceDefinition),
-}
-
-impl From<MessageDefinition> for TypeDefinition {
-    fn from(d: MessageDefinition) -> Self {
-        TypeDefinition::Message(d)
-    }
-}
-
-impl From<ServiceDefinition> for TypeDefinition {
-    fn from(d: ServiceDefinition) -> Self {
-        TypeDefinition::Service(d)
-    }
-}
-
-
-
-/// An Uavcan message definition
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct MessageDefinition(pub Vec<Line>);
-
-/// An Uavcan service definition
-///
-/// Since a service invocation consists of two network exchange operations,
-/// the DSDL definition for a service must define two structures:
-///
-/// - Request part - for request transfer (client to server).
-/// - Response part - for response transfer (server to client).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ServiceDefinition{
-    /// The request part - for request transfer (client to server)
-    pub request: MessageDefinition,
-    /// The response part - for response transfer (server to client)
-    pub response: MessageDefinition,
-}
-
-/// A `Line` in a DSDL `File`
-///
-/// A data structure definition consists of attributes and directives.
-/// Any line of the definition file may contain at most one attribute definition or at most one directive.
-/// The same line cannot contain an attribute definition and a directive at the same time.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Line {
-    Empty,
-    Comment(Comment),
-    Definition{definition: AttributeDefinition, comment: Option<Comment>},
-    Directive{directive: Directive, comment: Option<Comment>},
-}
-
-impl Line {
-    /// returns true if the `Line` is empty
-    pub fn is_empty(&self) -> bool {
-        match *self {
-            Line::Empty => true,
-            _ => false,
-        }
-    }
-
-    /// returns true if the `Line` contains a directive
-    pub fn is_directive(&self) -> bool {
-        match *self {
-            Line::Directive{..} => true,
-            _ => false,
-        }
-    }
-
-    /// returns true if the `Line` contains a definiition
-    pub fn is_definition(&self) -> bool {
-        match *self {
-            Line::Definition{..} => true,
-            _ => false,
-        }
-    }
-
-    /// returns true if the `Line` is nothing but a comment
-    pub fn is_comment(&self) -> bool {
-        match *self {
-            Line::Comment(_) => true,
-            _ => false,
-        }
-    }
-
-    /// returns true if the `Line` contains a comment
-    pub fn has_comment(&self) -> bool {
-        match *self {
-            Line::Comment(_) => true,
-            Line::Directive{comment: Some(_), ..} => true,
-            Line::Definition{comment: Some(_), ..} => true,
-            _ => false,
-        }
-    }
-        
-}
-
-/// A CompositeType is what the uavcan specification refers to as "Nested data structures"
-///
-/// In short if it's not a primitive data type (or arrays of primitive data types) it's a `CompositeType`
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CompositeType {
-    pub namespace: Option<Ident>,
-    pub name: Ident,
-}
-
-impl FromStr for CompositeType {
-    type Err = ();
-    
-    fn from_str(s: &str) -> Result<CompositeType, Self::Err> {
-        if s.contains('.') {
-            let mut split = s.rsplitn(2, '.');
-            let name = Ident(String::from(split.next().unwrap()));
-            let namespace = match split.next() {
-                Some(x) => Some(Ident(String::from(x))),
-                None => None,
-            };
-            Ok(CompositeType {
-                namespace: namespace,
-                name: name,
-            })
-        } else {
-            Ok(CompositeType {
-                namespace: None,
-                name: Ident(String::from(s))
-            })
-        }
-    }
-}
-
-/// A comment
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Comment(String);
-
-impl AsRef<str> for Comment {
-    fn as_ref(&self) -> &str {
-        self.0.as_ref()
-    }
-}
-
-/// An Uavcan Directive
-///
-/// A directive is a single case-sensitive word starting with an “at sign” (@),
-/// possibly followed by space-separated arguments.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Directive {
-    /// This directive instructs the DSDL compiler that the current message or the current part of a service data type (request or response) is a tagged union.
-    /// A tagged union is a data structure that may encode either of its fields at a time.
-    /// Such a data structure contains one implicit field, a union tag that indicates what particular field the data structure is holding at the moment.
-    /// Unions are required to have at least two fields.
-    Union,
-
-    /// A marker variant that tells the compiler that users of this enum cannot match it exhaustively.
-    #[doc(hidden)]
-    __Nonexhaustive,
-}
-
-impl Directive {
-    pub(crate) fn try_from(ident: Ident) -> Result<Self, ParseDirectiveError> {
-        // Until TryFrom trait is stabilized
-        match ident.as_ref() {
-            "union" => Ok(Directive::Union),
-            _ => Err(ParseDirectiveError::NotDirective(String::from(ident))),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseDirectiveError {
-    NotDirective(String),
-}
-
-impl FromStr for Directive {
-    type Err = ParseDirectiveError;
-    
-    fn from_str(s: &str) -> Result<Directive, Self::Err> {
-        match s {
-            "@union" => Ok(Directive::Union),
-            "union" => Ok(Directive::Union),
-            _ => Err(ParseDirectiveError::NotDirective(String::from(s))),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ServiceResponseMarker {}
-
-/// An Identifier (name)
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Ident(String);
-
-impl<'a> From<&'a str> for Ident {
-    fn from(s: &'a str) -> Ident {
-        Ident(String::from(s))
-    }
-}
-
-impl FromStr for Ident {
-    type Err = ();
-    
-    fn from_str(s: &str) -> Result<Ident, Self::Err> {
-        Ok(Ident(String::from(s)))
-    }
-}
-
-impl AsRef<str> for Ident {
-    fn as_ref(&self) -> &str {
-        self.0.as_ref()
-    }
-}
-
-impl From<Ident> for String {
-    fn from(i: Ident) -> String {
-        i.0
-    }
-}
-
-impl From<String> for Ident {
-    fn from(s: String) -> Ident {
-        Ident(s)
-    }
-}
-
-/// A sign of a signed literal (dec int, hex int, float etc)
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Sign {
-    /// An explicit positive sign (+)
-    Positive,
-    /// An explicit negative sign (-)
-    Negative,
-    /// No explicit sign
-    Implicit,
-}
-
-/// A constant must be a primitive scalar type (i.e., arrays and nested data structures are not allowed as constant types).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Lit {
-
-    /// Integer zero (0) or Integer literal in base 10, starting with a non-zero character. E.g., 123, -12.
-    Dec{sign: Sign, value: String},
-    
-    /// Integer literal in base 16 prefixed with 0x. E.g., 0x123, -0x12, +0x123.
-    Hex{sign: Sign, value: String},
-
-    /// Integer literal in base 8 prefixed with 0o. E.g., 0o123, -0o777, +0o777.
-    Oct{sign: Sign, value: String},
-    
-    /// Integer literal in base 2 prefixed with 0b. E.g., 0b1101, -0b101101, +0b101101.
-    Bin{sign: Sign, value: String},
-    
-    /// Boolean true or false.
-    Bool(bool),
-    
-    /// Single ASCII character, ASCII escape sequence, or ASCII hex literal in single quotes. E.g., 'a', '\x61', '\n'.
-    Char(String),
-    
-    /// Floating point literal. Fractional part with an optional exponent part, e.g., 15.75, 1.575E1, 1575e-2, -2.5e-3, +25E-4. Not-a-number (NaN), positive infinity, and negative infinity are intentionally not supported in order to maximize cross-platform compatibility.
-    Float{sign: Sign, value: String},
-}
-
-/// Cast mode defines the rules of conversion from the native value of a certain programming language to the serialized field value.
-///
-/// Cast mode may be left undefined, in which case the default will be used.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum CastMode {
-    /// This is the default cast mode, which will be used if the attribute definition does not specify the cast mode explicitly.
-    ///
-    /// For integers, it prevents an integer overflow - for example, attempting to write 0x44 to a 4-bit field will result in a bitfield value of 0x0F.
-    /// For floating point values, it prevents overflow when casting to a lower precision floating point representation -
-    /// for example, 65536.0 will be converted to a float16 as 65504.0; infinity will be preserved.
-    Saturated,
-
-    ///  For integers, it discards the excess most significant bits - for example, attempting to write 0x44 to a 4-bit field will produce 0x04.
-    /// For floating point values, overflow during downcasting will produce an infinity.
-    Truncated,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseCastModeError {
-    NotCastMode(String),
-}
-
-impl FromStr for CastMode {
-    type Err = ParseCastModeError;
-    
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "saturated" => Ok(CastMode::Saturated),
-            "truncated" => Ok(CastMode::Truncated),
-            _ => Err(ParseCastModeError::NotCastMode(String::from(s))),
-        }
-    }
-}
-
-/// Uavcan array information
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ArrayInfo {
-    /// Dynamic array on the less than form (i.e. `uint2[<5]`)
-    DynamicLess(u64),
-    /// Dynamic array on the less or equal form (i.e. `uint2[<=5]`)
-    DynamicLeq(u64),
-    /// Static array on the less or equal form (i.e. `uint2[5]`)
-    Static(u64),
-}
-
-
-/// A Field definition
-///
-/// Field definition patterns
-/// - `cast_mode field_type field_name`
-/// - `cast_mode field_type[X] field_name`
-/// - `cast_mode field_type[<X] field_name`
-/// - `cast_mode field_type[<=X] field_name`
-/// - `void_type`
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct FieldDefinition {
-    pub cast_mode: Option<CastMode>,
-    pub field_type: Ty,
-    pub array: Option<ArrayInfo>,
-    pub name: Option<Ident>,
-}
-
-/// A constant definition
-///
-/// Constant definition patterns
-/// - `cast_mode constant_type constant_name = constant_initializer`
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ConstDefinition {
-    pub cast_mode: Option<CastMode>,
-    pub field_type: Ty,
-    pub name: Ident,
-    pub literal: Lit,
-}
-
-/// An attribute definition is either a `FieldDefintion` or a `ConstDefinition`
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum AttributeDefinition {
-    Field(FieldDefinition),
-    Const(ConstDefinition),
-}
-
-impl From<FieldDefinition> for AttributeDefinition {
-    fn from(d: FieldDefinition) -> Self {
-        AttributeDefinition::Field(d)
-    }
-}
-
-impl From<ConstDefinition> for AttributeDefinition {
-    fn from(d: ConstDefinition) -> Self {
-        AttributeDefinition::Const(d)
-    }
-}
-
-/// An Uavcan data type
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Ty{
-    Primitive(PrimitiveType),
-    Composite(CompositeType),
-}
-
-impl Ty {
-    pub fn is_void(&self) -> bool {
-        match *self{
-            Ty::Primitive(ref x) => x.is_void(),
-            Ty::Composite(_) => false,
-        }
-    }
-}
-
-impl From<PrimitiveType> for Ty {
-    fn from(t: PrimitiveType) -> Ty {
-        Ty::Primitive(t)
-    }
-}
-
-impl From<CompositeType> for Ty {
-    fn from(t: CompositeType) -> Ty {
-        Ty::Composite(t)
-    }
-}
-
-/// An Uavcan `PrimitiveDataType`
-///
-/// These types are assumed to be built-in. They can be directly referenced from any data type of any namespace.
-/// The DSDL compiler should implement these types using the native types of the target programming language.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum PrimitiveType {
-    Bool,
-    
-            Uint2,  Uint3,  Uint4,  Uint5,  Uint6,  Uint7,  Uint8,
-    Uint9,  Uint10, Uint11, Uint12, Uint13, Uint14, Uint15, Uint16,
-    Uint17, Uint18, Uint19, Uint20, Uint21, Uint22, Uint23, Uint24,
-    Uint25, Uint26, Uint27, Uint28, Uint29, Uint30, Uint31, Uint32,
-    Uint33, Uint34, Uint35, Uint36, Uint37, Uint38, Uint39, Uint40,
-    Uint41, Uint42, Uint43, Uint44, Uint45, Uint46, Uint47, Uint48,
-    Uint49, Uint50, Uint51, Uint52, Uint53, Uint54, Uint55, Uint56,
-    Uint57, Uint58, Uint59, Uint60, Uint61, Uint62, Uint63, Uint64,
-
-           Int2,  Int3,  Int4,  Int5,  Int6,  Int7,  Int8,
-    Int9,  Int10, Int11, Int12, Int13, Int14, Int15, Int16,
-    Int17, Int18, Int19, Int20, Int21, Int22, Int23, Int24,
-    Int25, Int26, Int27, Int28, Int29, Int30, Int31, Int32,
-    Int33, Int34, Int35, Int36, Int37, Int38, Int39, Int40,
-    Int41, Int42, Int43, Int44, Int45, Int46, Int47, Int48,
-    Int49, Int50, Int51, Int52, Int53, Int54, Int55, Int56,
-    Int57, Int58, Int59, Int60, Int61, Int62, Int63, Int64,
-
-    Float16, Float32, Float64,
-    
-    Void1,  Void2,  Void3,  Void4,  Void5,  Void6,  Void7,  Void8,
-    Void9,  Void10, Void11, Void12, Void13, Void14, Void15, Void16,
-    Void17, Void18, Void19, Void20, Void21, Void22, Void23, Void24,
-    Void25, Void26, Void27, Void28, Void29, Void30, Void31, Void32,
-    Void33, Void34, Void35, Void36, Void37, Void38, Void39, Void40,
-    Void41, Void42, Void43, Void44, Void45, Void46, Void47, Void48,
-    Void49, Void50, Void51, Void52, Void53, Void54, Void55, Void56,
-    Void57, Void58, Void59, Void60, Void61, Void62, Void63, Void64,
-}
-
-impl PrimitiveType {
-    pub fn is_void(&self) -> bool {
-        match *self {
-            PrimitiveType::Void1 => true,
-            PrimitiveType::Void2 => true,
-            PrimitiveType::Void3 => true,
-            PrimitiveType::Void4 => true,
-            PrimitiveType::Void5 => true,
-            PrimitiveType::Void6 => true,
-            PrimitiveType::Void7 => true,
-            PrimitiveType::Void8 => true,
-            PrimitiveType::Void9 => true,
-            PrimitiveType::Void10 => true,
-            PrimitiveType::Void11 => true,
-            PrimitiveType::Void12 => true,
-            PrimitiveType::Void13 => true,
-            PrimitiveType::Void14 => true,
-            PrimitiveType::Void15 => true,
-            PrimitiveType::Void16 => true,
-            PrimitiveType::Void17 => true,
-            PrimitiveType::Void18 => true,
-            PrimitiveType::Void19 => true,
-            PrimitiveType::Void20 => true,
-            PrimitiveType::Void21 => true,
-            PrimitiveType::Void22 => true,
-            PrimitiveType::Void23 => true,
-            PrimitiveType::Void24 => true,
-            PrimitiveType::Void25 => true,
-            PrimitiveType::Void26 => true,
-            PrimitiveType::Void27 => true,
-            PrimitiveType::Void28 => true,
-            PrimitiveType::Void29 => true,
-            PrimitiveType::Void30 => true,
-            PrimitiveType::Void31 => true,
-            PrimitiveType::Void32 => true,
-            PrimitiveType::Void33 => true,
-            PrimitiveType::Void34 => true,
-            PrimitiveType::Void35 => true,
-            PrimitiveType::Void36 => true,
-            PrimitiveType::Void37 => true,
-            PrimitiveType::Void38 => true,
-            PrimitiveType::Void39 => true,
-            PrimitiveType::Void40 => true,
-            PrimitiveType::Void41 => true,
-            PrimitiveType::Void42 => true,
-            PrimitiveType::Void43 => true,
-            PrimitiveType::Void44 => true,
-            PrimitiveType::Void45 => true,
-            PrimitiveType::Void46 => true,
-            PrimitiveType::Void47 => true,
-            PrimitiveType::Void48 => true,
-            PrimitiveType::Void49 => true,
-            PrimitiveType::Void50 => true,
-            PrimitiveType::Void51 => true,
-            PrimitiveType::Void52 => true,
-            PrimitiveType::Void53 => true,
-            PrimitiveType::Void54 => true,
-            PrimitiveType::Void55 => true,
-            PrimitiveType::Void56 => true,
-            PrimitiveType::Void57 => true,
-            PrimitiveType::Void58 => true,
-            PrimitiveType::Void59 => true,
-            PrimitiveType::Void60 => true,
-            PrimitiveType::Void61 => true,
-            PrimitiveType::Void62 => true,
-            PrimitiveType::Void63 => true,
-            PrimitiveType::Void64 => true,
-            _ => false,
-        }
-    }
-}
 
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    
+    use std::str::FromStr;
+
+    use *;
     #[test]
     fn read_node_status() {
         let dsdl = DSDL::read("tests/dsdl/uavcan/protocol/341.NodeStatus.uavcan").unwrap();
         
-        assert_eq!(dsdl.files.get(&String::from("NodeStatus")).unwrap(),
+        assert_eq!(dsdl.get_file(&String::from("NodeStatus")).unwrap(),
                    &File {
                        name: FileName {
-                           id: Some(String::from("341")),
+                           id: Some(341),
                            namespace: String::from(""),
                            name: String::from("NodeStatus"),
                            version: None,
                        },
                        definition: TypeDefinition::Message(MessageDefinition(vec!(
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Abstract node status information."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Any UAVCAN node is required to publish this message periodically."))),
-                           Line::Comment(Comment(String::new())),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Abstract node status information.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Any UAVCAN node is required to publish this message periodically.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
                            Line::Empty,
-                           Line::Comment(Comment(String::from(""))),
-                           Line::Comment(Comment(String::from(" Publication period may vary within these limits."))),
-                           Line::Comment(Comment(String::from(" It is NOT recommended to change it at run time."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MAX_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1000")} }), comment: None},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("MIN_BROADCASTING_PERIOD_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Publication period may vary within these limits.").unwrap()),
+                           Line::Comment(Comment::from_str("# It is NOT recommended to change it at run time.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident::from_str("MAX_BROADCASTING_PERIOD_MS").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1000")} }), comment: None},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident::from_str("MIN_BROADCASTING_PERIOD_MS").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" If a node fails to publish this message in this amount of time, it should be considered offline."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident(String::from("OFFLINE_TIMEOUT_MS")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3000")} }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# If a node fails to publish this message in this amount of time, it should be considered offline.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), name: Ident::from_str("OFFLINE_TIMEOUT_MS").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3000")} }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Uptime counter should never overflow."))),
-                           Line::Comment(Comment(String::from(" Other nodes may detect that a remote node has restarted when this value goes backwards."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: None, name: Some(Ident(String::from("uptime_sec"))) }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Uptime counter should never overflow.").unwrap()),
+                           Line::Comment(Comment::from_str("# Other nodes may detect that a remote node has restarted when this value goes backwards.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint32), array: None, name: Some(Ident::from_str("uptime_sec").unwrap()) }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Abstract node health."))),
-                           Line::Comment(Comment(String::from(""))),
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_OK")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment(String::from(" The node is functioning properly.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_WARNING")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment(String::from(" A critical parameter went out of range or the node encountered a minor failure.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_ERROR")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment(String::from(" The node encountered a major failure.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident(String::from("HEALTH_CRITICAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment(String::from(" The node suffered a fatal malfunction.")))},
-                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: None, name: Some(Ident(String::from("health"))) }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Abstract node health.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident::from_str("HEALTH_OK").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment::from_str("# The node is functioning properly.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident::from_str("HEALTH_WARNING").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment::from_str("# A critical parameter went out of range or the node encountered a minor failure.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident::from_str("HEALTH_ERROR").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment::from_str("# The node encountered a major failure.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), name: Ident::from_str("HEALTH_CRITICAL").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment::from_str("# The node suffered a fatal malfunction.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint2), array: None, name: Some(Ident::from_str("health").unwrap()) }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::from(""))),
-                           Line::Comment(Comment(String::from(" Current mode."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Mode OFFLINE can be actually reported by the node to explicitly inform other network"))),
-                           Line::Comment(Comment(String::from(" participants that the sending node is about to shutdown. In this case other nodes will not"))),
-                           Line::Comment(Comment(String::from(" have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Reserved values can be used in future revisions of the specification."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OPERATIONAL")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment(String::from(" Normal operating mode.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_INITIALIZATION")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment(String::from(" Initialization is in progress; this mode is entered immediately after startup.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_MAINTENANCE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment(String::from(" E.g. calibration, the bootloader is running, etc.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_SOFTWARE_UPDATE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment(String::from(" New software/firmware is being loaded.")))},
-                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident(String::from("MODE_OFFLINE")), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("7")} }), comment: Some(Comment(String::from(" The node is no longer available.")))},
-                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("mode"))) }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Current mode.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Mode OFFLINE can be actually reported by the node to explicitly inform other network").unwrap()),
+                           Line::Comment(Comment::from_str("# participants that the sending node is about to shutdown. In this case other nodes will not").unwrap()),
+                           Line::Comment(Comment::from_str("# have to wait OFFLINE_TIMEOUT_MS before they detect that the node is no longer available.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Reserved values can be used in future revisions of the specification.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident::from_str("MODE_OPERATIONAL").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("0")} }), comment: Some(Comment::from_str("# Normal operating mode.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident::from_str("MODE_INITIALIZATION").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("1")} }), comment: Some(Comment::from_str("# Initialization is in progress; this mode is entered immediately after startup.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident::from_str("MODE_MAINTENANCE").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("2")} }), comment: Some(Comment::from_str("# E.g. calibration, the bootloader is running, etc.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident::from_str("MODE_SOFTWARE_UPDATE").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("3")} }), comment: Some(Comment::from_str("# New software/firmware is being loaded.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Const(ConstDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), name: Ident::from_str("MODE_OFFLINE").unwrap(), literal: Lit::Dec{sign: Sign::Implicit, value: String::from("7")} }), comment: Some(Comment::from_str("# The node is no longer available.").unwrap())},
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident::from_str("mode").unwrap()) }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Not used currently, keep zero when publishing, ignore when receiving."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident(String::from("sub_mode"))) }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Not used currently, keep zero when publishing, ignore when receiving.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint3), array: None, name: Some(Ident::from_str("sub_mode").unwrap()) }), comment: None},
                            Line::Empty,
-                           Line::Comment(Comment(String::new())),
-                           Line::Comment(Comment(String::from(" Optional, vendor-specific node status code, e.g. a fault code or a status bitmask."))),
-                           Line::Comment(Comment(String::new())),
-                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident(String::from("vendor_specific_status_code"))) }), comment: None},
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Comment(Comment::from_str("# Optional, vendor-specific node status code, e.g. a fault code or a status bitmask.").unwrap()),
+                           Line::Comment(Comment::from_str("#").unwrap()),
+                           Line::Definition{definition: AttributeDefinition::Field(FieldDefinition { cast_mode: None, field_type: Ty::Primitive(PrimitiveType::Uint16), array: None, name: Some(Ident::from_str("vendor_specific_status_code").unwrap()) }), comment: None},
                        ))),}
-        );        
+        );
     }
-
 }
 
