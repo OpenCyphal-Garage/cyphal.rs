@@ -14,8 +14,8 @@ use std::str::FromStr;
 use std::collections::HashMap;
 
 
-use parser;
-use lexer;
+use parser::parser;
+use parser::lexer;
 
 use crc::CRC64WE as CRC;
 
@@ -29,6 +29,8 @@ use ast::type_definition::ServiceDefinition;
 use ast::file::File;
 use ast::line::Line;
 use ast::file_name::FileName;
+
+use ParseError;
 
 /// The `DSDL` struct contains a number of data type definition
 #[derive(Debug, PartialEq, Eq)]
@@ -48,20 +50,21 @@ impl DSDL {
     /// ```
     pub fn read<P: AsRef<Path>>(path: P) -> std::io::Result<DSDL> {
         let mut dsdl = DSDL{files: HashMap::new()};
+        let mut errors = Vec::new();
 
         if path.as_ref().is_dir() {
             for entry in fs::read_dir(path)? {
                 let current_path = entry?.path();
-                DSDL::read_uavcan_files(current_path.as_ref(), String::new(), &mut dsdl.files)?;
+                DSDL::read_uavcan_files(current_path.as_ref(), String::new(), &mut errors, &mut dsdl.files)?;
             }
         } else {
-            DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut dsdl.files)?;
+            DSDL::read_uavcan_files(path.as_ref(), String::new(), &mut errors, &mut dsdl.files)?;
         }
 
         Ok(dsdl)
     }
 
-    fn read_uavcan_files(path: &Path, namespace: String, files: &mut HashMap<String, File>) -> std::io::Result<()> {
+    fn read_uavcan_files(path: &Path, namespace: String, errors: &mut Vec<ParseError>, files: &mut HashMap<String, File>) -> std::io::Result<()> {
         let uavcan_path = if namespace.as_str() == "" {
             String::from(path.file_name().unwrap().to_str().unwrap())
         } else {
@@ -70,7 +73,7 @@ impl DSDL {
         if path.is_dir() {
             for entry in fs::read_dir(path)? {
                 let current_path = entry?.path();
-                DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), files)?;
+                DSDL::read_uavcan_files(&current_path, uavcan_path.clone(), errors, files)?;
             }
         } else if let Ok(file_name) = FileName::from_str(&uavcan_path) {
             let mut file = fs::File::open(path)?;
@@ -79,7 +82,7 @@ impl DSDL {
 
             println!("FileName: {}", uavcan_path);
 
-            match parser::TypeDefinitionParser::new().parse(lexer::Lexer::new(&file_content)) {
+            match parser::TypeDefinitionParser::new().parse(errors, lexer::Lexer::new(&file_content)) {
                 Ok(definition) => {
                     let qualified_name = if file_name.namespace.as_str() == "" {
                         file_name.name.clone()

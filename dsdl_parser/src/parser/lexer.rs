@@ -11,6 +11,9 @@ use {
     Ident,
 };
 
+use parser::error::ParseError;
+use parser::error::ParseErrorKind;
+
 pub type Spanned<Token, Loc, Error> = Result<(Loc, Token, Loc), Error>;
 
 // This needs to be pub due to a weirdness in lalrpop, look into it.
@@ -53,11 +56,6 @@ pub enum Token {
     Eol,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum LexicalError {
-
-}
-
 pub(crate) struct Lexer<'input> {
     input: &'input str,
     chars: Peekable<CharIndices<'input>>,
@@ -98,7 +96,7 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Spanned<Token, usize, LexicalError>;
+    type Item = Spanned<Token, usize, ParseError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.skip_while(is_whitespace);

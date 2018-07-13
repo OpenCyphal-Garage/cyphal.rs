@@ -51,7 +51,6 @@ extern crate lalrpop_util;
 
 
 
-mod lexer;
 mod ast;
 mod parser;
 mod crc;
@@ -96,6 +95,10 @@ pub use ast::file::File;
 pub use ast::file::NormalizedFile;
 
 pub use ast::dsdl::DSDL;
+
+pub use parser::error::ParseErrorKind;
+pub use parser::error::ParseError;
+pub use parser::error::ParseErrorSeverity;
 
 
 

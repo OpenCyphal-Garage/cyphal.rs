@@ -1,7 +1,12 @@
 use std::str::FromStr;
 
-use lexer;
-use lexer::Token;
+use lalrpop_util;
+
+use parser::lexer;
+use parser::lexer::Token;
+
+use parser::error::ParseError;
+use parser::error::ParseErrorKind;
 
 use {
     Comment,
@@ -24,12 +29,12 @@ use {
     CompositeType,
 };
 
-grammar;
+grammar<'err>(errors: &'err mut Vec<ParseError>);
 
 extern {
 
     type Location = usize;
-    type Error = lexer::LexicalError;
+    type Error = ParseError;
 
     enum lexer::Token {
         // Tokens
@@ -65,11 +70,12 @@ pub(crate) ArrayInfo: ArrayInfo = {
 }
 
 pub(crate) Directive: Directive = {
-    "@" <ident> =>
+    "@" <ident> =>? {
         match <>.as_ref() {
-            "union" => Directive::Union,
-            _ => unimplemented!("TODO: Insert error handling (x not recongized as valid directive)"),
-        },
+            "union" => Ok(Directive::Union),
+            _ => Err(lalrpop_util::ParseError::User{error: ParseError::new(ParseErrorKind::UnknownDirectiveName(<>))})
+        }
+    }
 }
 
 pub(crate) FieldDefinition: FieldDefinition = {
