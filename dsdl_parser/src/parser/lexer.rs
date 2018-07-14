@@ -2,6 +2,7 @@ use std::str::CharIndices;
 use std::iter::Peekable;
 
 use std::str::FromStr;
+use std::fmt;
 
 use {
     PrimitiveType,
@@ -192,6 +193,26 @@ impl<'input> Iterator for Lexer<'input> {
 
             Some(x) => unimplemented!("TODO: Implement some error: Unrecognized token: {:?}", x),
             None => None, // End of file
+        }
+    }
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::Comment(comment) => write!(f, "{}", comment),
+            Token::Ident(ident) => write!(f, "{}", ident),
+            Token::Lit(lit) => write!(f, "{}", lit),
+            Token::PrimitiveType(pt) => write!(f, "{}", pt),
+            Token::CastMode(cm) => write!(f, "{}", cm),
+            Token::LeftBracket => write!(f, "["),
+            Token::RightBracket => write!(f, "]"),
+            Token::Less => write!(f, "<"),
+            Token::LessEq => write!(f, "<="),
+            Token::Eq => write!(f, "="),
+            Token::DirectiveMarker => write!(f, "@"),
+            Token::ServiceResponseMarker => write!(f, "---"),
+            Token::Eol => write!(f, "\n"),
         }
     }
 }
