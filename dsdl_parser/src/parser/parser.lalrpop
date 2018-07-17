@@ -54,6 +54,13 @@ extern {
     }
 }
 
+// This is just an assumption of what will be supported as directive arguments. Nothing is actually specified to this.
+DirectiveArgument: Token = {
+    ident => Token::Ident(<>),
+    lit => Token::Lit(<>),
+    primitive_type => Token::PrimitiveType(<>),
+}
+
 Size: u64 = {
     lit =>
         if let Lit::Dec{sign: Sign::Implicit, value: v} = <> {
@@ -69,11 +76,12 @@ pub(crate) ArrayInfo: ArrayInfo = {
     "[" "<=" <Size> "]" => ArrayInfo::DynamicLeq(<>),
 }
 
-pub(crate) Directive: Directive = {
-    "@" <ident> =>? {
-        match <>.as_ref() {
+// FIX: User errors cannot be used for error recovery until lalrpop is fixed. Return Result untill then
+pub(crate) Directive: Result<Directive, ParseError> = {
+    "@" <ident:ident> <args:DirectiveArgument*> => {
+        match ident.as_ref() {
             "union" => Ok(Directive::Union),
-            _ => Err(lalrpop_util::ParseError::User{error: ParseError::new(ParseErrorKind::UnknownDirectiveName(<>))})
+            _ => Err(ParseError::new(ParseErrorKind::UnknownDirectiveName(ident), None))
         }
     }
 }
@@ -92,22 +100,41 @@ pub(crate) AttributeDefinition: AttributeDefinition = {
     FieldDefinition => AttributeDefinition::Field(<>),
 }
 
-pub(crate) Line: Line = {
-    <comment> eol => Line::Comment(<>),
-    <directive:Directive> <comment:comment?> eol => Line::Directive{directive, comment},
-    <definition:AttributeDefinition> <comment:comment?> eol => Line::Definition{definition, comment},
-    eol => Line::Empty,
+pub(crate) Line: Option<Line> = {
+    <comment> eol => Some(Line::Comment(<>)),
+    <directive_res:Directive> <comment:comment?> eol => {
+        match directive_res {
+            Ok(directive) => Some(Line::Directive{directive, comment}),
+            Err(e) => {
+                errors.push(e);
+                None
+            },
+        }
+    },
+    <definition:AttributeDefinition> <comment:comment?> eol => Some(Line::Definition{definition, comment}),
+    eol => Some(Line::Empty),
+
+    <err:!> => {
+        errors.push(err.error.into());
+        None
+    },
 }
 
-pub(crate) MessageDefinition: MessageDefinition = {
-    <Line*> => MessageDefinition(<>),
+pub(crate) MessageDefinition: Option<MessageDefinition> = {
+    <Line*> => {
+        if <>.iter().any(|x| x.is_none()) {
+            None
+        } else {
+            Some(MessageDefinition(<>.into_iter().map(|x| x.unwrap()).collect()))
+        }
+    }
 }
 
-pub(crate) ServiceDefinition: ServiceDefinition = {
-    <request:MessageDefinition> "---" eol <response:MessageDefinition> => ServiceDefinition{request, response},
+pub(crate) ServiceDefinition: Option<ServiceDefinition> = {
+    <request_opt:MessageDefinition> "---" eol <response_opt:MessageDefinition> => Some(ServiceDefinition{request: request_opt?, response: response_opt?}),
 }
 
 pub(crate) TypeDefinition: TypeDefinition = {
-    ServiceDefinition => TypeDefinition::from(<>),
-    MessageDefinition => TypeDefinition::from(<>),
+    ServiceDefinition =>? Ok(TypeDefinition::from(<>.ok_or(lalrpop_util::ParseError::from(ParseError::new(ParseErrorKind::InvalidTypeDefinition, None)))?)),
+    MessageDefinition =>? Ok(TypeDefinition::from(<>.ok_or(lalrpop_util::ParseError::from(ParseError::new(ParseErrorKind::InvalidTypeDefinition, None)))?)),
 }

@@ -30,7 +30,7 @@ use ast::file::File;
 use ast::line::Line;
 use ast::file_name::FileName;
 
-use ParseError;
+use error::ParseError;
 
 /// The `DSDL` struct contains a number of data type definition
 #[derive(Debug, PartialEq, Eq)]

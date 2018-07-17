@@ -57,6 +57,7 @@ pub enum Token {
     Eol,
 }
 
+#[derive(Debug, Clone)]
 pub(crate) struct Lexer<'input> {
     input: &'input str,
     chars: Peekable<CharIndices<'input>>,
@@ -191,7 +192,8 @@ impl<'input> Iterator for Lexer<'input> {
                 }
             }
 
-            Some(x) => unimplemented!("TODO: Implement some error: Unrecognized token: {:?}", x),
+            // Base case means unrecognized token
+            Some((i, _)) => Some(Err(ParseError::new(ParseErrorKind::InvalidToken, Some(i)))),
             None => None, // End of file
         }
     }

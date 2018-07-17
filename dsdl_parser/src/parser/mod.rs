@@ -3,4 +3,4 @@
 
 pub(crate) mod lexer;
 pub(crate) mod parser;
-pub(crate) mod error;
+pub mod error;

@@ -44,7 +44,7 @@ mod tests {
         let mut errors = Vec::new();
 
         assert_eq!(
-            Directive::Union,
+            Ok(Directive::Union),
             DirectiveParser::new()
                 .parse(&mut errors, lexer::Lexer::new("@union"))
                 .unwrap()
@@ -247,7 +247,7 @@ void2 # test comment
     }
 
 
-    // Test related to error handling
+    // Tests related to error handling
 
 
     #[test]
@@ -255,12 +255,35 @@ void2 # test comment
         let mut errors = Vec::new();
 
         assert_eq!(
-            lalrpop_util::ParseError::User{error: ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("unionasd").unwrap()))},
+            Err(ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("unionasd").unwrap()), None)),
             DirectiveParser::new()
                 .parse(&mut errors, lexer::Lexer::new("@unionasd"))
-                .err()
                 .unwrap()
         );
+
+        assert_eq!(
+            Err(ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("bad_directive").unwrap()), None)),
+            DirectiveParser::new()
+                .parse(&mut errors, lexer::Lexer::new("@bad_directive 123 12345"))
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn parse_line_error() {
+        let mut errors = Vec::new();
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("@unionasd\n"));
+        assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("unionasd").unwrap()), None)]);
+
+
+        let mut errors = Vec::new();
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("@bad_directive 123 12345\n"));
+        assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("bad_directive").unwrap()), None)]);
+
+        let mut errors = Vec::new();
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("uint2 123\n"));
+        assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnexpectedToken(Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("123")})), Some(6))]);
+
     }
 
 }

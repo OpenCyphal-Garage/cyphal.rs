@@ -96,11 +96,7 @@ pub use ast::file::NormalizedFile;
 
 pub use ast::dsdl::DSDL;
 
-pub use parser::error::ParseErrorKind;
-pub use parser::error::ParseError;
-pub use parser::error::ParseErrorSeverity;
-
-
+pub use parser::error;
 
 
 
