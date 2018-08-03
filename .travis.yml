@@ -4,6 +4,13 @@ rust:
   - beta
   - nightly
 
+before_script:
+  - |
+    if [ $ACTION == "clippy" ]
+    then
+      rustup component add clippy-preview --toolchain=nightly
+    fi
+
 env:
   - TEST_DIR="uavcan" ACTION="test" FLAGS="--no-default-features"
   - TEST_DIR="uavcan" ACTION="test" FLAGS=""
@@ -14,6 +21,6 @@ env:
 matrix:
   include:
     - rust: nightly
-      env: TEST_DIR="uavcan" ACTION="build" FLAGS="--features clippy"
+      env: TEST_DIR="uavcan" ACTION="clippy"
   
 script: cd $TEST_DIR && ./travis.sh
