@@ -14,8 +14,11 @@ categories = ["parser-implementations"]
 license = "Apache-2.0/MIT"
 
 [dependencies]
-nom = "^3.2"
+lalrpop-util = "0.15.2"
 log = "^0.3.8"
+
+[build-dependencies]
+lalrpop = "0.15.2"
 
 [dev-dependencies]
 test-logger = "0.1.0"
