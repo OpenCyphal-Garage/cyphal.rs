@@ -25,7 +25,7 @@ required-features = ["binary"]
 
 
 [dependencies]
-dsdl_parser = {path = "../dsdl_parser"}
+dsdl_parser = {git = "https://github.com/UAVCAN/dsdl_parser.rs.git", rev = "eeb1307464cdcc406f3fac159f67f291766a4f8d"}
 quote = "0.3"
 inflections = "1.1"
 
