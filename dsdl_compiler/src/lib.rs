@@ -379,7 +379,7 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
         let mut union = false;
 
         for directive in directives {
-            if let dsdl_parser::Line::Directive(dsdl_parser::Directive::Union, _) = directive {
+            if let dsdl_parser::Line::Directive{directive: dsdl_parser::Directive::Union, ..} = directive {
                 union = true;
             }
         }
@@ -404,7 +404,7 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
                     dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
-                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                    dsdl_parser::Line::Definition{definition: dsdl_parser::AttributeDefinition::Field(def), comment: opt_comment} => {
                         if let dsdl_parser::Ty::Composite(_) = def.field_type {
                             only_primitive_types = false;
                         }
@@ -421,8 +421,8 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                         
                         current_comments = Vec::new();
                     },
-                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Const(_), _) => (), // const definitions is only used in the impls
-                    dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
+                    dsdl_parser::Line::Definition{definition: dsdl_parser::AttributeDefinition::Const(_), ..} => (), // const definitions is only used in the impls
+                    dsdl_parser::Line::Directive{..} => unreachable!("All directives was removed at the start"),
                 }
             }
 
@@ -435,7 +435,7 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                 match line {
                     dsdl_parser::Line::Empty => current_comments = Vec::new(),
                     dsdl_parser::Line::Comment(comment) => current_comments.push(comment.compile(config)),
-                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Field(def), opt_comment) => {
+                    dsdl_parser::Line::Definition{definition: dsdl_parser::AttributeDefinition::Field(def), comment: opt_comment} => {
                         if let dsdl_parser::Ty::Composite(_) = def.field_type {
                             only_primitive_types = false;
                         }
@@ -452,8 +452,8 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
                         
                         current_comments = Vec::new();
                     },
-                    dsdl_parser::Line::Definition(dsdl_parser::AttributeDefinition::Const(_), _) => (), // const definitions is only used in the impls
-                    dsdl_parser::Line::Directive(_, _) => unreachable!("All directives was removed at the start"),
+                    dsdl_parser::Line::Definition{definition: dsdl_parser::AttributeDefinition::Const(_), ..} => (), // const definitions is only used in the impls
+                    dsdl_parser::Line::Directive{..} => unreachable!("All directives was removed at the start"),
                 }
             }
             items.push(syn::ItemKind::Struct(syn::VariantData::Struct(fields), syn::Generics{lifetimes: Vec::new(), ty_params: Vec::new(), where_clause: syn::WhereClause::none()}));
@@ -488,32 +488,32 @@ impl Compile<(Vec<syn::ItemKind>, Vec<syn::Attribute>)> for dsdl_parser::Message
 impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
     fn compile(self, config: &CompileConfig) -> syn::Field {
         let ty = match self.array {
-            dsdl_parser::ArrayInfo::Single => self.field_type.compile(config),
-            dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
+            None => self.field_type.compile(config),
+            Some(dsdl_parser::ArrayInfo::DynamicLess(size)) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), dsdl_parser::Size::from(u64::from(size) - 1).compile(config))],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size-1, syn::IntTy::Unsuffixed)))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::DynamicLeq(size) => syn::Ty::Path(
+            Some(dsdl_parser::ArrayInfo::DynamicLeq(size)) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config))],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size, syn::IntTy::Unsuffixed)))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config)),
+            Some(dsdl_parser::ArrayInfo::Static(size)) => syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size, syn::IntTy::Unsuffixed))),
         };
         
         syn::Field{
@@ -528,32 +528,32 @@ impl Compile<syn::Field> for dsdl_parser::FieldDefinition {
 impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
     fn compile(self, config: &CompileConfig) -> syn::Variant {
         let ty = match self.array {
-            dsdl_parser::ArrayInfo::Single => self.field_type.compile(config),
-            dsdl_parser::ArrayInfo::DynamicLess(size) => syn::Ty::Path(
+            None => self.field_type.compile(config),
+            Some(dsdl_parser::ArrayInfo::DynamicLess(size)) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), dsdl_parser::Size::from(u64::from(size) - 1).compile(config))],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size-1, syn::IntTy::Unsuffixed)))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::DynamicLeq(size) => syn::Ty::Path(
+            Some(dsdl_parser::ArrayInfo::DynamicLeq(size)) => syn::Ty::Path(
                 None, syn::Path{
                     global: true,
                     segments: vec![syn::PathSegment{
                         ident: syn::Ident::from("Dynamic"),
                         parameters: syn::PathParameters::AngleBracketed(syn::AngleBracketedParameterData{
                             lifetimes: Vec::new(),
-                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config))],
+                            types: vec![syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size, syn::IntTy::Unsuffixed)))],
                             bindings: Vec::new(),
                         })
                     }],
                 }),
-            dsdl_parser::ArrayInfo::Static(size) => syn::Ty::Array(Box::new(self.field_type.compile(config)), size.compile(config)),
+            Some(dsdl_parser::ArrayInfo::Static(size)) => syn::Ty::Array(Box::new(self.field_type.compile(config)), syn::ConstExpr::Lit(syn::Lit::Int(size, syn::IntTy::Unsuffixed))),
         };
 
         syn::Variant {
@@ -572,19 +572,6 @@ impl Compile<syn::Variant> for dsdl_parser::FieldDefinition {
     }
 }
 
-
-impl Compile<syn::ConstExpr> for dsdl_parser::Size {
-    fn compile(self, config: &CompileConfig) -> syn::ConstExpr {
-        syn::ConstExpr::Lit(self.compile(config))
-    }    
-}
-    
-impl Compile<syn::Lit> for dsdl_parser::Size {
-    fn compile(self, _config: &CompileConfig) -> syn::Lit {
-        syn::Lit::Int(self.into(), syn::IntTy::Unsuffixed)
-    }    
-}
-    
 impl Compile<syn::Ident> for dsdl_parser::Ident {
     fn compile(self, _config: &CompileConfig) -> syn::Ident {
         syn::Ident::from(self.as_ref())
@@ -837,15 +824,10 @@ impl Compile<syn::Ty> for dsdl_parser::PrimitiveType {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use *;
-    use dsdl_parser::DSDL;
-    use dsdl_parser::PrimitiveType;
-    use dsdl_parser::AttributeDefinition;
-    use dsdl_parser::Ty;
-    use dsdl_parser::ArrayInfo;
-    use dsdl_parser::Size;
-    use dsdl_parser::Comment;
-    use dsdl_parser::Line;
+    use dsdl_parser::*;
 
     #[test]
     fn compile_dsdl() {
@@ -1069,26 +1051,31 @@ mod tests {
     #[test]
     fn compile_struct_body() {
         let body = dsdl_parser::MessageDefinition(
-            vec![Line::Comment(Comment::from("about struct0")),
-                 Line::Comment(Comment::from("about struct1")),
+            vec![Line::Comment(Comment::from_str("#about struct0").unwrap()),
+                 Line::Comment(Comment::from_str("#about struct1").unwrap()),
                  Line::Empty,
-                 Line::Comment(Comment::from("test comment0")),
-                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
-                     cast_mode: None,
-                     field_type: Ty::Primitive(PrimitiveType::Uint8),
-                     array: ArrayInfo::Single,
-                     name: Some(dsdl_parser::Ident::from("node_status")),
-                 }) , Some(Comment::from("test comment1"))),
-                 Line::Comment(Comment::from("ignored comment")),
+                 Line::Comment(Comment::from_str("#test comment0").unwrap()),
+                 Line::Definition {
+                     definition: AttributeDefinition::Field(dsdl_parser::FieldDefinition {
+                         cast_mode: None,
+                         field_type: Ty::Primitive(PrimitiveType::Uint8),
+                         array: None,
+                         name: Some(dsdl_parser::Ident::from("node_status")),
+                     }),
+                     comment: Some(Comment::from_str("#test comment1").unwrap()),
+                 },
+                 Line::Comment(Comment::from_str("#ignored comment").unwrap()),
                  Line::Empty,
-                 Line::Comment(Comment::from("test comment2")),
-                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
-                     cast_mode: None,
-                     field_type: Ty::Primitive(PrimitiveType::Uint7),
-                     array: ArrayInfo::Single,
-                     name: Some(dsdl_parser::Ident::from("node_something")),
-                 }) , Some(Comment::from("test comment3"))),
-
+                 Line::Comment(Comment::from_str("#test comment2").unwrap()),
+                 Line::Definition {
+                     definition: AttributeDefinition::Field(dsdl_parser::FieldDefinition {
+                         cast_mode: None,
+                         field_type: Ty::Primitive(PrimitiveType::Uint7),
+                         array: None,
+                         name: Some(dsdl_parser::Ident::from("node_something")),
+                     }),
+                     comment: Some(Comment::from_str("#test comment3").unwrap())
+                 },
             ]
         ).compile(&CompileConfig::default());
 
@@ -1120,27 +1107,32 @@ mod tests {
     #[test]
     fn compile_enum_body() {
         let body = dsdl_parser::MessageDefinition(
-            vec![Line::Directive(dsdl_parser::Directive::Union, None),
-                 Line::Comment(Comment::from("about enum0")),
-                 Line::Comment(Comment::from("about enum1")),
+            vec![Line::Directive{directive: dsdl_parser::Directive::Union, comment: None},
+                 Line::Comment(Comment::from_str("#about enum0").unwrap()),
+                 Line::Comment(Comment::from_str("#about enum1").unwrap()),
                  Line::Empty,
-                 Line::Comment(Comment::from("test comment0")),
-                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
-                     cast_mode: None,
-                     field_type: Ty::Primitive(PrimitiveType::Uint8),
-                     array: ArrayInfo::Single,
-                     name: Some(dsdl_parser::Ident::from("node_status")),
-                 }) , Some(Comment::from("test comment1"))),
-                 Line::Comment(Comment::from("ignored comment")),
+                 Line::Comment(Comment::from_str("#test comment0").unwrap()),
+                 Line::Definition {
+                     definition: AttributeDefinition::Field(dsdl_parser::FieldDefinition {
+                         cast_mode: None,
+                         field_type: Ty::Primitive(PrimitiveType::Uint8),
+                         array: None,
+                         name: Some(dsdl_parser::Ident::from("node_status")),
+                     }),
+                     comment: Some(Comment::from_str("#test comment1").unwrap())
+                 },
+                 Line::Comment(Comment::from_str("#ignored comment").unwrap()),
                  Line::Empty,
-                 Line::Comment(Comment::from("test comment2")),
-                 Line::Definition(AttributeDefinition::Field(dsdl_parser::FieldDefinition{
-                     cast_mode: None,
-                     field_type: Ty::Primitive(PrimitiveType::Uint7),
-                     array: ArrayInfo::Single,
-                     name: Some(dsdl_parser::Ident::from("node_something")),
-                 }) , Some(Comment::from("test comment3"))),
-
+                 Line::Comment(Comment::from_str("#test comment2").unwrap()),
+                 Line::Definition {
+                     definition: AttributeDefinition::Field(dsdl_parser::FieldDefinition {
+                         cast_mode: None,
+                         field_type: Ty::Primitive(PrimitiveType::Uint7),
+                         array: None,
+                         name: Some(dsdl_parser::Ident::from("node_something")),
+                     }),
+                     comment: Some(Comment::from_str("#test comment3").unwrap())
+                 },
             ]
         ).compile(&CompileConfig::default());
 
@@ -1179,7 +1171,7 @@ mod tests {
         let simple_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
-            array: dsdl_parser::ArrayInfo::Single,
+            array: None,
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1188,7 +1180,7 @@ mod tests {
         let composite_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
-            array: dsdl_parser::ArrayInfo::Single,
+            array: None,
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1197,7 +1189,7 @@ mod tests {
         let array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
-            array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
+            array: Some(dsdl_parser::ArrayInfo::Static(19)),
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1206,7 +1198,7 @@ mod tests {
         let dynleq_array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
-            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
+            array: Some(dsdl_parser::ArrayInfo::DynamicLeq(191)),
             name: Some(dsdl_parser::Ident::from("long_name")),
         }.compile(&CompileConfig::default());
 
@@ -1215,7 +1207,7 @@ mod tests {
         let dynless_array_field: syn::Variant = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
-            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
+            array: Some(dsdl_parser::ArrayInfo::DynamicLeq(370)),
             name: Some(dsdl_parser::Ident::from("very_long_name")),
         }.compile(&CompileConfig::default());
         
@@ -1228,7 +1220,7 @@ mod tests {
         let simple_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
-            array: dsdl_parser::ArrayInfo::Single,
+            array: None,
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1237,7 +1229,7 @@ mod tests {
         let composite_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: Ty::Composite(dsdl_parser::CompositeType{namespace: Some(dsdl_parser::Ident::from("uavcan.protocol")), name: dsdl_parser::Ident::from("NodeStatus")}),
-            array: dsdl_parser::ArrayInfo::Single,
+            array: None,
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1246,7 +1238,7 @@ mod tests {
         let array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Uint3),
-            array: dsdl_parser::ArrayInfo::Static(Size::from(19u64)),
+            array: Some(dsdl_parser::ArrayInfo::Static(19)),
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1255,7 +1247,7 @@ mod tests {
         let dynleq_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Int29),
-            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(191u64)),
+            array: Some(dsdl_parser::ArrayInfo::DynamicLeq(191)),
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
 
@@ -1264,7 +1256,7 @@ mod tests {
         let dynless_array_field: syn::Field = dsdl_parser::FieldDefinition{
             cast_mode: None,
             field_type: dsdl_parser::Ty::Primitive(PrimitiveType::Bool),
-            array: dsdl_parser::ArrayInfo::DynamicLeq(Size::from(370u64)),
+            array: Some(dsdl_parser::ArrayInfo::DynamicLeq(370)),
             name: Some(dsdl_parser::Ident::from("name")),
         }.compile(&CompileConfig::default());
         
@@ -1309,7 +1301,7 @@ mod tests {
     
     #[test]
     fn compile_comment() {
-        let comment = Comment::from(" test comment").compile(&CompileConfig::default());
+        let comment = Comment::from_str("# test comment").unwrap().compile(&CompileConfig::default());
         assert_eq!(quote!{#[doc = " test comment"]
         }, quote!{#comment});
     }

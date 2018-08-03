@@ -25,7 +25,7 @@ required-features = ["binary"]
 
 
 [dependencies]
-dsdl_parser = "^0.1.3"
+dsdl_parser = {path = "../dsdl_parser"}
 quote = "0.3"
 inflections = "1.1"
 
