@@ -25,7 +25,10 @@ pub enum ParseErrorSeverity {
 #[derive(PartialEq, Debug, Clone)]
 pub enum ParseErrorKind {
     // Errors that may occur during tokenization
+
+    /// A generic invalid (unrecognized by the lexer) Token error.
     InvalidToken,
+
 
 
     // Errors that may occur during parsing

@@ -1,11 +1,8 @@
 //! Everything related to the uavcan directive `Directive`
 
-use std::str::FromStr;
 use std::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
-
-use ast::ident::Ident;
 
 /// An Uavcan Directive
 ///
@@ -22,33 +19,6 @@ pub enum Directive {
     /// A marker variant that tells the compiler that users of this enum cannot match it exhaustively.
     #[doc(hidden)]
     __Nonexhaustive,
-}
-
-impl Directive {
-    pub(crate) fn try_from(ident: Ident) -> Result<Self, ParseDirectiveError> {
-        // Until TryFrom trait is stabilized
-        match ident.as_ref() {
-            "union" => Ok(Directive::Union),
-            _ => Err(ParseDirectiveError::NotDirective(String::from(ident))),
-        }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum ParseDirectiveError {
-    NotDirective(String),
-}
-
-impl FromStr for Directive {
-    type Err = ParseDirectiveError;
-
-    fn from_str(s: &str) -> Result<Directive, Self::Err> {
-        match s {
-            "@union" => Ok(Directive::Union),
-            "union" => Ok(Directive::Union),
-            _ => Err(ParseDirectiveError::NotDirective(String::from(s))),
-        }
-    }
 }
 
 impl Display for Directive {

@@ -118,7 +118,9 @@ impl<'input> Iterator for Lexer<'input> {
                 Some(Ok((i, Token::Eol, i + 2)))
             },
             Some((i, '\n')) => Some(Ok((i, Token::Eol, i+1))),
-            Some((i, '\r')) => unimplemented!("TODO: Insert error \\r without \\n"),
+
+            // \r occured without \n occuring first, consider adding specialized error message.
+            Some((i, '\r')) => Some(Err(ParseError::new(ParseErrorKind::InvalidToken, Some(i)))),
 
 
             // Symbols

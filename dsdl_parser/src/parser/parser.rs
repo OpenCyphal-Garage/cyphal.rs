@@ -272,16 +272,16 @@ void2 # test comment
     #[test]
     fn parse_line_error() {
         let mut errors = Vec::new();
-        LineParser::new().parse(&mut errors, lexer::Lexer::new("@unionasd\n"));
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("@unionasd\n")).unwrap();
         assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("unionasd").unwrap()), None)]);
 
 
         let mut errors = Vec::new();
-        LineParser::new().parse(&mut errors, lexer::Lexer::new("@bad_directive 123 12345\n"));
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("@bad_directive 123 12345\n")).unwrap();
         assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnknownDirectiveName(Ident::from_str("bad_directive").unwrap()), None)]);
 
         let mut errors = Vec::new();
-        LineParser::new().parse(&mut errors, lexer::Lexer::new("uint2 123\n"));
+        LineParser::new().parse(&mut errors, lexer::Lexer::new("uint2 123\n")).unwrap();
         assert_eq!(errors, vec![ParseError::new(ParseErrorKind::UnexpectedToken(Token::Lit(Lit::Dec{sign: Sign::Implicit, value: String::from("123")})), Some(6))]);
 
     }
