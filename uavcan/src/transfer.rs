@@ -3,6 +3,7 @@
 //! The only transfer protocol that is currently supported by the uavcan protocol is CAN2.0B.
 
 use lib::core::convert::From;
+use lib::core::cmp::Ordering;
 
 use embedded_types;
 
@@ -232,6 +233,109 @@ impl From<TransferID> for u8 {
         value
     }
 }
+
+/// A Wrapper that can be used for sorting after priority
+///
+/// PartialEq, Eq, PartialOrd and Ord is implemented but only cares about priority.
+///
+/// # Examples
+/// ## Usable with `TransferFrameID`
+/// ```
+/// use uavcan::transfer::TransferFrameID;
+/// use uavcan::transfer::Priority;
+///
+/// assert!(Priority(TransferFrameID::new(0)) > Priority(TransferFrameID::new(1)))
+///
+/// ```
+///
+/// ## Usable with anything that implements `TransferFrame`
+/// ```
+/// use uavcan::transfer::Priority;
+/// use uavcan::transfer::TransferFrameID;
+/// use uavcan::transfer::TransferFrame;
+///
+/// #[derive(Debug, PartialEq)]
+/// pub struct CanFrame {
+///     pub id: TransferFrameID,
+///     pub dlc: usize,
+///     pub data: [u8; 8],
+/// }
+///
+/// impl TransferFrame for CanFrame {
+///     const MAX_DATA_LENGTH: usize = 8;
+///
+///     fn new(id: TransferFrameID) -> CanFrame {
+///         CanFrame{id: id, dlc: 0, data: [0; 8]}
+///     }
+///
+///     fn set_data_length(&mut self, length: usize) {
+///         assert!(length <= 8);
+///         self.dlc = length;
+///     }
+///
+///     fn data(&self) -> &[u8] {
+///         &self.data[0..self.dlc]
+///     }
+///
+///     fn data_as_mut(&mut self) -> &mut[u8] {
+///         &mut self.data[0..self.dlc]
+///     }
+///
+///     fn id(&self) -> TransferFrameID {
+///         self.id
+///     }
+/// }
+///
+/// assert!(Priority(CanFrame::new(TransferFrameID::new(0))) > Priority(CanFrame::new(TransferFrameID::new(1))));
+/// ```
+#[derive(Clone, Copy, Debug)]
+pub struct Priority<T>(pub T);
+
+
+
+impl Eq for Priority<TransferFrameID> {}
+
+impl PartialEq for Priority<TransferFrameID> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.eq(&other.0)
+    }
+}
+
+impl Ord for Priority<TransferFrameID> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.cmp(&other.0).reverse()
+    }
+}
+
+impl PartialOrd for Priority<TransferFrameID> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+
+
+impl<F: TransferFrame> Eq for Priority<F> {}
+
+
+impl<F: TransferFrame> PartialEq for Priority<F> {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.id().eq(&other.0.id())
+    }
+}
+
+impl<F: TransferFrame> Ord for Priority<F> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.0.id().cmp(&other.0.id()).reverse()
+    }
+}
+
+impl<F: TransferFrame> PartialOrd for Priority<F> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 
 /// The last byte of the transfer frame data field, which contains auxiliary transport layer fields.
 ///
