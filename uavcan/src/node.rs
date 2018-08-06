@@ -8,13 +8,18 @@ use {
     Message,
 };
 
+use storage::{
+    Storage,
+    SubscriberStorageHandle,
+    InterfaceStorageHandle,
+};
+
 use transfer::{
     TransferInterface,
     TransferFrame,
     TransferFrameID,
     TransferID,
     TransferFrameIDFilter,
-    TransferSubscriber,
 };
 
 use frame_disassembler::FrameDisassembler;
@@ -53,13 +58,13 @@ impl NodeID {
 /// The Uavcan node trait.
 ///
 /// Allows implementation of application level features genericaly for all types of Uavcan Nodes.
-pub trait Node<I: TransferInterface> {
+pub trait Node<I: TransferInterface, S: Storage<I::Frame>> {
 
     /// Broadcast a `Message` on the Uavcan network. 
     fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError>;
 
     /// Subscribe to broadcasts of a specific `Message`.
-    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()>;
+    fn subscribe<T: Struct + Message>(&self) -> Subscriber<T, I::Frame, S::SubscriberStorageHandle>;
 }
 
     
@@ -95,15 +100,15 @@ impl Default for NodeConfig {
 
 /// A subscription handle used to receive a specific `Message`
 #[derive(Debug)]
-pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
-    transfer_subscriber: I::Subscriber,
-    phantom: PhantomData<T>,
+pub struct Subscriber<T: Struct + Message, F: TransferFrame, H: SubscriberStorageHandle<F>> {
+    storage_handle: H,
+    phantom: PhantomData<(T, F)>,
 }
 
-impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
-    fn new(transfer_subscriber: I::Subscriber) -> Self {
+impl <T: Struct + Message, F: TransferFrame, H: SubscriberStorageHandle<F>> Subscriber<T, F, H> {
+    fn new(storage_handle: H) -> Self {
         Subscriber{
-            transfer_subscriber: transfer_subscriber,
+            storage_handle,
             phantom: PhantomData,
         }
     }
@@ -113,15 +118,15 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
     /// Messages are returned in a manner that respects the `TransferFrameID` priority.
     /// For equal priority, FIFO logic is used.
     pub fn receive(&self) -> Option<Result<T, ReceiveError>> {
-        if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
+        if let Some(full_id) = self.storage_handle.find_id(|x| x.is_end_frame()) {
             let mut assembler = FrameAssembler::new();
             loop {
-                match assembler.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
+                match assembler.add_transfer_frame(self.storage_handle.remove(&full_id.frame_id).unwrap()) {
                     Err(AssemblerError::ToggleError) => {
-                        self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                        self.storage_handle.retain(|x| x.full_id() != full_id);
                         return Some(Err(ReceiveError {
-                            transfer_frame_id: end_frame.id(),
-                            transfer_id: end_frame.tail_byte().transfer_id(),
+                            transfer_frame_id: full_id.frame_id,
+                            transfer_id: full_id.transfer_id,
                             error_code: ReceiveErrorCode::ToggleError,
                         }));
                     },
@@ -130,10 +135,10 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
                         match assembler.build() {
                             Ok(frame) => return Some(Ok(frame.into_parts().1)),
                             Err(BuildError::CRCError) => {
-                                self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                                self.storage_handle.retain(|x| x.full_id() != full_id);
                                 return Some(Err(ReceiveError {
-                                    transfer_frame_id: end_frame.id(),
-                                    transfer_id: end_frame.tail_byte().transfer_id(),
+                                    transfer_frame_id: full_id.frame_id,
+                                    transfer_id: full_id.transfer_id,
                                     error_code: ReceiveErrorCode::CRCError,
                                 }));
                             },
@@ -171,29 +176,67 @@ pub enum ReceiveErrorCode {
 /// This type of node lack some features that the `FullNode` provides,
 /// but is in turn suitable for highly resource constrained systems.
 #[derive(Debug)]
-pub struct SimpleNode<I, D>
+pub struct SimpleNode<I, D, S>
     where I: TransferInterface,
-          D: ::lib::core::ops::Deref<Target=I> {
+          D: ::lib::core::ops::Deref<Target=I>,
+          S: Storage<I::Frame>,
+{
     interface: D,
+    interface_storage: S::InterfaceStorageHandle,
+    storage: S,
     config: NodeConfig,
 }
 
 
-impl<I, D> SimpleNode<I, D>
+impl<I, D, S> SimpleNode<I, D, S>
     where I: TransferInterface,
-          D: ::lib::core::ops::Deref<Target=I> {
+          D: ::lib::core::ops::Deref<Target=I>,
+          S: Storage<I::Frame>,
+{
     pub fn new(interface: D, config: NodeConfig) -> Self {
+        let storage = S::new();
         SimpleNode{
             interface: interface,
+            interface_storage: storage.new_interface(),
             config: config,
+            storage: storage,
+        }
+    }
+
+    /// Call this method after the interface have sucesfully received a new frame or periodically
+    ///
+    /// This method is responsible for moving as many frames as possible
+    /// from incoming interface mailboxes to the storage buffer.
+    pub fn flush_receptions(&self) {
+        while let Some(new_frame) = self.interface.receive() {
+            self.storage.insert_subscriber_queue(new_frame).expect("Storage full");
+        }
+    }
+
+    /// Call this method after the interface have successfully transmitted a new frame or periodically
+    ///
+    /// This method is responsible for moving as many frames as possible
+    /// from storage buffers to the outgoing interface mailboxes.
+    pub fn flush_transmissions(&self) {
+        //TODO: Handle priority inversion concerns correctly
+        while let Some(top_frame) = self.interface_storage.pop() {
+            match self.interface.transmit(&top_frame) {
+                Ok(_) => (),
+                Err(_) => {
+                    self.interface_storage.push(top_frame).expect("Storage Full");
+                    return;
+                }
+            }
         }
     }
 }
 
 
-impl<I, D> Node<I> for SimpleNode<I, D>
+impl<I, D, S> Node<I, S> for SimpleNode<I, D, S>
     where I: TransferInterface,
-          D: ::lib::core::ops::Deref<Target=I> {
+          D: ::lib::core::ops::Deref<Target=I>,
+          S: Storage<I::Frame>,
+{
     fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
@@ -205,13 +248,14 @@ impl<I, D> Node<I> for SimpleNode<I, D>
         };
         
         while let Some(can_frame) = generator.next_transfer_frame() {
-            self.interface.transmit(&can_frame)?;
+            self.storage.insert_interface_queue(can_frame).unwrap();
         }
+        // TODO: Transfer into interface at this point or first attempt to add directly to interface.
 
         Ok(())
     }
 
-    fn subscribe<T: Struct + Message>(&self) -> Result<Subscriber<T, I>, ()> {
+    fn subscribe<T: Struct + Message>(&self) -> Subscriber<T, I::Frame, S::SubscriberStorageHandle> {
         let id = if let Some(type_id) = T::TYPE_ID {
             u32::from(type_id) << 8
         } else {
@@ -220,7 +264,7 @@ impl<I, D> Node<I> for SimpleNode<I, D>
 
         let filter = TransferFrameIDFilter::new(id, 0x1ff << 7);
     
-        Ok(Subscriber::new(self.interface.subscribe(filter)?))
+        Subscriber::new(self.storage.subscribe_to(filter))
     }
 }
 

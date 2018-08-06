@@ -19,45 +19,16 @@ pub use embedded_types::io::Error as IOError;
 pub trait TransferInterface {
     /// The TransferFrame associated with this interface.
     type Frame: TransferFrame;
-    type Subscriber: TransferSubscriber<Frame=Self::Frame>;
 
-        
     /// Put a `TransferFrame` in the transfer buffer (or transmit it on the bus) or return `Err(IOError::BufferExhausted)` if buffer is full.
     ///
     /// To avoid priority inversion the new frame needs to be prioritized inside the interface as it would on the bus.
     /// When reprioritizing the `TransferInterface` must for equal ID frames respect the order they were attempted transmitted in.
     fn transmit(&self, frame: &Self::Frame) -> Result<(), IOError>;
     
-    /// Create a `TransferSubscriber` with a receive buffer for incoming `TransferFrames` that matches `filter`.
-    ///
-    /// All TransferFrames matching `filter` will be put in this buffer. 
-    fn subscribe(&self, filter: TransferFrameIDFilter) -> Result<Self::Subscriber, ()>;
-}
-
-/// A subscription to a set of `TransferFrames`
-///
-/// Orderings referes to:
-///
-/// 1. Should be ordered after the `TransferFrameID` Priority.
-/// 2. For equal `TransferFrameID`, frames should be in the same order they were received.
-pub trait TransferSubscriber {
-    type Frame: TransferFrame;
-    
-    /// Receive a frame matching the indentifier.
-    ///
-    /// When a frame is received it will be removed from the buffer.
-    ///
-    /// It's important that `receive` returns frames in the correct order.
-    fn receive(&self, identifier: &TransferFrameID) -> Option<Self::Frame>;
-
-    /// Retains only the elements specified by the predicate.
-    ///
-    /// In other words, remove all elements e such that `f(&e)` returns false.
-    /// This method must operate in place and preserves the order of the retained elements.
-    fn retain<F>(&self, f: F) where F: FnMut(&Self::Frame) -> bool;
-
-    /// Returns a copy of the first frame satisfying the predicate. Does not remove the frame from the buffer.
-    fn find<P>(&self, predicate: P) -> Option<Self::Frame> where P: FnMut(&Self::Frame) -> bool;
+    /// Receive a frame, removing to from the receive buffer.
+    /// if there are no frames in the receive buffer this function will return `None`
+    fn receive(&self) -> Option<Self::Frame>;
 }
 
 /// `TransferFrame` is a CAN like frame that can be sent over a network
