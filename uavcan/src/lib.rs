@@ -54,6 +54,7 @@ mod frame_assembler;
 mod serializer;
 mod frame_disassembler;
 pub mod node;
+pub mod storage;
 
 use bit_field::BitField;
 
