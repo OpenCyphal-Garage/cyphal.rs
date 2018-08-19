@@ -212,7 +212,7 @@ pub struct TransferID(u8);
 impl TransferID {
     /// Constructs a new `TransferID`
     /// ## Panic
-    /// Panics if `value` is something not representable with 29-bits
+    /// Panics if `value` is something not representable with 5-bits
     pub fn new(value: u8) -> TransferID {
         assert_eq!(value & !0x1f, 0);
         TransferID(value)
