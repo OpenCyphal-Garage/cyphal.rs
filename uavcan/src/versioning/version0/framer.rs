@@ -5,6 +5,10 @@ use {
     Frame,
 };
 
+use framing::{
+    Framer,
+};
+
 use transfer::{
     TransferFrame,
     TransferFrameID,
@@ -12,11 +16,14 @@ use transfer::{
     TransferID,
 };
 
-use serializer::*;
+use serializer::{
+    Serializer,
+    SerializationResult,
+    SerializationBuffer,
+};
 
 
-
-pub(crate) struct FrameDisassembler<S: Struct> {
+pub(crate) struct Version0Framer<S: Struct> {
     serializer: Serializer<S>,
     started: bool,
     finished: bool,
@@ -25,33 +32,31 @@ pub(crate) struct FrameDisassembler<S: Struct> {
     transfer_id: TransferID,
 }
 
-impl<S: Struct> FrameDisassembler<S> {
-    pub fn from_uavcan_frame(frame: Frame<S>, transfer_id: TransferID) -> Self {
-        let (id, body) = frame.into_parts();
+impl<S: Struct> Framer<S> for Version0Framer<S> {
+    fn new(frame: Frame<S>, transfer_id: TransferID) -> Self {
+        let (header, body) = frame.into_parts();
         Self{
-            serializer: Serializer::from_structure(body),
+            serializer: Serializer::new(body, true),
             started: false,
             finished: false,
-            id: id,
+            id: TransferFrameID::from(header),
             toggle: false,
             transfer_id: transfer_id,
         }
     }
 
-    pub fn finished(&self) -> bool { self.finished }
-    
-    pub fn next_transfer_frame<T: TransferFrame>(&mut self) -> Option<T> {
+    fn next_frame<T: TransferFrame>(&mut self) -> Option<T> {
         let max_data_length = T::MAX_DATA_LENGTH;
         let mut transport_frame = T::new(self.id);
         transport_frame.set_data_length(max_data_length);
-        
+
         let first_of_multi_frame = if !self.started {
             let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
             if let SerializationResult::Finished = self.serializer.peek_serialize(&mut buffer) {
                 false
             } else {
                 true
-            }                
+            }
         } else {
             false
         };
@@ -72,7 +77,7 @@ impl<S: Struct> FrameDisassembler<S> {
                 let mut buffer = SerializationBuffer::with_empty_buffer(&mut transport_frame.data_as_mut()[0..max_data_length-1]);
                 if SerializationResult::Finished == self.serializer.serialize(&mut buffer){
                     self.finished = true;
-                    ((buffer.bit_length()+7)/8 + 1, true)
+                    ((buffer.bits_serialized()+7)/8 + 1, true)
                 } else {
                     (max_data_length, false)
                 }
@@ -101,8 +106,9 @@ mod tests {
     };
     
     use *;
+    use versioning::*;
     use types::*;
-    use frame_disassembler::*;
+    use super::*;
 
     
     #[test]
@@ -128,12 +134,12 @@ mod tests {
             mode: u3::new(3),
             sub_mode: u3::new(4),
             vendor_specific_status_code: 5,
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
+        let mut framer = Version0Framer::new(uavcan_frame, TransferID::new(0));
 
-        assert_eq!(frame_generator.next_transfer_frame(), Some(can_frame));
-        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
+        assert_eq!(framer.next_frame(), Some(can_frame));
+        assert_eq!(framer.next_frame::<CanFrame>(), None);
         
     }
     
@@ -161,15 +167,15 @@ mod tests {
             level: LogLevel{value: u3::new(0)},
             source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
-        let mut frame_generator = FrameDisassembler::from_uavcan_frame(uavcan_frame, TransferID::new(0));
+        let mut framer = Version0Framer::new(uavcan_frame, TransferID::new(0));
 
-        let crc = frame_generator.serializer.crc(0xd654a48e0c049d75);
+        let crc = framer.serializer.crc(0xd654a48e0c049d75);
 
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -178,7 +184,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -187,7 +193,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 8,
@@ -196,7 +202,7 @@ mod tests {
         );
         
         assert_eq!(
-            frame_generator.next_transfer_frame(),
+            framer.next_frame(),
             Some(CanFrame{
                 id: TransferFrameID::new(4194080),
                 dlc: 3,
@@ -204,7 +210,7 @@ mod tests {
             })
         );
 
-        assert_eq!(frame_generator.next_transfer_frame::<CanFrame>(), None);
+        assert_eq!(framer.next_frame::<CanFrame>(), None);
        
     }
 

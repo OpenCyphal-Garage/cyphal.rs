@@ -8,6 +8,11 @@ use {
     Message,
 };
 
+use versioning::{
+    ProtocolVersion,
+    ProtocolCompatibility,
+};
+
 use transfer::{
     TransferInterface,
     TransferFrame,
@@ -17,11 +22,15 @@ use transfer::{
     TransferSubscriber,
 };
 
-use frame_disassembler::FrameDisassembler;
-use frame_assembler::FrameAssembler;
-use frame_assembler::AssemblerResult;
-use frame_assembler::AssemblerError;
-use frame_assembler::BuildError;
+use versioning::version0::framer::Version0Framer;
+use versioning::version0::deframer::Version0Deframer;
+
+use framing::{
+    Framer,
+    Deframer,
+    DeframingError,
+    DeframingResult,
+};
 
 use embedded_types::io::Error as IOError;
 
@@ -82,12 +91,24 @@ pub struct NodeConfig {
     ///
     /// Nodes with `id = None` is, in Uavcan terms, an anonymous Node.
     pub id: Option<NodeID>,
+
+    /// The default protocol version
+    ///
+    /// The Node will by default use this to select scheme for framing/deframing.
+    pub default_version: ProtocolVersion,
+
+    /// The protocol compatibility specifier
+    ///
+    /// If the protocol bit is not compatible with default_version, this field decides if a newer or older protocol should be used.
+    pub protocol_compatibility: ProtocolCompatibility,
 }
 
 impl Default for NodeConfig {
     fn default() -> Self {
         NodeConfig{
             id: None,
+            default_version: ProtocolVersion::Version0,
+            protocol_compatibility: ProtocolCompatibility::Newer,
         }
     }
 }
@@ -97,13 +118,15 @@ impl Default for NodeConfig {
 #[derive(Debug)]
 pub struct Subscriber<T: Struct + Message, I: TransferInterface> {
     transfer_subscriber: I::Subscriber,
+    protocol_version: ProtocolVersion,
     phantom: PhantomData<T>,
 }
 
 impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
-    fn new(transfer_subscriber: I::Subscriber) -> Self {
+    fn new(transfer_subscriber: I::Subscriber, protocol_version: ProtocolVersion) -> Self {
         Subscriber{
-            transfer_subscriber: transfer_subscriber,
+            transfer_subscriber,
+            protocol_version,
             phantom: PhantomData,
         }
     }
@@ -113,23 +136,22 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
     /// Messages are returned in a manner that respects the `TransferFrameID` priority.
     /// For equal priority, FIFO logic is used.
     pub fn receive(&self) -> Option<Result<T, ReceiveError>> {
-        if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
-            let mut assembler = FrameAssembler::new();
-            loop {
-                match assembler.add_transfer_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
-                    Err(AssemblerError::ToggleError) => {
-                        self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
-                        return Some(Err(ReceiveError {
-                            transfer_frame_id: end_frame.id(),
-                            transfer_id: end_frame.tail_byte().transfer_id(),
-                            error_code: ReceiveErrorCode::ToggleError,
-                        }));
-                    },
-                    Err(_) => panic!("Unexpected error from FrameAssembler"),
-                    Ok(AssemblerResult::Finished) => {
-                        match assembler.build() {
-                            Ok(frame) => return Some(Ok(frame.into_parts().1)),
-                            Err(BuildError::CRCError) => {
+        match self.protocol_version {
+            //TODO: Implement compatibility scheme
+            ProtocolVersion::Version0 => {
+                if let Some(end_frame) = self.transfer_subscriber.find(|x| x.is_end_frame()) {
+                    let mut deframer = Version0Deframer::new();
+                    loop {
+                        match deframer.add_frame(self.transfer_subscriber.receive(&end_frame.id()).unwrap()) {
+                            Err(DeframingError::ToggleError) => {
+                                self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
+                                return Some(Err(ReceiveError {
+                                    transfer_frame_id: end_frame.id(),
+                                    transfer_id: end_frame.tail_byte().transfer_id(),
+                                    error_code: ReceiveErrorCode::ToggleError,
+                                }));
+                            },
+                            Err(DeframingError::CRCError) => {
                                 self.transfer_subscriber.retain(|x| x.full_id() != end_frame.full_id());
                                 return Some(Err(ReceiveError {
                                     transfer_frame_id: end_frame.id(),
@@ -138,17 +160,19 @@ impl <T: Struct + Message, I: TransferInterface> Subscriber<T, I> {
                                 }));
                             },
                             Err(_) => panic!("Unexpected error from FrameAssembler"),
+                            Ok(DeframingResult::Finished(frame)) => {
+                                return Some(Ok(frame.into_parts().1));
+                            },
+                            Ok(DeframingResult::Ok) => (),
                         }
-                    },
-                    Ok(AssemblerResult::Ok) => (),
+                    }
+                } else {
+                    None
                 }
-            }
-        } else {
-            None
+            },
+            ProtocolVersion::Version1 => unimplemented!("No support for protocol version 1 yet"),
         }
     }
-    
-    
 }
 
 /// Full Error status from a failed receive
@@ -197,15 +221,20 @@ impl<I, D> Node<I> for SimpleNode<I, D>
     fn broadcast<T: Struct + Message>(&self, message: T) -> Result<(), IOError> {
         let priority = 0;
         let transfer_id = TransferID::new(0);
-        
-        let mut generator = if let Some(ref node_id) = self.config.id {
-            FrameDisassembler::from_uavcan_frame(Frame::from_message(message, priority, *node_id), transfer_id)
-        } else {
-            unimplemented!("Anonymous transfers not implemented")
-        };
-        
-        while let Some(can_frame) = generator.next_transfer_frame() {
-            self.interface.transmit(&can_frame)?;
+
+        match self.config.default_version {
+            ProtocolVersion::Version0 => {
+                let mut framer = if let Some(ref node_id) = self.config.id {
+                    Version0Framer::new(Frame::from_message(message, priority, ProtocolVersion::Version0, *node_id), transfer_id)
+                } else {
+                    unimplemented!("Anonymous transfers not implemented")
+                };
+
+                while let Some(can_frame) = framer.next_frame() {
+                    self.interface.transmit(&can_frame)?;
+                }
+            },
+            ProtocolVersion::Version1 => unimplemented!("Protocol 1 transfers not implemented yet")
         }
 
         Ok(())
@@ -220,7 +249,7 @@ impl<I, D> Node<I> for SimpleNode<I, D>
 
         let filter = TransferFrameIDFilter::new(id, 0x1ff << 7);
     
-        Ok(Subscriber::new(self.interface.subscribe(filter)?))
+        Ok(Subscriber::new(self.interface.subscribe(filter)?, self.config.default_version))
     }
 }
 

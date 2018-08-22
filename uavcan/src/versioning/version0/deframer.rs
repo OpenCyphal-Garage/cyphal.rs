@@ -1,5 +1,7 @@
 use crc::TransferCRC;
 
+use header::Header;
+
 use transfer::{
     TransferFrame,
     TransferFrameID,
@@ -15,27 +17,13 @@ use deserializer::{
     Deserializer,
 };
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum AssemblerResult {
-    Ok,
-    Finished,
-}
+use framing::{
+    Deframer,
+    DeframingResult,
+    DeframingError,
+};
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum AssemblerError {
-    FirstFrameNotStartFrame,
-    FrameAfterEndFrame,
-    IDError,
-    ToggleError,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum BuildError {
-    CRCError,
-    NotFinishedParsing,
-}
-
-pub(crate) struct FrameAssembler<S: Struct> {
+pub(crate) struct Version0Deframer<S: Struct> {
     deserializer: Deserializer<S>,
     started: bool,
     finished: bool,
@@ -46,10 +34,10 @@ pub(crate) struct FrameAssembler<S: Struct> {
     transfer_id: TransferID,    
 }
 
-impl<S: Struct> FrameAssembler<S> {
-    pub fn new() -> Self {
+impl<S: Struct> Deframer<S> for Version0Deframer<S> {
+    fn new() -> Self {
         Self{
-            deserializer: Deserializer::new(),
+            deserializer: Deserializer::new(true),
             started: false,
             finished: false,
             id: TransferFrameID::new(0x00),
@@ -60,20 +48,20 @@ impl<S: Struct> FrameAssembler<S> {
         }
     }
     
-    pub fn add_transfer_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<AssemblerResult, AssemblerError> {
+    fn add_frame<T: TransferFrame>(&mut self, mut frame: T) -> Result<DeframingResult<::Frame<S>>, DeframingError> {
         let end_frame = frame.is_end_frame();
         
         if self.finished {
-            return Err(AssemblerError::FrameAfterEndFrame);
+            return Err(DeframingError::FrameAfterEndFrame);
         }
         
         if !self.started {
             if !frame.is_start_frame() {
-                return Err(AssemblerError::FirstFrameNotStartFrame);
+                return Err(DeframingError::FirstFrameNotStartFrame);
             }
             
             if frame.tail_byte().toggle() {
-                return Err(AssemblerError::ToggleError);
+                return Err(DeframingError::ToggleError);
             }
             
             if !end_frame {
@@ -87,7 +75,7 @@ impl<S: Struct> FrameAssembler<S> {
         }
 
         if self.id != frame.id() {
-            return Err(AssemblerError::IDError);
+            return Err(DeframingError::IDError);
         }
 
         let data_len = frame.data().len();
@@ -101,27 +89,28 @@ impl<S: Struct> FrameAssembler<S> {
         self.deserializer.deserialize(payload);            
 
         if end_frame {
-            self.finished = true;
-            Ok(AssemblerResult::Finished)
+            if self.crc_calculated != self.crc_received.unwrap_or(self.crc_calculated) {
+                Result::Err(DeframingError::CRCError)
+            } else {
+                let deserializer = ::lib::core::mem::replace(&mut self.deserializer, Deserializer::new(true));
+                self.started = false;
+                self.finished = false;
+                self.crc_received = None;
+                self.crc_calculated = TransferCRC::from_signature(S::DATA_TYPE_SIGNATURE);
+                self.toggle = false;
+                Ok(DeframingResult::Finished(Frame::from_parts(Header::from(self.id), deserializer.into_structure().unwrap())))
+            }
         } else {
-            Ok(AssemblerResult::Ok)
+            Ok(DeframingResult::Ok)
         }
     }
-
-    pub fn build(self) -> Result<Frame<S>, BuildError> {
-        if self.crc_calculated != self.crc_received.unwrap_or(self.crc_calculated) {
-            Result::Err(BuildError::CRCError)
-        } else if let Ok(body) = self.deserializer.into_structure() {
-            Ok(Frame::from_parts(self.id, body))
-        } else {
-            Err(BuildError::NotFinishedParsing)
-        }
-    }                
 }
 
 
 #[cfg(test)]
 mod tests {
+
+    use bit_field::BitField;
 
     use tests::{
         CanFrame,
@@ -135,7 +124,7 @@ mod tests {
         TailByte,
     };
 
-    use frame_assembler::*;
+    use super::*;
     
     #[test]
     fn parse_from_can_frames_simple() {
@@ -155,16 +144,18 @@ mod tests {
         
         let can_frame = CanFrame{id: TransferFrameID::new(0), dlc: 8, data: [1, 0, 0, 0, 0b10011100, 5, 0, TailByte::new(true, true, false, TransferID::new(0)).into()]};
         
-        let mut message_builder = FrameAssembler::new();
-        message_builder.add_transfer_frame(can_frame).unwrap();
-        let parsed_message: Frame<NodeStatus> = message_builder.build().unwrap();
-        
-        assert_eq!(parsed_message.body.uptime_sec, 1);
-        assert_eq!(parsed_message.body.health, u2::new(2));
-        assert_eq!(parsed_message.body.mode, u3::new(3));
-        assert_eq!(parsed_message.body.sub_mode, u3::new(4));
-        assert_eq!(parsed_message.body.vendor_specific_status_code, 5);
-        assert_eq!(parsed_message.id, TransferFrameID::new(0));
+        let mut deframer: Version0Deframer<NodeStatus> = Version0Deframer::new();
+        match deframer.add_frame(can_frame).unwrap() {
+            DeframingResult::Finished(parsed_message) => {
+                assert_eq!(parsed_message.body.uptime_sec, 1);
+                assert_eq!(parsed_message.body.health, u2::new(2));
+                assert_eq!(parsed_message.body.mode, u3::new(3));
+                assert_eq!(parsed_message.body.sub_mode, u3::new(4));
+                assert_eq!(parsed_message.body.vendor_specific_status_code, 5);
+                assert_eq!(TransferFrameID::from(parsed_message.header), TransferFrameID::new(0));
+            },
+            _ => unreachable!("Node status is a single frame transfer"),
+        }
                                               
     }
     
@@ -195,41 +186,43 @@ mod tests {
             level: LogLevel{value: u3::new(0)},
             source: Dynamic::<[u8; 31]>::with_data("test source".as_bytes()),
             text: Dynamic::<[u8; 90]>::with_data("test text".as_bytes()),
-        }, 0, NodeID::new(32));
+        }, 0, ProtocolVersion::Version0, NodeID::new(32));
 
         let crc = 0x6383;
-        let mut message_builder = FrameAssembler::new();
+        let mut deframer = Version0Deframer::new();
         
-        message_builder.add_transfer_frame(CanFrame{
+        assert_eq!(deframer.add_frame(CanFrame {
             id: TransferFrameID::new(4194080),
             dlc: 8,
             data: [crc.get_bits(0..8) as u8, crc.get_bits(8..16) as u8, 0u8.set_bits(5..8, 0).set_bits(0..5, 11).get_bits(0..8), b't', b'e', b's', b't', TailByte::new(true, false, false, TransferID::new(0)).into()],
-        }).unwrap();
-        
-        message_builder.add_transfer_frame(CanFrame{
+        }),
+        Ok(DeframingResult::Ok)
+        );
+
+        assert_eq!(deframer.add_frame(CanFrame {
             id: TransferFrameID::new(4194080),
             dlc: 8,
             data: [b' ', b's', b'o', b'u', b'r', b'c', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
-        }).unwrap();
+        }),
+        Ok(DeframingResult::Ok)
+        );
         
-        message_builder.add_transfer_frame(CanFrame{
+        assert_eq!(deframer.add_frame(CanFrame {
             id: TransferFrameID::new(4194080),
             dlc: 8,
             data: [b't', b'e', b's', b't', b' ', b't', b'e', TailByte::new(false, false, false, TransferID::new(0)).into()],
-        }).unwrap();
+        }),
+        Ok(DeframingResult::Ok)
+        );
         
-        message_builder.add_transfer_frame(CanFrame{
+        assert_eq!(deframer.add_frame(CanFrame {
             id: TransferFrameID::new(4194080),
             dlc: 3,
             data: [b'x', b't', TailByte::new(false, true, true, TransferID::new(0)).into(), 0, 0, 0, 0, 0],
-        }).unwrap();
-
-        assert_eq!(uavcan_frame.body.source.length(), 11);
-        assert_eq!(Ok(uavcan_frame), message_builder.build());
-        
+        }),
+        Ok(DeframingResult::Finished(uavcan_frame))
+        );
     }
-   
-
 
 }
 
