@@ -1,11 +1,14 @@
 [package]
 name = "uavcan"
 authors = ["Kjetil Kjeka <kjetilkjeka@gmail.com>"]
-version = "0.0.1"
+version = "0.1.0-preview0"
 
-description = "The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std"
+description = "Full functionality reference implementation of uavcan in Rust"
 
-repository = "https://github.com/kjetilkjeka/uavcan.rs"
+repository = "https://github.com/UAVCAN/uavcan.rs"
+homepage = "https://uavcan.org/Implementations/Uavcan.rs/"
+
+readme = "README.md"
 
 keywords = ["uavcan", "can", "uav", "embedded"]
 categories = ["no-std", "embedded"]
@@ -13,14 +16,14 @@ categories = ["no-std", "embedded"]
 license = "Apache-2.0/MIT"
 
 [features]
-default = ["std"]
+default = []
 std = ["ux/std", "half/std"]
 
 [workspace]
 
 [dependencies]
 bit_field = "0.8.0"
-uavcan-derive = {path = "../uavcan-derive"}
+uavcan-derive = "0.1.0-preview0"
 embedded_types = "0.3.0"
 
 [dependencies.half]
