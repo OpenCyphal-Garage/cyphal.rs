@@ -38,8 +38,6 @@ impl<S: Struct> FrameDisassembler<S> {
         }
     }
 
-    pub fn finished(&self) -> bool { self.finished }
-    
     pub fn next_transfer_frame<T: TransferFrame>(&mut self) -> Option<T> {
         let max_data_length = T::MAX_DATA_LENGTH;
         let mut transport_frame = T::new(self.id);

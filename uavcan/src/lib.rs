@@ -234,6 +234,7 @@ impl<T: Struct> Frame<T> {
         }
     }
 
+    /*
     pub fn from_anonymous_message(message: T, priority: u8, discriminator: u16) -> Self where T: Message {
         if let Some(type_id) = T::TYPE_ID {
             let mut id = 0;
@@ -292,7 +293,7 @@ impl<T: Struct> Frame<T> {
         }
 
     }
-
+    */
     
     fn from_parts(id: TransferFrameID, body: T) -> Self {
         Frame{id: id, body: body}
