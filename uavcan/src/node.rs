@@ -240,7 +240,7 @@ impl Node {
             let mut toggle = false;
             let mut crc = crc_any::CRCu16::crc16ccitt_false();
             // TODO probably split this into another function
-            let mut payload = Vec::from(&transfer.payload[0..6]);
+            let mut payload = Vec::from(&transfer.payload[0..7]);
             payload.push(TailByte::new(
                 true,
                 false,
