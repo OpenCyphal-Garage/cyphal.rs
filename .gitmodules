@@ -1,6 +1,0 @@
-[submodule "dsdl_compiler/tests/dsdl"]
-	path = dsdl_compiler/tests/dsdl
-	url = https://github.com/UAVCAN/dsdl.git
-[submodule "dsdl/dsdl"]
-	path = dsdl/dsdl
-	url = https://github.com/UAVCAN/dsdl.git
