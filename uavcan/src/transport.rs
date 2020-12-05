@@ -11,10 +11,10 @@ pub const MTU_SIZE: usize = 8;
 
 // TODO convert to embedded-hal PR type
 /// Extended CAN frame
-pub struct CanFrame<'a> {
+pub struct CanFrame {
     pub timestamp: Timestamp,
     pub id: u32,
-    pub payload: &'a [u8],
+    pub payload: Vec<u8>,
 }
 
 bitfield! {
@@ -103,7 +103,7 @@ bitfield! {
 }
 
 impl CanServiceId {
-    fn new(
+    pub fn new(
         priority: Priority,
         is_request: bool,
         service_id: PortId,
@@ -133,4 +133,18 @@ bitfield! {
     pub bool, toggle, set_toggle: 5;
     /// Transfer ID to ensure the correct messages are being received.
     pub TransferId, transfer_id, set_transfer_id: 4, 0;
+}
+
+impl TailByte {
+    pub fn new(is_start: bool, is_end: bool, toggle: bool, transfer_id: u8) -> u8 {
+        // TODO am I doing dumb here?
+        assert!(transfer_id < 32);
+
+        let mut byte = TailByte(0);
+        byte.set_start_of_transfer(is_start);
+        byte.set_end_of_transfer(is_end);
+        byte.set_toggle(toggle);
+        byte.set_transfer_id(transfer_id);
+        byte.0
+    }
 }

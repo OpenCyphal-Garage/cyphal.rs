@@ -8,17 +8,19 @@
 extern crate num_derive;
 
 pub mod transfer;
+pub mod transport;
+pub mod types;
 
-mod types;
+pub use node::Node;
+pub use transfer::{TransferKind};
+pub use transport::CanFrame;
+
 mod session;
 mod internal;
 mod node;
-mod transport;
 
 use types::*;
-use transfer::{TransferKind};
 use session::Session;
-
 use std::collections::HashMap;
 
 // Naming things is hard
@@ -41,7 +43,7 @@ pub enum RxError {
 }
 
 // TODO could replace with custom impl's to reduce dependencies
-#[derive(FromPrimitive, ToPrimitive)]
+#[derive(FromPrimitive, ToPrimitive, Copy, Clone)]
 pub enum Priority {
     Exceptional,
     Immediate,
