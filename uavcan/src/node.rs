@@ -33,7 +33,7 @@ impl Node {
     // TODO unsubscribe?
 
     /// Attempts to process frame. Returns error when unable to parse frame as valid UAVCAN v1
-    fn rx_process_frame<'a>(&self, frame: &'a CanFrame) -> Result<InternalRxFrame<'a>, RxError> {
+    fn rx_process_frame<'a>(&self, frame: &'a CanFrame) -> Result<Option<InternalRxFrame<'a>>, RxError> {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
@@ -57,13 +57,18 @@ impl Node {
             // Handle services
             let id = CanServiceId(frame.id);
 
+            // Ignore frames not meant for us
+            if self.id.is_none() || id.destination_id() != self.id.unwrap() {
+                return Ok(None);
+            }
+
             let transfer_kind = if id.is_req() {
                 TransferKind::Request
             } else {
                 TransferKind::Response
             };
 
-            return Ok(InternalRxFrame::as_service(
+            return Ok(Some(InternalRxFrame::as_service(
                 frame.timestamp,
                 Priority::from_u8(id.priority()).unwrap(),
                 transfer_kind,
@@ -75,7 +80,7 @@ impl Node {
                 tail_byte.end_of_transfer(),
                 tail_byte.toggle(),
                 &frame.payload,
-            ));
+            )));
         } else {
             // Handle messages
             let id = CanMessageId(frame.id);
@@ -96,7 +101,7 @@ impl Node {
                 return Err(RxError::InvalidCanId);
             }
 
-            return Ok(InternalRxFrame::as_message(
+            return Ok(Some(InternalRxFrame::as_message(
                 frame.timestamp,
                 Priority::from_u8(id.priority()).unwrap(),
                 id.subject_id(),
@@ -106,7 +111,7 @@ impl Node {
                 tail_byte.end_of_transfer(),
                 tail_byte.toggle(),
                 &frame.payload,
-            ));
+            )));
         }
     }
 
@@ -158,6 +163,12 @@ impl Node {
     ) -> Result<Option<Transfer>, RxError> {
         // TODO check extended ID mask etc.
         let frame = self.rx_process_frame(frame)?;
+        // TODO there must be a better pattern for this
+        let frame = if let Some(frame) = frame {
+            frame
+        } else {
+            return Ok(None);
+        };
 
         for (i, subscription) in self.subscriptions.iter().enumerate() {
             if subscription.port_id == frame.port_id {
