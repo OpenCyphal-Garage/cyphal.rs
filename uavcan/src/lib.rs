@@ -9,7 +9,7 @@ extern crate num_derive;
 
 use bitfield::bitfield;
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::{hash_map::Entry, HashMap};
 
 use crc_any::CRC;
 
@@ -42,8 +42,8 @@ pub enum RxError {
     NewSessionNoStart,
     /// Session has expired
     Timeout,
-    /// Frame is part of new 
-    InvalidTransferId
+    /// Frame is part of new
+    InvalidTransferId,
 }
 
 // TODO timestamp type or something
@@ -91,7 +91,13 @@ bitfield! {
 }
 
 impl CanServiceId {
-    fn new(priority: Priority, is_request: bool, service_id: PortId, destination: NodeId, source: NodeId) -> u32 {
+    fn new(
+        priority: Priority,
+        is_request: bool,
+        service_id: PortId,
+        destination: NodeId,
+        source: NodeId,
+    ) -> u32 {
         let mut id = CanServiceId(0);
         id.set_priority(priority.to_u8().unwrap());
         id.set_svc(true);
@@ -142,7 +148,12 @@ pub struct Subscription {
 }
 
 impl Subscription {
-    pub fn new(transfer_kind: TransferKind, port_id: PortId, extent: usize, timeout: core::time::Duration) -> Self {
+    pub fn new(
+        transfer_kind: TransferKind,
+        port_id: PortId,
+        extent: usize,
+        timeout: core::time::Duration,
+    ) -> Self {
         Self {
             transfer_kind,
             port_id,
@@ -171,11 +182,16 @@ impl Session {
             payload: Vec::new(),
             crc: crc_any::CRCu16::crc16ccitt_false(),
             transfer_id,
-            toggle: false
+            toggle: false,
         }
     }
 
-    fn update<'a>(&mut self, frame: InternalRxFrame<'a>, timeout: core::time::Duration, extent: usize) -> Result<Option<Transfer>, RxError> {
+    fn update<'a>(
+        &mut self,
+        frame: InternalRxFrame<'a>,
+        timeout: core::time::Duration,
+        extent: usize,
+    ) -> Result<Option<Transfer>, RxError> {
         // TODO check transport index
 
         // Check timeouts for session
@@ -201,8 +217,12 @@ impl Session {
         // Pull in frame
         self.accept_frame(frame, extent)
     }
-    
-    fn accept_frame<'a>(&mut self, frame: InternalRxFrame<'a>, extent: usize) -> Result<Option<Transfer>, RxError> {
+
+    fn accept_frame<'a>(
+        &mut self,
+        frame: InternalRxFrame<'a>,
+        extent: usize,
+    ) -> Result<Option<Transfer>, RxError> {
         // Timestamp only gets updated from first frame
         if frame.start_of_transfer {
             self.timestamp = Some(frame.timestamp);
@@ -221,7 +241,8 @@ impl Session {
         } else {
             frame.payload.len()
         };
-        self.payload.extend_from_slice(&frame.payload[0..payload_to_copy]);
+        self.payload
+            .extend_from_slice(&frame.payload[0..payload_to_copy]);
         self.total_payload_size += frame.payload.len();
 
         if frame.end_of_transfer {
@@ -237,7 +258,11 @@ impl Session {
                 } else {
                     self.payload.len()
                 };
-                out = Some(Transfer::from_frame(frame, self.timestamp.unwrap(), &self.payload[0..real_payload]));
+                out = Some(Transfer::from_frame(
+                    frame,
+                    self.timestamp.unwrap(),
+                    &self.payload[0..real_payload],
+                ));
             }
             // TODO maybe use a different function for this reset
             *self = Self::new(self.transfer_id);
@@ -280,7 +305,7 @@ impl Transfer {
 pub struct CanFrame<'a> {
     pub timestamp: Timestamp,
     pub id: u32,
-    pub payload: &'a[u8],
+    pub payload: &'a [u8],
 }
 
 /// Internal representation of a received frame.
@@ -296,7 +321,7 @@ struct InternalRxFrame<'a> {
     start_of_transfer: bool,
     end_of_transfer: bool,
     toggle: bool,
-    payload: &'a[u8],
+    payload: &'a [u8],
 }
 
 impl<'a> InternalRxFrame<'a> {
@@ -310,7 +335,7 @@ impl<'a> InternalRxFrame<'a> {
         start: bool,
         end: bool,
         toggle: bool,
-        payload: &'a[u8]
+        payload: &'a [u8],
     ) -> Self {
         Self {
             timestamp,
@@ -340,7 +365,7 @@ impl<'a> InternalRxFrame<'a> {
         start: bool,
         end: bool,
         toggle: bool,
-        payload: &'a[u8]
+        payload: &'a [u8],
     ) -> Self {
         Self {
             timestamp,
@@ -365,7 +390,6 @@ pub struct Node {
 
     // TODO no-std-ify
     subscriptions: Vec<Subscription>,
-
 }
 
 impl Node {
@@ -390,7 +414,7 @@ impl Node {
         if frame.payload.len() == 0 {
             return Err(RxError::FrameEmpty);
         }
-        
+
         // Pull tail byte from payload
         let tail_byte = TailByte(*frame.payload.last().unwrap());
 
@@ -407,7 +431,11 @@ impl Node {
             // Handle services
             let id = CanServiceId(frame.id);
 
-            let transfer_kind = if id.is_req() { TransferKind::Request } else { TransferKind::Response };
+            let transfer_kind = if id.is_req() {
+                TransferKind::Request
+            } else {
+                TransferKind::Response
+            };
 
             return Ok(InternalRxFrame::as_service(
                 frame.timestamp,
@@ -420,7 +448,7 @@ impl Node {
                 tail_byte.start_of_transfer(),
                 tail_byte.end_of_transfer(),
                 tail_byte.toggle(),
-                frame.payload
+                frame.payload,
             ));
         } else {
             // Handle messages
@@ -452,12 +480,16 @@ impl Node {
                 tail_byte.start_of_transfer(),
                 tail_byte.end_of_transfer(),
                 tail_byte.toggle(),
-                frame.payload
+                frame.payload,
             ));
         }
     }
 
-    fn rx_accept_frame<'a>(&mut self, sub: usize, frame: InternalRxFrame<'a>) -> Result<Option<Transfer>, RxError> {
+    fn rx_accept_frame<'a>(
+        &mut self,
+        sub: usize,
+        frame: InternalRxFrame<'a>,
+    ) -> Result<Option<Transfer>, RxError> {
         let subscription = &mut self.subscriptions[sub];
 
         if let Some(source_node_id) = frame.source_node_id {
@@ -489,19 +521,21 @@ impl Node {
                 remote_node_id: None,
                 transfer_id: frame.transfer_id,
                 payload: Vec::from(&frame.payload[0..payload_size]),
-            }))
+            }));
         }
     }
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame<'a>(&mut self, frame: &'a CanFrame) -> Result<Option<Transfer>, RxError> {
+    pub fn try_receive_frame<'a>(
+        &mut self,
+        frame: &'a CanFrame,
+    ) -> Result<Option<Transfer>, RxError> {
         // TODO check extended ID mask etc.
         let frame = self.rx_process_frame(frame)?;
 
         for (i, subscription) in self.subscriptions.iter().enumerate() {
             if subscription.port_id == frame.port_id {
-
                 return self.rx_accept_frame(i, frame);
             }
         }
