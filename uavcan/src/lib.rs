@@ -40,10 +40,12 @@ pub enum RxError {
     Timeout,
     /// Frame is part of new
     InvalidTransferId,
+    /// Internal SessionManager error
+    SessionError(session::SessionError),
 }
 
 // TODO could replace with custom impl's to reduce dependencies
-#[derive(FromPrimitive, ToPrimitive, Copy, Clone)]
+#[derive(FromPrimitive, ToPrimitive, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Priority {
     Exceptional,
     Immediate,
@@ -60,9 +62,6 @@ pub struct Subscription {
     port_id: PortId,
     extent: usize,
     timeout: core::time::Duration,
-
-    // "Internal" structs
-    sessions: HashMap<NodeId, Session>,
 }
 
 impl Subscription {
@@ -77,7 +76,12 @@ impl Subscription {
             port_id,
             extent,
             timeout,
-            sessions: HashMap::new(),
         }
+    }
+}
+
+impl PartialEq for Subscription {
+    fn eq(&self, other: &Self) -> bool {
+        return self.transfer_kind == other.transfer_kind && self.port_id == other.port_id;
     }
 }

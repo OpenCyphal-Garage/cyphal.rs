@@ -1,6 +1,3 @@
-//! Temp holder for some transfer-related types.
-//! Ideally everything in here should eventually be moved into a seperate crate.
-
 use bitfield::bitfield;
 use num_traits::ToPrimitive;
 

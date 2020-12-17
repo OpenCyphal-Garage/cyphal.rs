@@ -19,12 +19,17 @@ pub struct Node {
 }
 
 impl Node {
+    // TODO needs to accept a SessionManager
     pub fn new(id: Option<NodeId>) -> Self {
         Self {
             id,
             subscriptions: Vec::new(),
         }
     }
+
+    /// Executes a closure with access to the session manager.
+    // TODO create once I add all the typing info
+    //pub fn with_session(&mut self, )
 
     pub fn subscribe(&mut self, subscription: Subscription) {
         self.subscriptions.push(subscription);
