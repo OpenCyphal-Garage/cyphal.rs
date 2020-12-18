@@ -14,6 +14,52 @@ pub struct CanFrame {
     pub payload: Vec<u8>,
 }
 
+pub struct CanMetadata {
+    toggle: bool,
+    crc: crc_any::CRCu16,
+}
+
+impl super::SessionMetadata for CanMetadata {
+    fn new() -> Self {
+        Self {
+            // Toggle starts off true, but we compare against the opposite value.
+            toggle: false,
+            crc: crc_any::CRCu16::crc16ccitt_false(),
+        }
+    }
+
+    fn update(&mut self, frame: &crate::internal::InternalRxFrame) -> Option<usize> {
+        // Single frame transfers don't need to be validated
+        if frame.start_of_transfer && frame.end_of_transfer {
+            return Some(frame.payload.len());
+        }
+
+        // Pull in everything but the tail byte
+        self.crc.digest(&frame.payload[0..frame.payload.len() - 2]);
+        self.toggle = !self.toggle;
+
+        let toggle = TailByte(frame.payload[frame.payload.len()]).toggle();
+
+        if toggle == self.toggle {
+            Some(frame.payload.len() - 1)
+        } else {
+            None
+        }
+    }
+    
+    fn is_valid(&self, frame: &crate::internal::InternalRxFrame) -> bool {
+        if frame.start_of_transfer && frame.end_of_transfer {
+            return true;
+        }
+
+        if self.crc.get_crc() == 0x0000u16 {
+            return true;
+        }
+
+        return false;
+    }
+}
+
 bitfield! {
     /// Structure declaring bitfields of a message frame.
     ///

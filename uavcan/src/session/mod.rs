@@ -22,6 +22,8 @@ pub enum SessionError {
     Timeout,
     NewSessionNoStart,
     InvalidTransferId,
+    // TODO come up with a way to return more specific errors
+    BadMetadata,
 }
 
 pub enum SubscriptionError {

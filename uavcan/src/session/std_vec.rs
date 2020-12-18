@@ -4,36 +4,34 @@ use crate::session::*;
 use std::collections::{HashMap, hash_map::Entry};
 
 /// Internal session object.
-struct Session {
+struct Session<T: crate::transport::SessionMetadata> {
     // Timestamp of first frame
     pub timestamp: Option<Timestamp>,
     pub payload: Vec<u8>,
     pub transfer_id: TransferId,
-    pub toggle: bool,
+
+    pub md: T,
 }
 
-impl Session {
+impl<T: crate::transport::SessionMetadata> Session<T> {
     pub fn new(transfer_id: TransferId) -> Self {
         Self {
             timestamp: None,
-            total_payload_size: 0,
             payload: Vec::new(),
-            // TODO uh oh this is transport-specific
-            crc: crc_any::CRCu16::crc16ccitt_false(),
             transfer_id,
-            toggle: false,
+            md: T::new(),
         }
     }
 }
 
 
 /// Internal subscription object. Contains hash map of sessions.
-struct Subscription {
+struct Subscription<T: crate::transport::SessionMetadata> {
     sub: crate::Subscription,
-    sessions: HashMap<NodeId, Session>,
+    sessions: HashMap<NodeId, Session<T>>,
 }
 
-impl Subscription {
+impl<T: crate::transport::SessionMetadata> Subscription<T> {
     pub fn new(sub: crate::Subscription) -> Self {
         Self {
             sub,
@@ -89,27 +87,48 @@ impl Subscription {
 
     fn accept_frame(
         &mut self,
-        session: &mut Session,
+        session: &mut Session<T>,
         frame: InternalRxFrame,
     ) -> Result<Option<Transfer>, SessionError> {
         if frame.start_of_transfer {
             session.timestamp = Some(frame.timestamp);
         }
 
-        session.payload.extend(frame.payload);
+        if let Some(len) = session.md.update(&frame) {
+            let payload_to_copy = if session.payload.len() + len > self.sub.extent {
+                session.payload.len() + len - self.sub.extent
+            } else {
+                len
+            };
+            session.payload.extend(&frame.payload[0..payload_to_copy]);
 
-        Ok(None)
+            if frame.end_of_transfer {
+                if session.md.is_valid(&frame) {
+                    Ok(Some(Transfer::from_frame(
+                        frame,
+                        session.timestamp.unwrap(),
+                        &session.payload
+                    )))
+                } else {
+                    Err(SessionError::BadMetadata)
+                }
+            } else {
+                Ok(None)
+            }
+        } else {
+            Err(SessionError::BadMetadata)
+        }
     }
 }
 
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct StdVecSessionManager {
-    subscriptions: Vec<Subscription>,
+pub struct StdVecSessionManager<T: crate::transport::SessionMetadata> {
+    subscriptions: Vec<Subscription<T>>,
 }
 
-impl StdVecSessionManager {
+impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
     // TODO make it update an existing subscription?
     // Idk if we want to support that.
     // maybe a seperate function.
@@ -134,7 +153,7 @@ impl StdVecSessionManager {
     }
 }
 
-impl SessionManager for StdVecSessionManager {
+impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManager<T> {
     fn ingest(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
         match self.subscriptions.iter().find(|sub| {
             Self::matches_sub(&sub.sub, &frame)
