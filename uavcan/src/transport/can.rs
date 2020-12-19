@@ -6,6 +6,101 @@ use crate::Priority;
 
 pub const MTU_SIZE: usize = 8;
 
+use super::Transport;
+use crate::session::SessionManager;
+use crate::RxError;
+use crate::internal::InternalRxFrame;
+use crate::TransferKind;
+
+/// Unit struct for declaring transport type
+struct Can;
+
+impl Transport for Can {
+    type Frame = CanFrame;
+
+    fn rx_process_frame<'a, T: SessionManager>(node: &crate::node::Node<T, Self>, frame: Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError> {
+        // Frames cannot be empty. They must at least have a tail byte.
+        // NOTE: libcanard specifies this as only for multi-frame transfers but uses
+        // this logic.
+        if frame.payload.len() == 0 {
+            return Err(RxError::FrameEmpty);
+        }
+
+        // Pull tail byte from payload
+        let tail_byte = TailByte(*frame.payload.last().unwrap());
+
+        // Protocol version states SOT must have toggle set
+        if tail_byte.start_of_transfer() && !tail_byte.toggle() {
+            return Err(RxError::TransferStartMissingToggle);
+        }
+        // Non-last frames must use the MTU fully
+        if tail_byte.end_of_transfer() && frame.payload.len() < MTU_SIZE {
+            return Err(RxError::NonLastUnderUtilization);
+        }
+
+        if CanServiceId(frame.id).is_svc() {
+            // Handle services
+            let id = CanServiceId(frame.id);
+
+            // Ignore frames not meant for us
+            if node.id.is_none() || id.destination_id() != node.id.unwrap() {
+                return Ok(None);
+            }
+
+            let transfer_kind = if id.is_req() {
+                TransferKind::Request
+            } else {
+                TransferKind::Response
+            };
+
+            return Ok(Some(InternalRxFrame::as_service(
+                frame.timestamp,
+                Priority::from_u8(id.priority()).unwrap(),
+                transfer_kind,
+                id.service_id(),
+                id.source_id(),
+                id.destination_id(),
+                tail_byte.transfer_id(),
+                tail_byte.start_of_transfer(),
+                tail_byte.end_of_transfer(),
+                tail_byte.toggle(),
+                &frame.payload,
+            )));
+        } else {
+            // Handle messages
+            let id = CanMessageId(frame.id);
+
+            // We can ignore ID in anonymous transfers
+            let source_node_id = if id.is_anon() {
+                // Anonymous transfers can only be single-frame transfers
+                if !(tail_byte.start_of_transfer() && tail_byte.end_of_transfer()) {
+                    return Err(RxError::AnonNotSingleFrame);
+                }
+
+                Some(id.source_id())
+            } else {
+                None
+            };
+
+            if !id.valid() {
+                return Err(RxError::InvalidCanId);
+            }
+
+            return Ok(Some(InternalRxFrame::as_message(
+                frame.timestamp,
+                Priority::from_u8(id.priority()).unwrap(),
+                id.subject_id(),
+                source_node_id,
+                tail_byte.transfer_id(),
+                tail_byte.start_of_transfer(),
+                tail_byte.end_of_transfer(),
+                tail_byte.toggle(),
+                &frame.payload,
+            )));
+        }
+    }
+}
+
 // TODO convert to embedded-hal PR type
 /// Extended CAN frame
 pub struct CanFrame {
