@@ -13,15 +13,12 @@ pub mod types;
 
 pub use node::Node;
 pub use transfer::{TransferKind};
-pub use transport::CanFrame;
 
 mod session;
 mod internal;
 mod node;
 
 use types::*;
-use session::Session;
-use std::collections::HashMap;
 
 // Naming things is hard
 pub enum RxError {

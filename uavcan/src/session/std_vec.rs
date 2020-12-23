@@ -1,7 +1,7 @@
 use crate::types::NodeId;
 use crate::session::*;
 
-use std::collections::{HashMap, hash_map::Entry};
+use std::collections::HashMap;
 
 /// Internal session object.
 struct Session<T: crate::transport::SessionMetadata> {
@@ -31,6 +31,16 @@ struct Subscription<T: crate::transport::SessionMetadata> {
     sessions: HashMap<NodeId, Session<T>>,
 }
 
+fn timestamp_expired(timeout: core::time::Duration, now: Timestamp, then: Option<Timestamp>) -> bool {
+    if let Some(then) = then {
+        if now - then > timeout {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 impl<T: crate::transport::SessionMetadata> Subscription<T> {
     pub fn new(sub: crate::Subscription) -> Self {
         Self {
@@ -39,47 +49,36 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
         }
     }
 
-    pub fn timestamp_expired(&self, now: Timestamp, then: Option<Timestamp>) -> bool {
-        if let Some(then) = then {
-            if now - then > self.sub.timeout {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /// Update subscription with incoming frame
     fn update(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
         // TODO anon transfers should be handled by the protocol.
         // although for good error handling we should handle the error here
-        let source_node_id = frame.source_node_id.unwrap();
-        let mut session = match self.sessions.entry(source_node_id) {
-            Entry::Occupied(entry) => entry.into_mut(),
-            Entry::Vacant(entry) => {
-                // We didn't receive the start of transfer frame
-                // Transfers must be sent/received in order.
-                if !frame.start_of_transfer {
-                    return Err(SessionError::NewSessionNoStart);
-                }
-
-                // Create a new session
-                entry.insert(Session::new(frame.transfer_id))
+        let session = frame.source_node_id.unwrap();
+        // Create default session if it doesn't exist
+        if !self.sessions.contains_key(&session) {
+            if !frame.start_of_transfer {
+                return Err(SessionError::NewSessionNoStart);
             }
-        };
+            self.sessions.insert(session, Session::new(frame.transfer_id));
+        }
 
         // check timeout, transfer id, then new start
-        if self.timestamp_expired(frame.timestamp, session.timestamp) {
-            *session = Session::new(session.transfer_id);
+        if timestamp_expired(self.sub.timeout, frame.timestamp, self.sessions[&session].timestamp) {
+            let transfer_id = self.sessions[&session].transfer_id;
+            self.sessions.entry(session).and_modify(|s| {
+                *s = Session::new(transfer_id);
+            });
             return Err(SessionError::Timeout);
         }
 
         // TODO proper check for invalid new transfer ID
-        if session.transfer_id != frame.transfer_id {
+        if self.sessions[&session].transfer_id != frame.transfer_id {
             // Create new session
             // TODO we don't necessarily want to overwrite the session immediately
             // if we get a new transfer id
-            *session = Session::new(frame.transfer_id);
+            self.sessions.entry(session).and_modify(|s| {
+                *s = Session::new(frame.transfer_id);
+            });
         }
 
         self.accept_frame(session, frame)
@@ -87,9 +86,11 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
 
     fn accept_frame(
         &mut self,
-        session: &mut Session<T>,
+        session: NodeId,
         frame: InternalRxFrame,
     ) -> Result<Option<Transfer>, SessionError> {
+        let mut session = self.sessions.get_mut(&session).unwrap();
+
         if frame.start_of_transfer {
             session.timestamp = Some(frame.timestamp);
         }
@@ -155,7 +156,7 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
 
 impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManager<T> {
     fn ingest(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
-        match self.subscriptions.iter().find(|sub| {
+        match self.subscriptions.iter_mut().find(|sub| {
             Self::matches_sub(&sub.sub, &frame)
         }) {
             Some(subscription) => subscription.update(frame),
@@ -164,10 +165,11 @@ impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManag
     }
 
     fn update_sessions(&mut self, timestamp: Timestamp) {
-        for sub in self.subscriptions {
+        for sub in &mut self.subscriptions {
             for session in sub.sessions.values_mut() {
-                if sub.timestamp_expired(timestamp, session.timestamp) {
-                    *session = Session::new(session.transfer_id);
+                if timestamp_expired(sub.sub.timeout, timestamp, session.timestamp) {
+                    let transfer_id = session.transfer_id;
+                    *session = Session::new(transfer_id);
                 }
             }
         }

@@ -10,7 +10,6 @@
 use crate::types::*;
 use crate::transfer::Transfer;
 use crate::internal::InternalRxFrame;
-use crate::RxError;
 
 mod std_vec;
 

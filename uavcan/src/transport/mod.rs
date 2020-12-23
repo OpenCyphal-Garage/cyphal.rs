@@ -8,8 +8,8 @@
 mod can;
 
 use crate::internal::InternalRxFrame;
-use crate::session::SessionManager;
 use crate::RxError;
+use crate::NodeId;
 
 pub trait SessionMetadata {
     /// Create a fresh instance of session metadata;
@@ -31,7 +31,16 @@ pub trait Transport {
     type Frame;
 
     // TODO not sure if I can use lifetimes in my impls properly
+    // TODO unsized issue? not sure how I can specify the type of the node
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
-    fn rx_process_frame<'a, S: SessionManager>(node: &mut crate::node::Node<S, Self>, frame: Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError>;
+    fn rx_process_frame<'a>(node_id: &Option<NodeId>, frame: &'a Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError>;
+
+    // Returns a series of transport frames to be transmitted.
+    //
+    // This is the only way I know how to transmit over generic transports.
+    // The iterator here can be collected() into a higher-level storage
+    // type later on. Probably if I want to add any storage, I'll add it
+    // in Node.
+    //fn transmit<'a>(transfer: &crate::transfer::Transfer) -> Self::FrameIter;
 }
