@@ -1,3 +1,11 @@
+//! The Node struct is a conveniance wrapper around the Transport and SessionManager
+//! implementations. Currently it just handles ingesting and transmitting data, although
+//! it might make sense in the future to split these up into seperate concepts. Currently
+//! the only coupling between TX and RX is the node ID, which can be cheaply replicated.
+//! It might be prudent to split out Messages and Services, into seperate concepts (e.g.
+//! Publisher, Requester, Responder, and Subscriber, a la canadensis, but I'll need to
+//! play around with those concepts before I commit to anything)
+
 use core::marker::PhantomData;
 
 use crate::types::*;
@@ -6,10 +14,15 @@ use crate::transfer::Transfer;
 use crate::transport::Transport;
 use crate::session::SessionManager;
 
+/// Node implementation. Generic across session managers and transport types.
 pub struct Node<S: SessionManager, T: Transport> {
     // TODO this is transport level type
     id: Option<NodeId>,
 
+    /// Session manager. Made public so it could be managed by implementation.
+    ///
+    /// Instead of being public, could be placed behind a `with_session_manager` fn
+    /// which took a closure. I can't decide which API is better.
     pub sessions: S,
 
     /// Transport type

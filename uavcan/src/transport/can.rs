@@ -1,3 +1,7 @@
+//! UAVCAN/CAN transport implementation.
+//!
+//! Untested.
+
 use bitfield::bitfield;
 use num_traits::{ToPrimitive, FromPrimitive};
 use arrayvec::ArrayVec;
@@ -251,13 +255,14 @@ impl<'a> Iterator for CanIter<'a> {
 }
 
 // TODO convert to embedded-hal PR type
-/// Extended CAN frame
+/// Extended CAN frame (the only one supported by UAVCAN/CAN)
 pub struct CanFrame {
     pub timestamp: Timestamp,
     pub id: u32,
     pub payload: ArrayVec<[u8; 8]>,
 }
 
+/// Keeps track of toggle bit and CRC during frame processing.
 pub struct CanMetadata {
     toggle: bool,
     crc: crc_any::CRCu16,

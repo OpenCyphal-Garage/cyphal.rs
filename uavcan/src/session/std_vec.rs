@@ -1,3 +1,8 @@
+//! Full std::collections based SessionManager implementation.
+//!
+//! This is intended to be the lowest-friction interface to get
+//! started, both for library development and eventually for using the library.
+
 use crate::types::NodeId;
 use crate::session::*;
 

@@ -2,15 +2,29 @@
 //!
 //! For now I'm only supporting CAN bus, but TBD is more transports.
 //!
-//! Theoretically to implement this you should only have to implement two
-//! types, one that impls SessionMetadata, and one that impls a yet-to-be
-//! made trait. We'll see how that shakes out though.
+//! The current iteration requires 3 different implementations:
+//! - SessionMetadata trait
+//! - Transport trait
+//! - impl crate::Node<S, TransportType> { fn transmit() }
+//!
+//! The last implementation is reuired because I haven't found a way
+//! to adequately describe a generic transmit function inside of the
+//! Transport trait. I suspect that to do it will require GATs, which
+//! aren't stable and may not be for a while. See the CAN implementation
+//! for an example of how to implement this.
+
+// Declaring all of the sub transport modules here.
 mod can;
 
 use crate::internal::InternalRxFrame;
 use crate::RxError;
 use crate::NodeId;
 
+/// Describes any transport-specific metadata required to construct a session.
+///
+/// In the example of CAN, you need to keep track of the toggle bit,
+/// as well as the CRC for multi-frame transfers. This trait lets us pull that
+/// code out of the generic processing and into more modular implementations.
 pub trait SessionMetadata {
     /// Create a fresh instance of session metadata;
     fn new() -> Self;
@@ -25,22 +39,15 @@ pub trait SessionMetadata {
     fn is_valid(&self, frame: &InternalRxFrame) -> bool;
 }
 
-// TODO does this go with Node or stay here?
-/// Trait to be implemented for Node, declaring a transport implementation.
+/// This trait is to be implemented on a unit struct, in order to be specified
+/// for different transport types.
 pub trait Transport {
     type Frame;
 
-    // TODO not sure if I can use lifetimes in my impls properly
-    // TODO unsized issue? not sure how I can specify the type of the node
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
     fn rx_process_frame<'a>(node_id: &Option<NodeId>, frame: &'a Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError>;
 
-    // Returns a series of transport frames to be transmitted.
-    //
-    // This is the only way I know how to transmit over generic transports.
-    // The iterator here can be collected() into a higher-level storage
-    // type later on. Probably if I want to add any storage, I'll add it
-    // in Node.
+    // TODO find a way to specify this function here, may require GATs
     //fn transmit<'a>(transfer: &crate::transfer::Transfer) -> Self::FrameIter;
 }

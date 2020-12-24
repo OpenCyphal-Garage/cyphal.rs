@@ -1,8 +1,26 @@
 //! # UAVCAN implementation
 //!
-//! My first implementation is very specifically a std-based CAN-transport
-//! implementation. Organization of modules is poor right now, but as I
-//! refactor to add generic capabilities it will improve.
+//! The intent with this implementation right now is to present a transport
+//! and session-management agnostic interface for UAVCAN. What I'm working on
+//! here is not meant to implement the higher-level protocol features, such
+//! as automatic heartbeat publication. It is simply meant to manage ingesting
+//! and producing raw frames to go on the bus. There is room to provide
+//! application-level constructs in this crate, but that's not what I'm working
+//! on right now.
+//!
+//! ## Comparison to canadensis
+//!
+//! The only other Rust UAVCAN implementation with any real progess at the
+//! moment is canadensis. I *believe* that it is fully functional but I haven't
+//! verified that.
+//!
+//! canadensis seems to be providing a more specific implementation (CAN-only)
+//! that provides more application level features (e.g. a Node w/ Heartbeat
+//! publishing) that relies on a global allocator. The intent (or experiment)
+//! here is to provide a single unified interface for different transports
+//! and storage backends. Application level functionality can live on top of
+//! this. I can see issues with this running into issues in multi-threaded
+//! environments, but I'll get to those when I get to them.
 
 #[macro_use]
 extern crate num_derive;
@@ -20,7 +38,8 @@ mod node;
 
 use types::*;
 
-// Naming things is hard
+// TODO handle invalid transport frames.
+/// Protocol errors possible from receiving incoming frames.
 pub enum RxError {
     TransferStartMissingToggle,
     /// Anonymous transfers must only use a single frame
@@ -42,6 +61,11 @@ pub enum RxError {
 }
 
 // TODO could replace with custom impl's to reduce dependencies
+// TODO how could I represent more priorities for different transports?
+/// Protocol-level priorities.
+///
+/// Transports are supposed to be able to support more than these base 8
+/// priorities, but there is currently no API for that.
 #[derive(FromPrimitive, ToPrimitive, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum Priority {
     Exceptional,
@@ -54,6 +78,7 @@ pub enum Priority {
     Optional,
 }
 
+/// Simple subscription type to
 pub struct Subscription {
     transfer_kind: TransferKind,
     port_id: PortId,

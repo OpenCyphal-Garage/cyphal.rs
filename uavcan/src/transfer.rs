@@ -1,7 +1,12 @@
+//! This module describes the transport-agnostic concept of a transfer,
+//! which boils down to some metadata to uniquely identify it, as well
+//! as a serialized buffer of data, which encodes DSDL-based data.
+
 use crate::types::*;
 use crate::Priority;
 use crate::internal::InternalRxFrame;
 
+/// Type of transfer.
 #[derive(Ord, PartialOrd, Eq, PartialEq)]
 pub enum TransferKind {
     Message,
@@ -9,6 +14,10 @@ pub enum TransferKind {
     Request,
 }
 
+/// Application representation of a UAVCAN transfer.
+///
+/// This will be passed out on successful reception of full transfers,
+/// as well as given to objects to encode into the correct transport.
 pub struct Transfer {
     pub timestamp: Timestamp,
     pub priority: Priority,
