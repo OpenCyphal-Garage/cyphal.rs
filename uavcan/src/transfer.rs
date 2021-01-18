@@ -7,7 +7,7 @@ use crate::Priority;
 use crate::internal::InternalRxFrame;
 
 /// Type of transfer.
-#[derive(Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum TransferKind {
     Message,
     Response,

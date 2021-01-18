@@ -32,7 +32,7 @@ pub mod types;
 pub use node::Node;
 pub use transfer::{TransferKind};
 
-mod session;
+pub mod session;
 mod internal;
 mod node;
 
@@ -66,7 +66,7 @@ pub enum RxError {
 ///
 /// Transports are supposed to be able to support more than these base 8
 /// priorities, but there is currently no API for that.
-#[derive(FromPrimitive, ToPrimitive, Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(FromPrimitive, ToPrimitive, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub enum Priority {
     Exceptional,
     Immediate,

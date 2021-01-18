@@ -14,7 +14,7 @@
 //! for an example of how to implement this.
 
 // Declaring all of the sub transport modules here.
-mod can;
+pub mod can;
 
 use crate::internal::InternalRxFrame;
 use crate::RxError;

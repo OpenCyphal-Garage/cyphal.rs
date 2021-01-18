@@ -8,6 +8,7 @@ use crate::transfer::TransferKind;
 /// Internal representation of a received frame.
 ///
 /// This is public so externally-defined SessionManagers can use it.
+#[derive(Debug)]
 pub struct InternalRxFrame<'a> {
     pub timestamp: Timestamp,
     pub priority: Priority,
