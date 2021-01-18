@@ -10,6 +10,7 @@ bitfield! {
     /// Reserved fields rsvd0 and 3 must be cleared, and the frame
     /// discarded if they aren't. rsvd1 and 2 must be set, but can be
     /// ignored on reception.
+    #[derive(Copy, Clone, Debug)]
     pub struct CanMessageId(u32);
     /// Priority level.
     pub u8, priority, set_priority: 28, 26;
@@ -78,7 +79,8 @@ impl CanMessageId {
 bitfield! {
     /// Structure declaring bitfields of a service frame
     ///
-    /// Reserved field rsvd0 must be cleared, and the frame discarded if not.
+        /// Reserved field rsvd0 must be cleared, and the frame discarded if not.
+    #[derive(Copy, Clone, Debug)]
     pub struct CanServiceId(u32);
     /// Priority level.
     pub u8, priority, set_priority: 28, 26;
@@ -118,6 +120,7 @@ impl CanServiceId {
 
 bitfield! {
     /// Tail byte of frame data. Received at end of every frame.
+    #[derive(Copy, Clone, Debug)]
     pub struct TailByte(u8);
     /// Is this the start of the transfer?
     pub bool, start_of_transfer, set_start_of_transfer: 7;

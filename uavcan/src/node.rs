@@ -15,6 +15,7 @@ use crate::transport::Transport;
 use crate::session::SessionManager;
 
 /// Node implementation. Generic across session managers and transport types.
+#[derive(Copy, Clone, Debug)]
 pub struct Node<S: SessionManager, T: Transport> {
     // TODO this is transport level type
     id: Option<NodeId>,

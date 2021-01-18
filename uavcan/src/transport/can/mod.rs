@@ -26,6 +26,7 @@ pub use bitfields::*;
 pub const MTU_SIZE: usize = 8;
 
 /// Unit struct for declaring transport type
+#[derive(Copy, Clone, Debug)]
 pub struct Can;
 
 // I don't like that I have to do this.
@@ -59,7 +60,7 @@ impl Transport for Can {
             return Err(RxError::TransferStartMissingToggle);
         }
         // Non-last frames must use the MTU fully
-        if tail_byte.end_of_transfer() && frame.payload.len() < MTU_SIZE {
+        if !tail_byte.end_of_transfer() && frame.payload.len() < MTU_SIZE {
             return Err(RxError::NonLastUnderUtilization);
         }
 
@@ -88,7 +89,6 @@ impl Transport for Can {
                 tail_byte.transfer_id(),
                 tail_byte.start_of_transfer(),
                 tail_byte.end_of_transfer(),
-                tail_byte.toggle(),
                 &frame.payload,
             )));
         } else {
@@ -102,9 +102,9 @@ impl Transport for Can {
                     return Err(RxError::AnonNotSingleFrame);
                 }
 
-                Some(id.source_id())
-            } else {
                 None
+            } else {
+                Some(id.source_id())
             };
 
             if !id.valid() {
@@ -119,7 +119,6 @@ impl Transport for Can {
                 tail_byte.transfer_id(),
                 tail_byte.start_of_transfer(),
                 tail_byte.end_of_transfer(),
-                tail_byte.toggle(),
                 &frame.payload,
             )));
         }
@@ -130,6 +129,7 @@ impl Transport for Can {
     //}
 }
 
+#[derive(Debug)]
 struct CanIter<'a> {
     transfer: &'a crate::transfer::Transfer,
     frame_id: u32,

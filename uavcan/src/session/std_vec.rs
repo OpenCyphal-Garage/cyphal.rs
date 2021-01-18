@@ -9,6 +9,7 @@ use crate::session::*;
 use std::collections::HashMap;
 
 /// Internal session object.
+#[derive(Clone, Debug)]
 struct Session<T: crate::transport::SessionMetadata> {
     // Timestamp of first frame
     pub timestamp: Option<Timestamp>,

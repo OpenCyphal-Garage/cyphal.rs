@@ -15,6 +15,7 @@ mod std_vec;
 
 pub use std_vec::StdVecSessionManager;
 
+#[derive(Copy, Clone, Debug)]
 pub enum SessionError {
     OutOfSpace,
     NoSubscription,
@@ -25,6 +26,7 @@ pub enum SessionError {
     BadMetadata,
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum SubscriptionError {
     OutOfSpace,
     SubscriptionExists,

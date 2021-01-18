@@ -7,7 +7,7 @@ use crate::Priority;
 use crate::internal::InternalRxFrame;
 
 /// Type of transfer.
-#[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TransferKind {
     Message,
     Response,
@@ -18,6 +18,7 @@ pub enum TransferKind {
 ///
 /// This will be passed out on successful reception of full transfers,
 /// as well as given to objects to encode into the correct transport.
+#[derive(Clone, Debug)]
 pub struct Transfer {
     pub timestamp: Timestamp,
     pub priority: Priority,

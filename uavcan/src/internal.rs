@@ -8,7 +8,7 @@ use crate::transfer::TransferKind;
 /// Internal representation of a received frame.
 ///
 /// This is public so externally-defined SessionManagers can use it.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 pub struct InternalRxFrame<'a> {
     pub timestamp: Timestamp,
     pub priority: Priority,
@@ -20,7 +20,6 @@ pub struct InternalRxFrame<'a> {
     pub is_svc: bool,
     pub start_of_transfer: bool,
     pub end_of_transfer: bool,
-    pub toggle: bool,
     pub payload: &'a [u8],
 }
 
@@ -34,7 +33,6 @@ impl<'a> InternalRxFrame<'a> {
         transfer_id: TransferId,
         start: bool,
         end: bool,
-        toggle: bool,
         payload: &'a [u8],
     ) -> Self {
         Self {
@@ -48,7 +46,6 @@ impl<'a> InternalRxFrame<'a> {
             is_svc: false,
             start_of_transfer: start,
             end_of_transfer: end,
-            toggle,
             payload,
         }
     }
@@ -64,7 +61,6 @@ impl<'a> InternalRxFrame<'a> {
         transfer_id: TransferId,
         start: bool,
         end: bool,
-        toggle: bool,
         payload: &'a [u8],
     ) -> Self {
         Self {
@@ -78,7 +74,6 @@ impl<'a> InternalRxFrame<'a> {
             is_svc: true,
             start_of_transfer: start,
             end_of_transfer: end,
-            toggle,
             payload,
         }
     }
