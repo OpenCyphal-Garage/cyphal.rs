@@ -263,6 +263,7 @@ impl<'a> Iterator for CanIter<'a> {
 
 // TODO convert to embedded-hal PR type
 /// Extended CAN frame (the only one supported by UAVCAN/CAN)
+#[derive(Clone, Debug)]
 pub struct CanFrame {
     pub timestamp: Timestamp,
     pub id: u32,
@@ -270,6 +271,7 @@ pub struct CanFrame {
 }
 
 /// Keeps track of toggle bit and CRC during frame processing.
+#[derive(Debug)]
 pub struct CanMetadata {
     toggle: bool,
     crc: crc_any::CRCu16,
