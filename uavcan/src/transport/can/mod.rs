@@ -3,7 +3,7 @@
 use arrayvec::ArrayVec;
 use num_traits::{ToPrimitive, FromPrimitive};
 
-use crate::types::*;
+use crate::{TxError, types::*};
 use crate::Priority;
 
 
@@ -32,7 +32,7 @@ pub struct Can;
 // I don't like that I have to do this.
 // *Not* doing this would rely on GAT's 
 impl<S: SessionManager> crate::Node<S, Can> {
-    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> CanIter<'a> {
+    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<CanIter<'a>, TxError> {
         CanIter::new(
             transfer,
             Some(1),
@@ -141,10 +141,14 @@ struct CanIter<'a> {
 }
 
 impl<'a> CanIter<'a> {
-    fn new(transfer: &'a crate::transfer::Transfer, node_id: Option<NodeId>) -> Self {
+    fn new(transfer: &'a crate::transfer::Transfer, node_id: Option<NodeId>) -> Result<Self, TxError> {
         // TODO return errors here, e.g. if anon but sending service message
+        // Also another error is if you're anon but sending multi-frame transfers
         let frame_id = match transfer.transfer_kind {
             TransferKind::Message => {
+                if node_id.is_none() && transfer.payload.len() > 7 {
+                    return Err(TxError::AnonNotSingleFrame);
+                }
 
                 CanMessageId::new(
                     transfer.priority,
@@ -153,26 +157,32 @@ impl<'a> CanIter<'a> {
                 ).to_u32().unwrap()
             }
             TransferKind::Request => {
+                // These runtime checks should be removed via proper typing further up but we'll
+                // leave it as is for now.
+                let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
+                let destination = transfer.remote_node_id.ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
                     transfer.priority,
                     true,
                     transfer.port_id,
                     transfer.remote_node_id.unwrap(),
-                    node_id.unwrap()
+                    source
                 ).to_u32().unwrap()
             }
             TransferKind::Response => {
+                let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
+                let destination = transfer.remote_node_id.ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
                     transfer.priority,
                     false,
                     transfer.port_id,
-                    transfer.remote_node_id.unwrap(),
-                    node_id.unwrap()
+                    destination,
+                    source
                 ).to_u32().unwrap()
             }
         };
 
-        Self {
+        Ok(Self {
             transfer,
             frame_id,
             payload_offset: 0,
@@ -180,7 +190,7 @@ impl<'a> CanIter<'a> {
             crc_left: 2,
             toggle: true,
             is_start: true,
-        }
+        })
     }
 }
 
@@ -201,7 +211,7 @@ impl<'a> Iterator for CanIter<'a> {
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
-            frame.payload.copy_from_slice(&self.transfer.payload[0..copy_len]);
+            frame.payload.extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
             unsafe {
                 frame.payload.push_unchecked(TailByte::new(
@@ -220,7 +230,7 @@ impl<'a> Iterator for CanIter<'a> {
             // Handle CRC
             let out_data = &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.copy_from_slice(out_data);
+            frame.payload.extend(out_data.iter().copied());
 
             // Finished with our data, now we deal with crc
             // (we can't do anything if bytes_left == 7, so ignore that case)

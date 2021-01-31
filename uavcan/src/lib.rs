@@ -63,6 +63,18 @@ pub enum RxError {
     SessionError(session::SessionError),
 }
 
+/// Errors that can be caused by incorrect parameters for transmission
+///
+/// TODO I should be able to capture these errors in the type system, making it impossible to do,
+/// but this is still a first pass, so I'll leave them as runtime for now.
+#[derive(Copy, Clone, Debug)]
+pub enum TxError {
+    AnonNotSingleFrame,
+    ServiceNoSourceID,
+    ServiceNoDestinationID,
+}
+
+
 // TODO could replace with custom impl's to reduce dependencies
 // TODO how could I represent more priorities for different transports?
 /// Protocol-level priorities.

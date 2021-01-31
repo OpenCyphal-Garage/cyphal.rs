@@ -1,5 +1,8 @@
 use super::*;
 
+// I feel I may have gone overboard with these tests, but I'm still getting to grips with
+// testing well so I'm not sure where the boundary should be.
+
 // TODO make this a macro or something for more relevant error messages
 fn all_frame_asserts(frame: InternalRxFrame, source_id: Option<NodeId>, destination_id: Option<NodeId>, start: bool, end: bool, payload: &[u8]) {
     assert!(std::matches!(frame.priority, Priority::Nominal));
@@ -12,6 +15,7 @@ fn all_frame_asserts(frame: InternalRxFrame, source_id: Option<NodeId>, destinat
     assert_eq!(frame.payload, payload);
 }
 
+/// Ensure valid anonymous frames are recieved properly.
 #[test]
 fn receive_anon_frame() {
     let mut frame = CanFrame {
@@ -30,6 +34,7 @@ fn receive_anon_frame() {
     all_frame_asserts(frame, None, None, true, true, &[0, 1, 2, 3, 4, 224]);
 }
 
+/// Ensure that valid message frames are recieved properly.
 #[test]
 fn receive_message_frame() {
     let mut frame = CanFrame {
@@ -46,6 +51,7 @@ fn receive_message_frame() {
     all_frame_asserts(frame, Some(41), None, true, true, &[224])
 }
 
+/// Ensure that valid service frames are recieved properly.
 #[test]
 fn receive_service_frame() {
     let mut frame = CanFrame {
@@ -68,6 +74,7 @@ fn receive_service_frame() {
     all_frame_asserts(internal_frame, Some(41), Some(42), true, true, &[224]);
 }
 
+/// Any transmitted frame must at minimum have a tail byte, so discard empty frames.
 #[test]
 fn discard_empty_frame() {
     let frame = CanFrame {
@@ -80,6 +87,7 @@ fn discard_empty_frame() {
     assert!(std::matches!(err, RxError::FrameEmpty), "Did not catch empty frame!");
 }
 
+/// Anonymous transfers must be limited to single frames.
 #[test]
 fn discard_anon_multi_frame() {
     let mut frame = CanFrame {
@@ -107,6 +115,7 @@ fn discard_anon_multi_frame() {
     assert!(std::matches!(err, RxError::AnonNotSingleFrame));
 }
 
+/// Service transfers to non-local nodes can safely be ignored.
 #[test]
 fn discard_misguided_service_frames() {
     let mut frame = CanFrame {
@@ -137,6 +146,7 @@ fn discard_misguided_service_frames() {
     assert!(std::matches!(result, None), "Didn't discard service response to anonymous node");
 }
 
+/// Tests that several validity checks on tail bytes are properly caught.
 #[test]
 fn tail_byte_checks() {
     // Start with invalid tail byte - toggle should be true to start transfer
@@ -160,4 +170,41 @@ fn tail_byte_checks() {
     assert!(std::matches!(err, RxError::NonLastUnderUtilization), "Did not catch unfilled non-end frame");
 }
 
-// TODO do I need tests for valid IDs?
+/// Tests that creating new transfers populates the ID correctly.
+#[test]
+fn transfer_valid_ids() {
+    let mut transfer = crate::transfer::Transfer {
+        timestamp: std::time::Instant::now(),
+        priority: Priority::Nominal,
+        transfer_kind: TransferKind::Message,
+        port_id: 0,
+        remote_node_id: None,
+        transfer_id: 0,
+        payload: Vec::from([1, 2, 3]),
+    };
+
+    // User wouldn't be expected to deal with CanIter, as it's called higher up the stack,
+    // but this is the most ergonomic entry point for this test.
+
+    // Anonymous message
+    let frame: CanFrame = CanIter::new(&transfer, None).unwrap().next().expect("Failed to create iter");
+    let id = CanMessageId(frame.id);
+    assert!(id.is_message());
+    assert!(id.is_anon());
+    assert!(id.subject_id() == 0);
+    assert!(id.priority() == Priority::Nominal as u8);
+    // Source ID should be random, not sure how to handle this...
+
+    let frame: CanFrame = CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
+    let id = CanMessageId(frame.id);
+    assert!(id.is_message());
+    assert!(!id.is_anon());
+    assert!(id.subject_id() == 0);
+    assert!(id.priority() == Priority:: Nominal as u8);
+    
+    transfer.transfer_kind = TransferKind::Request;
+    let err = CanIter::new(&transfer, None).expect_err("Anonymous service transfers not allowed");
+    assert!(std::matches!(err, TxError::ServiceNoSourceID));
+
+    // TODO finish out these tests. Maybe split this into more tests as well?
+}
