@@ -68,15 +68,6 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
             self.sessions.insert(session, Session::new(frame.transfer_id));
         }
 
-        // check timeout, transfer id, then new start
-        if timestamp_expired(self.sub.timeout, frame.timestamp, self.sessions[&session].timestamp) {
-            let transfer_id = self.sessions[&session].transfer_id;
-            self.sessions.entry(session).and_modify(|s| {
-                *s = Session::new(transfer_id);
-            });
-            return Err(SessionError::Timeout);
-        }
-
         // TODO proper check for invalid new transfer ID
         if self.sessions[&session].transfer_id != frame.transfer_id {
             // Create new session
@@ -85,6 +76,15 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
             self.sessions.entry(session).and_modify(|s| {
                 *s = Session::new(frame.transfer_id);
             });
+        } else {
+            // Check for session expiration
+            if timestamp_expired(self.sub.timeout, frame.timestamp, self.sessions[&session].timestamp) {
+                let transfer_id = self.sessions[&session].transfer_id;
+                self.sessions.entry(session).and_modify(|s| {
+                    *s = Session::new(transfer_id);
+                });
+                return Err(SessionError::Timeout);
+            }
         }
 
         self.accept_frame(session, frame)
@@ -102,6 +102,7 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
         }
 
         if let Some(len) = session.md.update(&frame) {
+            // Truncate payload if subscription extent is less than the incoming data
             let payload_to_copy = if session.payload.len() + len > self.sub.extent {
                 session.payload.len() + len - self.sub.extent
             } else {
@@ -136,6 +137,12 @@ pub struct StdVecSessionManager<T: crate::transport::SessionMetadata> {
 }
 
 impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
+    pub fn new() -> Self {
+        Self {
+            subscriptions: Vec::new()
+        }
+    }
+
     // TODO make it update an existing subscription?
     // Idk if we want to support that.
     // maybe a seperate function.
@@ -166,7 +173,9 @@ impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManag
             Self::matches_sub(&sub.sub, &frame)
         }) {
             Some(subscription) => subscription.update(frame),
-            None => Err(SessionError::NoSubscription),
+            // TODO I don't think this should be an error
+            //None => Err(SessionError::NoSubscription),
+            None => Ok(None),
         }
     }
 

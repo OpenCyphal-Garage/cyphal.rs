@@ -299,16 +299,20 @@ impl super::SessionMetadata for CanMetadata {
     fn update(&mut self, frame: &crate::internal::InternalRxFrame) -> Option<usize> {
         // Single frame transfers don't need to be validated
         if frame.start_of_transfer && frame.end_of_transfer {
-            return Some(frame.payload.len());
+            // TODO should I still check if toggle starts at 1?
+
+            // Still need to truncate tail byte
+            return Some(frame.payload.len() - 1);
         }
 
-        // Pull in everything but the tail byte
-        self.crc.digest(&frame.payload[0..frame.payload.len() - 2]);
+        // CRC all but the tail byte
+        self.crc.digest(&frame.payload[0..frame.payload.len() - 1]);
         self.toggle = !self.toggle;
 
-        let toggle = TailByte(frame.payload[frame.payload.len()]).toggle();
+        let toggle = TailByte(frame.payload[frame.payload.len() - 1]).toggle();
 
         if toggle == self.toggle {
+            // Truncate tail byte
             Some(frame.payload.len() - 1)
         } else {
             None
