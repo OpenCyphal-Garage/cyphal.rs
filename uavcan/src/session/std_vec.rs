@@ -3,8 +3,8 @@
 //! This is intended to be the lowest-friction interface to get
 //! started, both for library development and eventually for using the library.
 
-use crate::types::NodeId;
 use crate::session::*;
+use crate::types::NodeId;
 
 use std::collections::HashMap;
 
@@ -30,14 +30,17 @@ impl<T: crate::transport::SessionMetadata> Session<T> {
     }
 }
 
-
 /// Internal subscription object. Contains hash map of sessions.
 struct Subscription<T: crate::transport::SessionMetadata> {
     sub: crate::Subscription,
     sessions: HashMap<NodeId, Session<T>>,
 }
 
-fn timestamp_expired(timeout: core::time::Duration, now: Timestamp, then: Option<Timestamp>) -> bool {
+fn timestamp_expired(
+    timeout: core::time::Duration,
+    now: Timestamp,
+    then: Option<Timestamp>,
+) -> bool {
     if let Some(then) = then {
         if now - then > timeout {
             return true;
@@ -65,7 +68,8 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
             if !frame.start_of_transfer {
                 return Err(SessionError::NewSessionNoStart);
             }
-            self.sessions.insert(session, Session::new(frame.transfer_id));
+            self.sessions
+                .insert(session, Session::new(frame.transfer_id));
         }
 
         // TODO proper check for invalid new transfer ID
@@ -78,7 +82,11 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
             });
         } else {
             // Check for session expiration
-            if timestamp_expired(self.sub.timeout, frame.timestamp, self.sessions[&session].timestamp) {
+            if timestamp_expired(
+                self.sub.timeout,
+                frame.timestamp,
+                self.sessions[&session].timestamp,
+            ) {
                 let transfer_id = self.sessions[&session].transfer_id;
                 self.sessions.entry(session).and_modify(|s| {
                     *s = Session::new(transfer_id);
@@ -115,7 +123,7 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
                     Ok(Some(Transfer::from_frame(
                         frame,
                         session.timestamp.unwrap(),
-                        &session.payload
+                        &session.payload,
                     )))
                 } else {
                     Err(SessionError::BadMetadata)
@@ -139,15 +147,18 @@ pub struct StdVecSessionManager<T: crate::transport::SessionMetadata> {
 impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
     pub fn new() -> Self {
         Self {
-            subscriptions: Vec::new()
+            subscriptions: Vec::new(),
         }
     }
 
     // TODO make it update an existing subscription?
     // Idk if we want to support that.
     // maybe a seperate function.
-    /// Add a subscription 
-    pub fn subscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError> {
+    /// Add a subscription
+    pub fn subscribe(
+        &mut self,
+        subscription: crate::Subscription,
+    ) -> Result<(), SubscriptionError> {
         if self.subscriptions.iter().any(|s| s.sub == subscription) {
             return Err(SubscriptionError::SubscriptionExists);
         }
@@ -156,8 +167,15 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
         Ok(())
     }
 
-    pub fn unsubscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError> {
-        match self.subscriptions.iter().position(|x| x.sub == subscription) {
+    pub fn unsubscribe(
+        &mut self,
+        subscription: crate::Subscription,
+    ) -> Result<(), SubscriptionError> {
+        match self
+            .subscriptions
+            .iter()
+            .position(|x| x.sub == subscription)
+        {
             Some(pos) => {
                 self.subscriptions.remove(pos);
                 Ok(())
@@ -169,9 +187,11 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
 
 impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManager<T> {
     fn ingest(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
-        match self.subscriptions.iter_mut().find(|sub| {
-            Self::matches_sub(&sub.sub, &frame)
-        }) {
+        match self
+            .subscriptions
+            .iter_mut()
+            .find(|sub| Self::matches_sub(&sub.sub, &frame))
+        {
             Some(subscription) => subscription.update(frame),
             // TODO I don't think this should be an error
             //None => Err(SessionError::NoSubscription),

@@ -30,11 +30,11 @@ pub mod transport;
 pub mod types;
 
 pub use node::Node;
-pub use transfer::{TransferKind};
+pub use transfer::TransferKind;
 
-pub mod session;
 mod internal;
 mod node;
+pub mod session;
 
 use types::*;
 
@@ -73,7 +73,6 @@ pub enum TxError {
     ServiceNoSourceID,
     ServiceNoDestinationID,
 }
-
 
 // TODO could replace with custom impl's to reduce dependencies
 // TODO how could I represent more priorities for different transports?

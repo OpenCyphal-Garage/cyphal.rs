@@ -8,11 +8,11 @@
 
 use core::marker::PhantomData;
 
-use crate::types::*;
-use crate::RxError;
+use crate::session::SessionManager;
 use crate::transfer::Transfer;
 use crate::transport::Transport;
-use crate::session::SessionManager;
+use crate::types::*;
+use crate::RxError;
 
 /// Node implementation. Generic across session managers and transport types.
 #[derive(Copy, Clone, Debug)]
@@ -53,10 +53,7 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame<'a>(
-        &mut self,
-        frame: T::Frame,
-    ) -> Result<Option<Transfer>, RxError> {
+    pub fn try_receive_frame<'a>(&mut self, frame: T::Frame) -> Result<Option<Transfer>, RxError> {
         // TODO check extended ID mask etc.
         let frame = T::rx_process_frame(&self.id, &frame)?;
 

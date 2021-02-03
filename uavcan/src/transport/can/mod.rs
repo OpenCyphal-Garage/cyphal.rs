@@ -10,19 +10,17 @@
 //! for quite a while... :(.
 
 use arrayvec::ArrayVec;
-use num_traits::{ToPrimitive, FromPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 
-use crate::{TxError, types::*};
 use crate::Priority;
-
+use crate::{types::*, TxError};
 
 use super::Transport;
-use crate::session::SessionManager;
-use crate::RxError;
 use crate::internal::InternalRxFrame;
-use crate::TransferKind;
+use crate::session::SessionManager;
 use crate::NodeId;
-
+use crate::RxError;
+use crate::TransferKind;
 
 mod bitfields;
 
@@ -38,21 +36,20 @@ pub const MTU_SIZE: usize = 8;
 pub struct Can;
 
 // I don't like that I have to do this.
-// *Not* doing this would rely on GAT's 
+// *Not* doing this would rely on GAT's
 impl<S: SessionManager> crate::Node<S, Can> {
     pub fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<CanIter<'a>, TxError> {
-        CanIter::new(
-            transfer,
-            Some(1),
-        )
+        CanIter::new(transfer, Some(1))
     }
 }
 
 impl Transport for Can {
     type Frame = CanFrame;
 
-
-    fn rx_process_frame<'a>(node_id: &Option<NodeId>, frame: &'a Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError> {
+    fn rx_process_frame<'a>(
+        node_id: &Option<NodeId>,
+        frame: &'a Self::Frame,
+    ) -> Result<Option<InternalRxFrame<'a>>, RxError> {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
@@ -154,7 +151,10 @@ pub struct CanIter<'a> {
 }
 
 impl<'a> CanIter<'a> {
-    fn new(transfer: &'a crate::transfer::Transfer, node_id: Option<NodeId>) -> Result<Self, TxError> {
+    fn new(
+        transfer: &'a crate::transfer::Transfer,
+        node_id: Option<NodeId>,
+    ) -> Result<Self, TxError> {
         // TODO return errors here, e.g. if anon but sending service message
         // Also another error is if you're anon but sending multi-frame transfers
         let frame_id = match transfer.transfer_kind {
@@ -163,35 +163,41 @@ impl<'a> CanIter<'a> {
                     return Err(TxError::AnonNotSingleFrame);
                 }
 
-                CanMessageId::new(
-                    transfer.priority,
-                    transfer.port_id,
-                    node_id
-                ).to_u32().unwrap()
+                CanMessageId::new(transfer.priority, transfer.port_id, node_id)
+                    .to_u32()
+                    .unwrap()
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
                 // leave it as is for now.
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
-                let destination = transfer.remote_node_id.ok_or(TxError::ServiceNoDestinationID)?;
+                let destination = transfer
+                    .remote_node_id
+                    .ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
                     transfer.priority,
                     true,
                     transfer.port_id,
                     destination,
-                    source
-                ).to_u32().unwrap()
+                    source,
+                )
+                .to_u32()
+                .unwrap()
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
-                let destination = transfer.remote_node_id.ok_or(TxError::ServiceNoDestinationID)?;
+                let destination = transfer
+                    .remote_node_id
+                    .ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
                     transfer.priority,
                     false,
                     transfer.port_id,
                     destination,
-                    source
-                ).to_u32().unwrap()
+                    source,
+                )
+                .to_u32()
+                .unwrap()
             }
         };
 
@@ -224,15 +230,16 @@ impl<'a> Iterator for CanIter<'a> {
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
-            frame.payload.extend(self.transfer.payload[0..copy_len].iter().copied());
+            frame
+                .payload
+                .extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
             unsafe {
-                frame.payload.push_unchecked(TailByte::new(
-                    true,
-                    true,
-                    true,
-                    self.transfer.transfer_id
-                ).to_u8().unwrap())
+                frame.payload.push_unchecked(
+                    TailByte::new(true, true, true, self.transfer.transfer_id)
+                        .to_u8()
+                        .unwrap(),
+                )
             }
         } else {
             // Nothing left to transmit, we are done
@@ -241,7 +248,8 @@ impl<'a> Iterator for CanIter<'a> {
             }
 
             // Handle CRC
-            let out_data = &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
+            let out_data =
+                &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
             frame.payload.extend(out_data.iter().copied());
 
@@ -278,7 +286,12 @@ impl<'a> Iterator for CanIter<'a> {
 
             // SAFETY: should only copy at most 7 elements prior to here
             unsafe {
-                frame.payload.push_unchecked(TailByte::new(self.is_start, is_end, self.toggle, self.transfer.transfer_id));
+                frame.payload.push_unchecked(TailByte::new(
+                    self.is_start,
+                    is_end,
+                    self.toggle,
+                    self.transfer.transfer_id,
+                ));
             }
 
             // Advance state of iter
@@ -345,7 +358,7 @@ impl super::SessionMetadata for CanMetadata {
             None
         }
     }
-    
+
     fn is_valid(&self, frame: &crate::internal::InternalRxFrame) -> bool {
         if frame.start_of_transfer && frame.end_of_transfer {
             return true;

@@ -7,9 +7,9 @@
 //! user can also implement their own session to fit their individual needs
 //! using the SessionManager trait.
 
-use crate::types::*;
-use crate::transfer::Transfer;
 use crate::internal::InternalRxFrame;
+use crate::transfer::Transfer;
+use crate::types::*;
 
 mod std_vec;
 

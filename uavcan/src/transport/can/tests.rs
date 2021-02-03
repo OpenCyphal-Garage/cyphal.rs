@@ -4,7 +4,14 @@ use super::*;
 // testing well so I'm not sure where the boundary should be.
 
 // TODO make this a macro or something for more relevant error messages
-fn all_frame_asserts(frame: InternalRxFrame, source_id: Option<NodeId>, destination_id: Option<NodeId>, start: bool, end: bool, payload: &[u8]) {
+fn all_frame_asserts(
+    frame: InternalRxFrame,
+    source_id: Option<NodeId>,
+    destination_id: Option<NodeId>,
+    start: bool,
+    end: bool,
+    payload: &[u8],
+) {
     assert!(std::matches!(frame.priority, Priority::Nominal));
     assert_eq!(frame.source_node_id, source_id);
     assert_eq!(frame.destination_node_id, destination_id);
@@ -84,7 +91,10 @@ fn discard_empty_frame() {
     };
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Empty frame did not error out.");
-    assert!(std::matches!(err, RxError::FrameEmpty), "Did not catch empty frame!");
+    assert!(
+        std::matches!(err, RxError::FrameEmpty),
+        "Did not catch empty frame!"
+    );
 }
 
 /// Anonymous transfers must be limited to single frames.
@@ -128,22 +138,34 @@ fn discard_misguided_service_frames() {
     frame.payload.push(TailByte::new(true, true, true, 0));
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
-    assert!(std::matches!(result, None), "Didn't discard misguided service request");
+    assert!(
+        std::matches!(result, None),
+        "Didn't discard misguided service request"
+    );
 
     // Request (anonymous node)
     let result = Can::rx_process_frame(&None, &frame);
     let result = result.unwrap();
-    assert!(std::matches!(result, None), "Didn't discard service request to anonymous node");
+    assert!(
+        std::matches!(result, None),
+        "Didn't discard service request to anonymous node"
+    );
 
     // Response
     frame.id = CanServiceId::new(Priority::Nominal, false, 0, 31, 41);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
-    assert!(std::matches!(result, None), "Didn't discard misguided service response");
+    assert!(
+        std::matches!(result, None),
+        "Didn't discard misguided service response"
+    );
 
     let result = Can::rx_process_frame(&None, &frame);
     let result = result.unwrap();
-    assert!(std::matches!(result, None), "Didn't discard service response to anonymous node");
+    assert!(
+        std::matches!(result, None),
+        "Didn't discard service response to anonymous node"
+    );
 }
 
 /// Tests that several validity checks on tail bytes are properly caught.
@@ -160,14 +182,20 @@ fn tail_byte_checks() {
     frame.payload.push(tail_byte.to_u8().unwrap());
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
-    assert!(std::matches!(err, RxError::TransferStartMissingToggle), "Did not catch invalid start toggle");
+    assert!(
+        std::matches!(err, RxError::TransferStartMissingToggle),
+        "Did not catch invalid start toggle"
+    );
 
     let tail_byte = TailByte::new(true, false, true, 0);
     frame.payload[0] = tail_byte.to_u8().unwrap();
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
     println!("{:?}", err);
-    assert!(std::matches!(err, RxError::NonLastUnderUtilization), "Did not catch unfilled non-end frame");
+    assert!(
+        std::matches!(err, RxError::NonLastUnderUtilization),
+        "Did not catch unfilled non-end frame"
+    );
 }
 
 /// Tests that creating new transfers populates the ID correctly.
@@ -187,7 +215,10 @@ fn transfer_valid_ids() {
     // but this is the most ergonomic entry point for this test.
 
     // Anonymous message
-    let frame: CanFrame = CanIter::new(&transfer, None).unwrap().next().expect("Failed to create iter");
+    let frame: CanFrame = CanIter::new(&transfer, None)
+        .unwrap()
+        .next()
+        .expect("Failed to create iter");
     let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(id.is_anon());
@@ -200,8 +231,8 @@ fn transfer_valid_ids() {
     assert!(id.is_message());
     assert!(!id.is_anon());
     assert!(id.subject_id() == 0);
-    assert!(id.priority() == Priority:: Nominal as u8);
-    
+    assert!(id.priority() == Priority::Nominal as u8);
+
     transfer.transfer_kind = TransferKind::Request;
     let err = CanIter::new(&transfer, None).expect_err("Anonymous service transfers not allowed");
     assert!(std::matches!(err, TxError::ServiceNoSourceID));

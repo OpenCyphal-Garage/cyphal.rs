@@ -17,8 +17,8 @@
 pub mod can;
 
 use crate::internal::InternalRxFrame;
-use crate::RxError;
 use crate::NodeId;
+use crate::RxError;
 
 /// Describes any transport-specific metadata required to construct a session.
 ///
@@ -46,7 +46,10 @@ pub trait Transport {
 
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
-    fn rx_process_frame<'a>(node_id: &Option<NodeId>, frame: &'a Self::Frame) -> Result<Option<InternalRxFrame<'a>>, RxError>;
+    fn rx_process_frame<'a>(
+        node_id: &Option<NodeId>,
+        frame: &'a Self::Frame,
+    ) -> Result<Option<InternalRxFrame<'a>>, RxError>;
 
     // TODO find a way to specify this function here, may require GATs
     //fn transmit<'a>(transfer: &crate::transfer::Transfer) -> Self::FrameIter;

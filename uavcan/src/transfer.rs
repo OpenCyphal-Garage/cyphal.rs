@@ -2,9 +2,9 @@
 //! which boils down to some metadata to uniquely identify it, as well
 //! as a serialized buffer of data, which encodes DSDL-based data.
 
+use crate::internal::InternalRxFrame;
 use crate::types::*;
 use crate::Priority;
-use crate::internal::InternalRxFrame;
 
 /// Protocol-level transfer types.
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
