@@ -15,6 +15,7 @@ mod std_vec;
 
 pub use std_vec::StdVecSessionManager;
 
+/// Session-related errors, caused by reception errors.
 #[derive(Copy, Clone, Debug)]
 pub enum SessionError {
     OutOfSpace,
@@ -26,6 +27,7 @@ pub enum SessionError {
     BadMetadata,
 }
 
+/// Errors caused when adding a subscription.
 #[derive(Copy, Clone, Debug)]
 pub enum SubscriptionError {
     OutOfSpace,

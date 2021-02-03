@@ -1,5 +1,5 @@
 //! Internal types for passing data around. Overly verbose
-//! and not useful to the user, thus not visible.
+//! and not useful to the user, thus not publicly visible.
 
 use crate::types::*;
 use crate::Priority;

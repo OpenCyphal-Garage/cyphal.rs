@@ -6,7 +6,7 @@ use crate::types::*;
 use crate::Priority;
 use crate::internal::InternalRxFrame;
 
-/// Type of transfer.
+/// Protocol-level transfer types.
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TransferKind {
     Message,

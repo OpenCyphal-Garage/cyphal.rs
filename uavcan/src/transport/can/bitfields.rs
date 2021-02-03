@@ -1,3 +1,9 @@
+//! # UAVCAN/CAN bitfield primitives.
+//!
+//! These types describe the bit patterns of both the CAN ID and tail bytes.
+//! As well as providing convenient constructor/accessor functions these types
+//! are able to do some of the more basic checks that they are valid.
+
 use bitfield::bitfield;
 use num_traits::ToPrimitive;
 
@@ -6,10 +12,6 @@ use crate::Priority;
 
 bitfield! {
     /// Structure declaring bitfields of a message frame.
-    ///
-    /// Reserved fields rsvd0 and 3 must be cleared, and the frame
-    /// discarded if they aren't. rsvd1 and 2 must be set, but can be
-    /// ignored on reception.
     #[derive(Copy, Clone, Debug)]
     pub struct CanMessageId(u32);
     /// Priority level.
@@ -38,8 +40,7 @@ impl CanMessageId {
         let is_anon = source_id.is_none();
         let source_id = match source_id {
             Some(id) => id,
-            // chosen at random :)
-            // TODO
+            // TODO do better than XKCD 221
             None => 4,
         };
         let mut id = CanMessageId(0);
@@ -77,9 +78,7 @@ impl CanMessageId {
 }
 
 bitfield! {
-    /// Structure declaring bitfields of a service frame
-    ///
-        /// Reserved field rsvd0 must be cleared, and the frame discarded if not.
+    /// Structure declaring bitfields of a service frame.
     #[derive(Copy, Clone, Debug)]
     pub struct CanServiceId(u32);
     /// Priority level.
@@ -116,6 +115,8 @@ impl CanServiceId {
         id.set_source_id(source);
         id.0
     }
+
+    // TODO valid check
 }
 
 bitfield! {

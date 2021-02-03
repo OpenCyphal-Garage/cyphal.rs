@@ -1,4 +1,13 @@
 //! UAVCAN/CAN transport implementation.
+//!
+//! CAN will essentially be the "reference implementation", and *should* always follow
+//! the best practices, so if you want to add support for a new transport, you should
+//! follow the conventions here.
+//!
+//! Provides a unit struct to create a Node for CAN. This implements the common
+//! transmit function that *must* be implemented by any transport. This can't be a
+//! trait in stable unfortunately because it would require GATs, which won't be stable
+//! for quite a while... :(.
 
 use arrayvec::ArrayVec;
 use num_traits::{ToPrimitive, FromPrimitive};
@@ -16,7 +25,6 @@ use crate::NodeId;
 
 
 mod bitfields;
-mod session;
 
 #[cfg(test)]
 mod tests;
@@ -129,6 +137,11 @@ impl Transport for Can {
     //}
 }
 
+/// Iterator type to transmit a transfer.
+///
+/// By splitting transmission into an iterator I can easily `.collect()` it for a handy
+/// array, store it in another object, or just bulk transfer it all at once, without
+/// having to commit to any proper memory model.
 #[derive(Debug)]
 pub struct CanIter<'a> {
     transfer: &'a crate::transfer::Transfer,
