@@ -134,9 +134,6 @@ bitfield! {
 
 impl TailByte {
     pub fn new(is_start: bool, is_end: bool, toggle: bool, transfer_id: u8) -> u8 {
-        // TODO am I doing dumb here?
-        assert!(transfer_id < 32);
-
         let mut byte = TailByte(0);
         byte.set_start_of_transfer(is_start);
         byte.set_end_of_transfer(is_end);

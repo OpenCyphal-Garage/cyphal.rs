@@ -32,7 +32,7 @@ pub struct Can;
 // I don't like that I have to do this.
 // *Not* doing this would rely on GAT's 
 impl<S: SessionManager> crate::Node<S, Can> {
-    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<CanIter<'a>, TxError> {
+    pub fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<CanIter<'a>, TxError> {
         CanIter::new(
             transfer,
             Some(1),
@@ -130,7 +130,7 @@ impl Transport for Can {
 }
 
 #[derive(Debug)]
-struct CanIter<'a> {
+pub struct CanIter<'a> {
     transfer: &'a crate::transfer::Transfer,
     frame_id: u32,
     payload_offset: usize,
@@ -165,7 +165,7 @@ impl<'a> CanIter<'a> {
                     transfer.priority,
                     true,
                     transfer.port_id,
-                    transfer.remote_node_id.unwrap(),
+                    destination,
                     source
                 ).to_u32().unwrap()
             }
@@ -232,10 +232,15 @@ impl<'a> Iterator for CanIter<'a> {
             self.crc.digest(out_data);
             frame.payload.extend(out_data.iter().copied());
 
+            // Increment offset
+            self.payload_offset += copy_len;
+
             // Finished with our data, now we deal with crc
             // (we can't do anything if bytes_left == 7, so ignore that case)
             if bytes_left < 7 {
                 let crc = &self.crc.get_crc().to_be_bytes();
+
+                // TODO I feel like this logic could be cleaned up somehow
                 if self.crc_left == 2 {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
@@ -244,19 +249,23 @@ impl<'a> Iterator for CanIter<'a> {
                         frame.payload.push(crc[1]);
                         self.crc_left = 0;
                     } else {
+                        // SAFETY: only written if we have enough space
                         unsafe {
                             frame.payload.push_unchecked(crc[0]);
                         }
-                    }
-                    match frame.payload.try_extend_from_slice(crc) {
-                        Ok(()) => self.crc_left = 0,
-                        Err(_) => self.crc_left -= 1,
+                        self.crc_left = 1;
                     }
                 } else if self.crc_left == 1 {
+                    // SAFETY: only written if we have enough space
                     unsafe {
                         frame.payload.push_unchecked(crc[1]);
                     }
                 }
+            }
+
+            // SAFETY: should only copy at most 7 elements prior to here
+            unsafe {
+                frame.payload.push_unchecked(TailByte::new(self.is_start, is_end, self.toggle, self.transfer.transfer_id));
             }
 
             // Advance state of iter
@@ -309,11 +318,16 @@ impl super::SessionMetadata for CanMetadata {
         self.crc.digest(&frame.payload[0..frame.payload.len() - 1]);
         self.toggle = !self.toggle;
 
-        let toggle = TailByte(frame.payload[frame.payload.len() - 1]).toggle();
+        let tail = TailByte(frame.payload[frame.payload.len() - 1]);
 
-        if toggle == self.toggle {
-            // Truncate tail byte
-            Some(frame.payload.len() - 1)
+        if tail.toggle() == self.toggle {
+            if tail.end_of_transfer() {
+                // Exclude CRC from data
+                Some(frame.payload.len() - 3)
+            } else {
+                // Just truncate tail byte
+                Some(frame.payload.len() - 1)
+            }
         } else {
             None
         }

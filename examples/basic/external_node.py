@@ -25,15 +25,30 @@ except:
     importlib.invalidate_caches()
     import pyuavcan.application
 
+import uavcan.primitive
+
+media = pyuavcan.transport.can.media.socketcan.SocketCANMedia("vcan0", 8)
+transport = pyuavcan.transport.can.CANTransport(media, 10)
+presentation = pyuavcan.presentation.Presentation(transport)
+
+async def big_publisher():
+    pub = presentation.make_publisher(uavcan.primitive.String_1_0, 100)
+    while True:
+        await pub.publish(uavcan.primitive.String_1_0([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]))
+        await asyncio.sleep(1)
+
+async def big_subscriber(msg: uavcan.primitive.String_1_0, some_other_param):
+    print(msg.value)
 
 if __name__ == "__main__":
-    media = pyuavcan.transport.can.media.socketcan.SocketCANMedia("vcan0", 8)
-    transport = pyuavcan.transport.can.CANTransport(media, 10)
-    presentation = pyuavcan.presentation.Presentation(transport)
-
     hb_publisher = pyuavcan.application.heartbeat_publisher.HeartbeatPublisher(presentation)
 
     hb_publisher.start()
 
     loop = asyncio.get_event_loop()
+    loop.create_task(big_publisher())
+
+    sub = presentation.make_subscriber(uavcan.primitive.String_1_0, 100)
+    sub.receive_in_background(big_subscriber)
+
     loop.run_forever()
