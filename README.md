@@ -2,6 +2,8 @@
 
 **THE PROJECT IS LOOKING FOR A NEW MAINTAINER. PLEASE COORDINATE VIA THE [UAVCAN FORUM](http://forum.uavcan.org).**
 
+**Meanwhile consider using [Canadensis](https://github.com/samcrow/canadensis) instead, which is an independent effort.**
+
 > The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std
 
 # License
