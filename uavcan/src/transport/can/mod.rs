@@ -133,7 +133,7 @@ impl Transport for Can {
 /// having to commit to any proper memory model.
 #[derive(Debug)]
 pub struct CanIter<'a> {
-    transfer: &'a crate::transfer::Transfer,
+    transfer: &'a crate::transfer::Transfer<'a>,
     frame_id: u32,
     payload_offset: usize,
     crc: crc_any::CRCu16,

@@ -31,7 +31,6 @@ pub struct Node<S: SessionManager, T: Transport> {
 }
 
 impl<S: SessionManager, T: Transport> Node<S, T> {
-    // TODO needs to accept a SessionManager
     pub fn new(id: Option<NodeId>, session_manager: S) -> Self {
         Self {
             id,

@@ -208,7 +208,7 @@ fn transfer_valid_ids() {
         port_id: 0,
         remote_node_id: None,
         transfer_id: 0,
-        payload: Vec::from([1, 2, 3]),
+        payload: &[1, 2, 3],
     };
 
     // User wouldn't be expected to deal with CanIter, as it's called higher up the stack,
