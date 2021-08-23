@@ -17,7 +17,6 @@ use crate::{types::*, TxError};
 
 use super::Transport;
 use crate::internal::InternalRxFrame;
-use crate::session::SessionManager;
 use crate::NodeId;
 use crate::RxError;
 use crate::TransferKind;
@@ -35,16 +34,9 @@ pub const MTU_SIZE: usize = 8;
 #[derive(Copy, Clone, Debug)]
 pub struct Can;
 
-// I don't like that I have to do this.
-// *Not* doing this would rely on GAT's
-impl<S: SessionManager> crate::Node<S, Can> {
-    pub fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<CanIter<'a>, TxError> {
-        CanIter::new(transfer, Some(1))
-    }
-}
-
 impl Transport for Can {
     type Frame = CanFrame;
+    type FrameIter<'a> = CanIter<'a>;
 
     fn rx_process_frame<'a>(
         node_id: &Option<NodeId>,
@@ -129,9 +121,9 @@ impl Transport for Can {
         }
     }
 
-    //fn transmit<'a>(transfer: &'t crate::transfer::Transfer) -> CanIter<'a> {
-    //    CanIter::new(transfer, Some(1))
-    //}
+    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<Self::FrameIter<'a>, TxError> {
+        CanIter::new(transfer, Some(1))
+    }
 }
 
 /// Iterator type to transmit a transfer.

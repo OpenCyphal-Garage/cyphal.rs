@@ -21,6 +21,7 @@
 //! and storage backends. Application level functionality can live on top of
 //! this. I can see issues with this running into issues in multi-threaded
 //! environments, but I'll get to those when I get to them.
+#![feature(generic_associated_types)]
 
 #[macro_use]
 extern crate num_derive;

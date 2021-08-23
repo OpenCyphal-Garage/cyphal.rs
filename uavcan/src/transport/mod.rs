@@ -1,24 +1,17 @@
 //! Transport-specific functionality.
 //!
-//! For now I'm only supporting CAN bus, but TBD is more transports.
-//!
-//! The current iteration requires 3 different implementations:
+//! The current iteration requires 2 different implementations:
 //! - SessionMetadata trait
 //! - Transport trait
-//! - impl crate::Node<S, TransportType> { fn transmit() }
 //!
-//! The last implementation is reuired because I haven't found a way
-//! to adequately describe a generic transmit function inside of the
-//! Transport trait. I suspect that to do it will require GATs, which
-//! aren't stable and may not be for a while. See the CAN implementation
-//! for an example of how to implement this.
+//! Take a look at the CAN implementation for an example.
 
 // Declaring all of the sub transport modules here.
 pub mod can;
 
 use crate::internal::InternalRxFrame;
 use crate::NodeId;
-use crate::RxError;
+use crate::{RxError, TxError};
 
 /// Describes any transport-specific metadata required to construct a session.
 ///
@@ -43,6 +36,7 @@ pub trait SessionMetadata {
 /// for different transport types.
 pub trait Transport {
     type Frame;
+    type FrameIter<'a>: Iterator;
 
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
@@ -51,6 +45,6 @@ pub trait Transport {
         frame: &'a Self::Frame,
     ) -> Result<Option<InternalRxFrame<'a>>, RxError>;
 
-    // TODO find a way to specify this function here, may require GATs
-    //fn transmit<'a>(transfer: &crate::transfer::Transfer) -> Self::FrameIter;
+    /// Prepare an iterator of frames to send out on the wire.
+    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<Self::FrameIter<'a>, TxError>;
 }
