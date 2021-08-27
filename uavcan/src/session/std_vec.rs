@@ -151,9 +151,6 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
         }
     }
 
-    // TODO make it update an existing subscription?
-    // Idk if we want to support that.
-    // maybe a seperate function.
     /// Add a subscription
     pub fn subscribe(
         &mut self,
@@ -167,6 +164,25 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
         Ok(())
     }
 
+    /// Modify subscription in place, creating a new one if not found.
+    pub fn edit_subscription(
+        &mut self,
+        subscription: crate::Subscription,
+    ) -> Result<(), SubscriptionError> {
+        match self
+            .subscriptions
+            .iter()
+            .position(|s| s.sub == subscription)
+        {
+            Some(pos) => {
+                self.subscriptions[pos] = Subscription::new(subscription);
+                Ok(())
+            },
+            None => Err(SubscriptionError::SubscriptionDoesNotExist)
+        }
+    }
+
+    /// Removes a subscription from the list.
     pub fn unsubscribe(
         &mut self,
         subscription: crate::Subscription,
