@@ -39,9 +39,6 @@ pub mod session;
 
 use types::*;
 
-// TODO impl default for some of these structs maybe?
-
-// TODO handle invalid transport frames.
 /// Protocol errors possible from receiving incoming frames.
 #[derive(Copy, Clone, Debug)]
 pub enum RxError {

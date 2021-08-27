@@ -48,7 +48,6 @@ impl CanMessageId {
         id.set_svc(false);
         id.set_anon(is_anon);
         id.set_subject_id(subject_id);
-        // TODO set as random
         id.set_source_id(source_id);
         // Set reserved fields
         id.set_rsvd0(false);
@@ -116,7 +115,13 @@ impl CanServiceId {
         id.0
     }
 
-    // TODO valid check
+    pub fn valid(&self) -> bool {
+        if self.rsvd0() {
+            return false;
+        }
+
+        true
+    }
 }
 
 bitfield! {

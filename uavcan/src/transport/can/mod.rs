@@ -65,6 +65,11 @@ impl Transport for Can {
             // Handle services
             let id = CanServiceId(frame.id);
 
+            // Ignore invalid frames
+            if !id.valid() {
+                return Err(RxError::InvalidCanId);
+            }
+
             // Ignore frames not meant for us
             if node_id.is_none() || id.destination_id() != node_id.unwrap() {
                 return Ok(None);
@@ -147,8 +152,6 @@ impl<'a> CanIter<'a> {
         transfer: &'a crate::transfer::Transfer,
         node_id: Option<NodeId>,
     ) -> Result<Self, TxError> {
-        // TODO return errors here, e.g. if anon but sending service message
-        // Also another error is if you're anon but sending multi-frame transfers
         let frame_id = match transfer.transfer_kind {
             TransferKind::Message => {
                 if node_id.is_none() && transfer.payload.len() > 7 {
@@ -295,7 +298,23 @@ impl<'a> Iterator for CanIter<'a> {
         Some(frame)
     }
 
-    // TODO impl size_hint for frames remaining
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let mut bytes_left = self.transfer.payload.len() - self.payload_offset;
+
+        // Single frame transfer
+        if self.is_start && bytes_left <= 7 {
+            return (1, Some(1));
+        }
+
+        // Multi-frame, so include CRC
+        bytes_left += 2;
+        let mut frames = bytes_left / 7;
+        if bytes_left % 7 > 0 {
+            frames += 1;
+        }
+
+        (frames, Some(frames))
+    }
 }
 
 // TODO convert to embedded-hal PR type
@@ -326,8 +345,6 @@ impl super::SessionMetadata for CanMetadata {
     fn update(&mut self, frame: &crate::internal::InternalRxFrame) -> Option<usize> {
         // Single frame transfers don't need to be validated
         if frame.start_of_transfer && frame.end_of_transfer {
-            // TODO should I still check if toggle starts at 1?
-
             // Still need to truncate tail byte
             return Some(frame.payload.len() - 1);
         }

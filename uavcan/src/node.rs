@@ -15,9 +15,8 @@ use crate::types::*;
 use crate::RxError;
 
 /// Node implementation. Generic across session managers and transport types.
-#[derive(Copy, Clone, Debug)]
+#[derive(Debug)]
 pub struct Node<S: SessionManager, T: Transport> {
-    // TODO this is transport level type
     id: Option<NodeId>,
 
     /// Session manager. Made public so it could be managed by implementation.
@@ -53,7 +52,6 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
     pub fn try_receive_frame<'a>(&mut self, frame: T::Frame) -> Result<Option<Transfer>, RxError> {
-        // TODO check extended ID mask etc.
         let frame = T::rx_process_frame(&self.id, &frame)?;
 
         if let Some(frame) = frame {

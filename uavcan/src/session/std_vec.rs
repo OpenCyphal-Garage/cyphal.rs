@@ -60,8 +60,7 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
 
     /// Update subscription with incoming frame
     fn update(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
-        // TODO anon transfers should be handled by the protocol.
-        // although for good error handling we should handle the error here
+        // TODO maybe some of the logic here can be skipped with anon transfers.
         let session = frame.source_node_id.unwrap();
         // Create default session if it doesn't exist
         if !self.sessions.contains_key(&session) {
@@ -72,11 +71,8 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
                 .insert(session, Session::new(frame.transfer_id));
         }
 
-        // TODO proper check for invalid new transfer ID
         if self.sessions[&session].transfer_id != frame.transfer_id {
             // Create new session
-            // TODO we don't necessarily want to overwrite the session immediately
-            // if we get a new transfer id
             self.sessions.entry(session).and_modify(|s| {
                 *s = Session::new(frame.transfer_id);
             });
@@ -209,8 +205,6 @@ impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManag
             .find(|sub| Self::matches_sub(&sub.sub, &frame))
         {
             Some(subscription) => subscription.update(frame),
-            // TODO I don't think this should be an error
-            //None => Err(SessionError::NoSubscription),
             None => Ok(None),
         }
     }

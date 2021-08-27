@@ -22,6 +22,11 @@ My general plan is this:
     `#[derive(uavcan)]`. I'm not entirely opposed to leaving things in nunavut
     but Rust does provide the tools we need, so keeping things consistent would be nice.
 
+## Design issues
+
+- Do old transfer sessions get immediately overwritten when a new
+  transfer ID comes in?
+
 
 # License
 

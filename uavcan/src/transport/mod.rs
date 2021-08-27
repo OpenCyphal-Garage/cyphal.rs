@@ -28,7 +28,6 @@ pub trait SessionMetadata {
     fn update(&mut self, frame: &InternalRxFrame) -> Option<usize>;
 
     /// Final check to see if transfer was successful.
-    // TODO maybe this doesn't need a frame?
     fn is_valid(&self, frame: &InternalRxFrame) -> bool;
 }
 
