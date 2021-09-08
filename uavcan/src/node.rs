@@ -12,7 +12,7 @@ use crate::session::SessionManager;
 use crate::transfer::Transfer;
 use crate::transport::Transport;
 use crate::types::*;
-use crate::RxError;
+use crate::{RxError, TxError};
 
 /// Node implementation. Generic across session managers and transport types.
 #[derive(Debug)]
@@ -72,7 +72,7 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
     //
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
-    //pub fn transmit(&self, transfer: &Transfer) -> T::FrameIter {
-    //    T::transmit(transfer)
-    //}
+    pub fn transmit<'a>(&self, transfer: &'a Transfer) -> Result<T::FrameIter<'a>, TxError> {
+        T::transmit(transfer)
+    }
 }
