@@ -57,7 +57,7 @@ fn main() {
                     TransferKind::Message => {
                         println!("UAVCAN message received!");
                         print!("\tData: ");
-                        for byte in &xfer.payload {
+                        for byte in xfer.payload {
                             print!("0x{:02x} ", byte);
                         }
                         println!("");
@@ -74,8 +74,9 @@ fn main() {
 
         if std::time::Instant::now() - last_publish > std::time::Duration::from_millis(500) {
             // Publish string
-            let mut str = Vec::from([12u8, 0]);
-            str.extend_from_slice("Hellk world!!".as_bytes());
+            let hello = "Hello Python!";
+            let mut str = Vec::from([hello.len() as u8, 0]);
+            str.extend_from_slice(hello.as_bytes());
 
             let transfer = Transfer {
                 timestamp: std::time::Instant::now(),
@@ -84,17 +85,15 @@ fn main() {
                 port_id: 100,
                 remote_node_id: None,
                 transfer_id,
-                payload: str, 
+                payload: &str,
             };
 
             // unchecked_add is unstable :(
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id = (std::num::Wrapping(transfer_id) + std::num::Wrapping(1)).0;
 
-            let mut i = 0;
-            for frame in Node::<StdVecSessionManager<CanMetadata>, Can>::transmit(&transfer).unwrap() {
+            for frame in node.transmit(&transfer).unwrap() {
                 sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap()).unwrap();
-                i += 1;
 
                 //print!("Can frame {}: ", i);
                 //for byte in &frame.payload {
