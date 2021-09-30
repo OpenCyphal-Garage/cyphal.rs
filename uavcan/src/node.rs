@@ -16,7 +16,7 @@ use crate::{RxError, TxError};
 
 /// Node implementation. Generic across session managers and transport types.
 #[derive(Debug)]
-pub struct Node<S: SessionManager<C>, T: Transport<C>, C> {
+pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> {
     id: Option<NodeId>,
 
     /// A clock to get instants inside the node
@@ -32,7 +32,7 @@ pub struct Node<S: SessionManager<C>, T: Transport<C>, C> {
     transport: PhantomData<T>,
 }
 
-impl<S: SessionManager<C>, T: Transport<C>, C> Node<S, T, C> {
+impl<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> Node<S, T, C> {
     pub fn new(id: Option<NodeId>, clock: C, session_manager: S) -> Self {
         Self {
             id,

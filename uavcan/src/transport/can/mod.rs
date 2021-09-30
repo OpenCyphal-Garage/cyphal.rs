@@ -35,7 +35,7 @@ pub const MTU_SIZE: usize = 8;
 #[derive(Copy, Clone, Debug)]
 pub struct Can;
 
-impl<C> Transport<C> for Can {
+impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
     type Frame = CanFrame<C>;
     type FrameIter<'a> = CanIter<'a, C>;
 
@@ -140,7 +140,7 @@ impl<C> Transport<C> for Can {
 /// array, store it in another object, or just bulk transfer it all at once, without
 /// having to commit to any proper memory model.
 #[derive(Debug)]
-pub struct CanIter<'a, C> {
+pub struct CanIter<'a, C: embedded_time::Clock> {
     transfer: &'a crate::transfer::Transfer<'a, C>,
     frame_id: u32,
     payload_offset: usize,
@@ -150,7 +150,7 @@ pub struct CanIter<'a, C> {
     is_start: bool,
 }
 
-impl<'a, C> CanIter<'a, C> {
+impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
     fn new(
         transfer: &'a crate::transfer::Transfer<C>,
         node_id: Option<NodeId>,
@@ -323,7 +323,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
 // TODO convert to embedded-hal PR type
 /// Extended CAN frame (the only one supported by UAVCAN/CAN)
 #[derive(Clone, Debug)]
-pub struct CanFrame<C> {
+pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub id: u32,
     pub payload: ArrayVec<[u8; 8]>,
@@ -336,7 +336,7 @@ pub struct CanMetadata {
     crc: crc_any::CRCu16,
 }
 
-impl<C> super::SessionMetadata<C> for CanMetadata {
+impl<C: embedded_time::Clock> super::SessionMetadata<C> for CanMetadata {
     fn new() -> Self {
         Self {
             // Toggle starts off true, but we compare against the opposite value.

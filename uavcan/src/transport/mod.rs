@@ -18,7 +18,7 @@ use crate::{RxError, TxError};
 /// In the example of CAN, you need to keep track of the toggle bit,
 /// as well as the CRC for multi-frame transfers. This trait lets us pull that
 /// code out of the generic processing and into more modular implementations.
-pub trait SessionMetadata<C> {
+pub trait SessionMetadata<C: embedded_time::Clock> {
     /// Create a fresh instance of session metadata;
     fn new() -> Self;
 
@@ -33,7 +33,7 @@ pub trait SessionMetadata<C> {
 
 /// This trait is to be implemented on a unit struct, in order to be specified
 /// for different transport types.
-pub trait Transport<C> {
+pub trait Transport<C: embedded_time::Clock> {
     type Frame;
     type FrameIter<'a>: Iterator;
 
