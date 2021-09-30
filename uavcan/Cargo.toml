@@ -23,6 +23,8 @@ bitfield = "0.13"
 crc-any = "2.3.5"
 arrayvec = "0.5.2"
 
+embedded-time = "0.12.0"
+
 [features]
 default = ["std"]
 std = []
