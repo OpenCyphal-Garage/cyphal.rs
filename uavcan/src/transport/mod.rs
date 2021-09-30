@@ -18,22 +18,22 @@ use crate::{RxError, TxError};
 /// In the example of CAN, you need to keep track of the toggle bit,
 /// as well as the CRC for multi-frame transfers. This trait lets us pull that
 /// code out of the generic processing and into more modular implementations.
-pub trait SessionMetadata {
+pub trait SessionMetadata<C> {
     /// Create a fresh instance of session metadata;
     fn new() -> Self;
 
     /// Update metadata with incoming frame's information.
     ///
     /// If the frame is valid, returns Some(length of payload to ingest)
-    fn update(&mut self, frame: &InternalRxFrame) -> Option<usize>;
+    fn update(&mut self, frame: &InternalRxFrame<C>) -> Option<usize>;
 
     /// Final check to see if transfer was successful.
-    fn is_valid(&self, frame: &InternalRxFrame) -> bool;
+    fn is_valid(&self, frame: &InternalRxFrame<C>) -> bool;
 }
 
 /// This trait is to be implemented on a unit struct, in order to be specified
 /// for different transport types.
-pub trait Transport {
+pub trait Transport<C> {
     type Frame;
     type FrameIter<'a>: Iterator;
 
@@ -42,8 +42,10 @@ pub trait Transport {
     fn rx_process_frame<'a>(
         node_id: &Option<NodeId>,
         frame: &'a Self::Frame,
-    ) -> Result<Option<InternalRxFrame<'a>>, RxError>;
+    ) -> Result<Option<InternalRxFrame<'a, C>>, RxError>;
 
     /// Prepare an iterator of frames to send out on the wire.
-    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<Self::FrameIter<'a>, TxError>;
+    fn transmit<'a>(
+        transfer: &'a crate::transfer::Transfer<C>,
+    ) -> Result<Self::FrameIter<'a>, TxError>;
 }

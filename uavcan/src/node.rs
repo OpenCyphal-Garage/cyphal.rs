@@ -16,8 +16,11 @@ use crate::{RxError, TxError};
 
 /// Node implementation. Generic across session managers and transport types.
 #[derive(Debug)]
-pub struct Node<S: SessionManager, T: Transport> {
+pub struct Node<S: SessionManager<C>, T: Transport<C>, C> {
     id: Option<NodeId>,
+
+    /// A clock to get instants inside the node
+    clock: C,
 
     /// Session manager. Made public so it could be managed by implementation.
     ///
@@ -29,10 +32,11 @@ pub struct Node<S: SessionManager, T: Transport> {
     transport: PhantomData<T>,
 }
 
-impl<S: SessionManager, T: Transport> Node<S, T> {
-    pub fn new(id: Option<NodeId>, session_manager: S) -> Self {
+impl<S: SessionManager<C>, T: Transport<C>, C> Node<S, T, C> {
+    pub fn new(id: Option<NodeId>, clock: C, session_manager: S) -> Self {
         Self {
             id,
+            clock,
             sessions: session_manager,
             transport: PhantomData,
         }
@@ -51,7 +55,10 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame<'a>(&mut self, frame: T::Frame) -> Result<Option<Transfer>, RxError> {
+    pub fn try_receive_frame<'a>(
+        &mut self,
+        frame: T::Frame,
+    ) -> Result<Option<Transfer<C>>, RxError> {
         let frame = T::rx_process_frame(&self.id, &frame)?;
 
         if let Some(frame) = frame {
@@ -72,7 +79,7 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
     //
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
-    pub fn transmit<'a>(&self, transfer: &'a Transfer) -> Result<T::FrameIter<'a>, TxError> {
+    pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
         T::transmit(transfer)
     }
 }

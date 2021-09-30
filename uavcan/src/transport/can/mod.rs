@@ -10,6 +10,7 @@
 //! for quite a while... :(.
 
 use arrayvec::ArrayVec;
+use embedded_time::Clock;
 use num_traits::{FromPrimitive, ToPrimitive};
 
 use crate::Priority;
@@ -34,14 +35,14 @@ pub const MTU_SIZE: usize = 8;
 #[derive(Copy, Clone, Debug)]
 pub struct Can;
 
-impl Transport for Can {
-    type Frame = CanFrame;
-    type FrameIter<'a> = CanIter<'a>;
+impl<C> Transport<C> for Can {
+    type Frame = CanFrame<C>;
+    type FrameIter<'a> = CanIter<'a, C>;
 
     fn rx_process_frame<'a>(
         node_id: &Option<NodeId>,
         frame: &'a Self::Frame,
-    ) -> Result<Option<InternalRxFrame<'a>>, RxError> {
+    ) -> Result<Option<InternalRxFrame<'a, C>>, RxError> {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
@@ -126,7 +127,9 @@ impl Transport for Can {
         }
     }
 
-    fn transmit<'a>(transfer: &'a crate::transfer::Transfer) -> Result<Self::FrameIter<'a>, TxError> {
+    fn transmit<'a>(
+        transfer: &'a crate::transfer::Transfer<C>,
+    ) -> Result<Self::FrameIter<'a>, TxError> {
         CanIter::new(transfer, Some(1))
     }
 }
@@ -137,8 +140,8 @@ impl Transport for Can {
 /// array, store it in another object, or just bulk transfer it all at once, without
 /// having to commit to any proper memory model.
 #[derive(Debug)]
-pub struct CanIter<'a> {
-    transfer: &'a crate::transfer::Transfer<'a>,
+pub struct CanIter<'a, C> {
+    transfer: &'a crate::transfer::Transfer<'a, C>,
     frame_id: u32,
     payload_offset: usize,
     crc: crc_any::CRCu16,
@@ -147,9 +150,9 @@ pub struct CanIter<'a> {
     is_start: bool,
 }
 
-impl<'a> CanIter<'a> {
+impl<'a, C> CanIter<'a, C> {
     fn new(
-        transfer: &'a crate::transfer::Transfer,
+        transfer: &'a crate::transfer::Transfer<C>,
         node_id: Option<NodeId>,
     ) -> Result<Self, TxError> {
         let frame_id = match transfer.transfer_kind {
@@ -208,13 +211,13 @@ impl<'a> CanIter<'a> {
     }
 }
 
-impl<'a> Iterator for CanIter<'a> {
-    type Item = CanFrame;
+impl<'a, C: Clock> Iterator for CanIter<'a, C> {
+    type Item = CanFrame<C>;
 
     // I'm sure I could take an optimization pass at the logic here
     fn next(&mut self) -> Option<Self::Item> {
         let mut frame = CanFrame {
-            timestamp: std::time::Instant::now(),
+            timestamp: self.transfer.timestamp,
             id: self.frame_id,
             payload: ArrayVec::new(),
         };
@@ -320,8 +323,8 @@ impl<'a> Iterator for CanIter<'a> {
 // TODO convert to embedded-hal PR type
 /// Extended CAN frame (the only one supported by UAVCAN/CAN)
 #[derive(Clone, Debug)]
-pub struct CanFrame {
-    pub timestamp: Timestamp,
+pub struct CanFrame<C> {
+    pub timestamp: Timestamp<C>,
     pub id: u32,
     pub payload: ArrayVec<[u8; 8]>,
 }
@@ -333,7 +336,7 @@ pub struct CanMetadata {
     crc: crc_any::CRCu16,
 }
 
-impl super::SessionMetadata for CanMetadata {
+impl<C> super::SessionMetadata<C> for CanMetadata {
     fn new() -> Self {
         Self {
             // Toggle starts off true, but we compare against the opposite value.
@@ -342,7 +345,7 @@ impl super::SessionMetadata for CanMetadata {
         }
     }
 
-    fn update(&mut self, frame: &crate::internal::InternalRxFrame) -> Option<usize> {
+    fn update(&mut self, frame: &crate::internal::InternalRxFrame<C>) -> Option<usize> {
         // Single frame transfers don't need to be validated
         if frame.start_of_transfer && frame.end_of_transfer {
             // Still need to truncate tail byte
@@ -368,7 +371,7 @@ impl super::SessionMetadata for CanMetadata {
         }
     }
 
-    fn is_valid(&self, frame: &crate::internal::InternalRxFrame) -> bool {
+    fn is_valid(&self, frame: &crate::internal::InternalRxFrame<C>) -> bool {
         if frame.start_of_transfer && frame.end_of_transfer {
             return true;
         }

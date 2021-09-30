@@ -11,16 +11,16 @@ use std::vec::Vec;
 
 /// Internal session object.
 #[derive(Clone, Debug)]
-struct Session<T: crate::transport::SessionMetadata> {
+struct Session<T: crate::transport::SessionMetadata<C>, C> {
     // Timestamp of first frame
-    pub timestamp: Option<Timestamp>,
+    pub timestamp: Option<Timestamp<C>>,
     pub payload: Vec<u8>,
     pub transfer_id: TransferId,
 
     pub md: T,
 }
 
-impl<T: crate::transport::SessionMetadata> Session<T> {
+impl<T: crate::transport::SessionMetadata<C>, C> Session<T, C> {
     pub fn new(transfer_id: TransferId) -> Self {
         Self {
             timestamp: None,
@@ -32,15 +32,15 @@ impl<T: crate::transport::SessionMetadata> Session<T> {
 }
 
 /// Internal subscription object. Contains hash map of sessions.
-struct Subscription<T: crate::transport::SessionMetadata> {
+struct Subscription<T: crate::transport::SessionMetadata<C>, C> {
     sub: crate::Subscription,
     sessions: HashMap<NodeId, Session<T>>,
 }
 
-fn timestamp_expired(
+fn timestamp_expired<C>(
     timeout: core::time::Duration,
-    now: Timestamp,
-    then: Option<Timestamp>,
+    now: Timestamp<C>,
+    then: Option<Timestamp<C>>,
 ) -> bool {
     if let Some(then) = then {
         if now - then > timeout {
@@ -51,7 +51,7 @@ fn timestamp_expired(
     return false;
 }
 
-impl<T: crate::transport::SessionMetadata> Subscription<T> {
+impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
     pub fn new(sub: crate::Subscription) -> Self {
         Self {
             sub,
@@ -60,7 +60,7 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
     }
 
     /// Update subscription with incoming frame
-    fn update(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
+    fn update(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         // TODO maybe some of the logic here can be skipped with anon transfers.
         let session = frame.source_node_id.unwrap();
         // Create default session if it doesn't exist
@@ -98,8 +98,8 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
     fn accept_frame(
         &mut self,
         session: NodeId,
-        frame: InternalRxFrame,
-    ) -> Result<Option<Transfer>, SessionError> {
+        frame: InternalRxFrame<C>,
+    ) -> Result<Option<Transfer<C>>, SessionError> {
         let mut session = self.sessions.get_mut(&session).unwrap();
 
         if frame.start_of_transfer {
@@ -137,11 +137,11 @@ impl<T: crate::transport::SessionMetadata> Subscription<T> {
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct StdVecSessionManager<T: crate::transport::SessionMetadata> {
+pub struct StdVecSessionManager<T: crate::transport::SessionMetadata<C>, C> {
     subscriptions: Vec<Subscription<T>>,
 }
 
-impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
+impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
     pub fn new() -> Self {
         Self {
             subscriptions: Vec::new(),
@@ -198,8 +198,8 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
     }
 }
 
-impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManager<T> {
-    fn ingest(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError> {
+impl<T: crate::transport::SessionMetadata<C>, C> SessionManager<C> for StdVecSessionManager<T, C> {
+    fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         match self
             .subscriptions
             .iter_mut()
@@ -210,7 +210,7 @@ impl<T: crate::transport::SessionMetadata> SessionManager for StdVecSessionManag
         }
     }
 
-    fn update_sessions(&mut self, timestamp: Timestamp) {
+    fn update_sessions(&mut self, timestamp: Timestamp<C>) {
         for sub in &mut self.subscriptions {
             for session in sub.sessions.values_mut() {
                 if timestamp_expired(sub.sub.timeout, timestamp, session.timestamp) {

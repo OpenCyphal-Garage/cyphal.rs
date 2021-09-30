@@ -45,18 +45,18 @@ pub enum SubscriptionError {
 /// select different models based on e.g. your memory allocation strategy,
 /// or if a model provided by this crate does not suffice, you can implement
 /// your own.
-pub trait SessionManager {
+pub trait SessionManager<C> {
     /// Process incoming frame.
-    fn ingest(&mut self, frame: InternalRxFrame) -> Result<Option<Transfer>, SessionError>;
+    fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError>;
 
     /// Housekeeping function called to clean up timed-out sessions.
-    fn update_sessions(&mut self, timestamp: Timestamp);
+    fn update_sessions(&mut self, timestamp: Timestamp<C>);
 
     /// Helper function to match frames to the correct subscription.
     ///
     /// It's not necessary to use this in your implementation, you may have
     /// a more efficient way to check, but this is a spec-compliant function.
-    fn matches_sub(subscription: &crate::Subscription, frame: &InternalRxFrame) -> bool {
+    fn matches_sub(subscription: &crate::Subscription, frame: &InternalRxFrame<C>) -> bool {
         // Order is chosen to short circuit the most common inconsistencies.
         if frame.port_id != subscription.port_id {
             return false;

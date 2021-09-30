@@ -19,8 +19,9 @@ pub enum TransferKind {
 /// This will be passed out on successful reception of full transfers,
 /// as well as given to objects to encode into the correct transport.
 #[derive(Clone, Debug)]
-pub struct Transfer<'a> {
-    pub timestamp: Timestamp,
+pub struct Transfer<'a, C> {
+    // for tx -> transmission_timeout
+    pub timestamp: Timestamp<C>,
     pub priority: Priority,
     pub transfer_kind: TransferKind,
     pub port_id: PortId,
@@ -30,8 +31,12 @@ pub struct Transfer<'a> {
 }
 
 // I don't want to impl convert::From because I need to pull in extra data
-impl<'a> Transfer<'a> {
-    pub fn from_frame(frame: InternalRxFrame, timestamp: Timestamp, payload: &'a [u8]) -> Self {
+impl<'a, C> Transfer<'a, C> {
+    pub fn from_frame(
+        frame: InternalRxFrame<C>,
+        timestamp: Timestamp<C>,
+        payload: &'a [u8],
+    ) -> Self {
         Self {
             timestamp: timestamp,
             priority: frame.priority,

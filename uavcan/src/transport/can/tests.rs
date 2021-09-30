@@ -4,15 +4,15 @@ use super::*;
 // testing well so I'm not sure where the boundary should be.
 
 // TODO make this a macro or something for more relevant error messages
-fn all_frame_asserts(
-    frame: InternalRxFrame,
+fn all_frame_asserts<C>(
+    frame: InternalRxFrame<C>,
     source_id: Option<NodeId>,
     destination_id: Option<NodeId>,
     start: bool,
     end: bool,
     payload: &[u8],
 ) {
-    assert!(std::matches!(frame.priority, Priority::Nominal));
+    assert!(matches!(frame.priority, Priority::Nominal));
     assert_eq!(frame.source_node_id, source_id);
     assert_eq!(frame.destination_node_id, destination_id);
     assert_eq!(frame.port_id, 0);
