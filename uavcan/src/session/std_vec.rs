@@ -34,7 +34,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> Session<T, C> {
 /// Internal subscription object. Contains hash map of sessions.
 struct Subscription<T: crate::transport::SessionMetadata<C>, C> {
     sub: crate::Subscription,
-    sessions: HashMap<NodeId, Session<T>>,
+    sessions: HashMap<NodeId, Session<T, C>>,
 }
 
 fn timestamp_expired<C>(
@@ -138,7 +138,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
 pub struct StdVecSessionManager<T: crate::transport::SessionMetadata<C>, C> {
-    subscriptions: Vec<Subscription<T>>,
+    subscriptions: Vec<Subscription<T, C>>,
 }
 
 impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
