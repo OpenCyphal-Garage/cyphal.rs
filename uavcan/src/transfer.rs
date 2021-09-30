@@ -18,8 +18,8 @@ pub enum TransferKind {
 ///
 /// This will be passed out on successful reception of full transfers,
 /// as well as given to objects to encode into the correct transport.
-#[derive(Clone, Debug)]
-pub struct Transfer<'a, C> {
+#[derive(Debug)]
+pub struct Transfer<'a, C: embedded_time::Clock> {
     // for tx -> transmission_timeout
     pub timestamp: Timestamp<C>,
     pub priority: Priority,
@@ -31,7 +31,7 @@ pub struct Transfer<'a, C> {
 }
 
 // I don't want to impl convert::From because I need to pull in extra data
-impl<'a, C> Transfer<'a, C> {
+impl<'a, C: embedded_time::Clock> Transfer<'a, C> {
     pub fn from_frame(
         frame: InternalRxFrame<C>,
         timestamp: Timestamp<C>,

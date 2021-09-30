@@ -8,8 +8,8 @@ use crate::Priority;
 /// Internal representation of a received frame.
 ///
 /// This is public so externally-defined SessionManagers can use it.
-#[derive(Copy, Clone, Debug)]
-pub struct InternalRxFrame<'a, C> {
+#[derive(Debug)]
+pub struct InternalRxFrame<'a, C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub priority: Priority,
     pub transfer_kind: TransferKind,
@@ -23,7 +23,7 @@ pub struct InternalRxFrame<'a, C> {
     pub payload: &'a [u8],
 }
 
-impl<'a, C> InternalRxFrame<'a, C> {
+impl<'a, C: embedded_time::Clock> InternalRxFrame<'a, C> {
     /// Construct internal frame as a message type
     pub fn as_message(
         timestamp: Timestamp<C>,
