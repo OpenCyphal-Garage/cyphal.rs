@@ -32,9 +32,7 @@ extern crate std;
 #[macro_use]
 extern crate num_derive;
 
-mod time;
-#[cfg(test)]
-pub use time::TestClock;
+pub mod time;
 
 pub mod transfer;
 pub mod transport;
