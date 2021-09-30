@@ -45,7 +45,7 @@ pub enum SubscriptionError {
 /// select different models based on e.g. your memory allocation strategy,
 /// or if a model provided by this crate does not suffice, you can implement
 /// your own.
-pub trait SessionManager<C> {
+pub trait SessionManager<C: embedded_time::Clock> {
     /// Process incoming frame.
     fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError>;
 
