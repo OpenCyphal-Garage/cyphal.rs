@@ -27,11 +27,7 @@ fn main() {
             embedded_time::duration::Milliseconds(500),
         ))
         .unwrap();
-    let mut node: Node<
-        StdVecSessionManager<CanMetadata, embedded_time::duration::Milliseconds>,
-        Can,
-        _,
-    > = Node::new(Some(42), session_manager);
+    let mut node = Node::<_, Can, StdClock>::new(Some(42), session_manager);
 
     let sock = CANSocket::open("vcan0").unwrap();
 
