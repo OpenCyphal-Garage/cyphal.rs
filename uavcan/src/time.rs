@@ -2,11 +2,12 @@
 pub use test_clock::TestClock;
 
 #[cfg(feature = "std")]
-pub use std_clock::Clock;
+pub use std_clock::StdClock;
 
 #[cfg(test)]
 mod test_clock {
     use core::{
+        fmt::Debug,
         hash::Hash,
         ops::{Add, AddAssign},
     };
@@ -15,8 +16,8 @@ mod test_clock {
         duration::Duration, fixed_point::FixedPoint, Clock, ConversionError, TimeInt,
     };
 
-    #[derive(Debug)]
-    pub struct TestClock<TickType: TimeInt + AddAssign>(TickType);
+    #[derive(Debug, Clone)]
+    pub struct TestClock<TickType: TimeInt + AddAssign>(core::cell::RefCell<TickType>);
 
     impl<TickType: TimeInt + AddAssign> TestClock<TickType>
     where
@@ -29,14 +30,19 @@ mod test_clock {
         where
             TickType: From<<D as FixedPoint>::T>,
         {
-            self.0 += duration.to_generic(Self::SCALING_FACTOR)?.integer();
+            *self.0.borrow_mut() += duration.to_generic(Self::SCALING_FACTOR)?.integer();
             Ok(())
+        }
+
+        // like alloc::borrow::ToOwned but don't want to use alloc crate by now
+        pub fn to_owned(&self) -> Self {
+            self.clone()
         }
     }
 
     impl TestClock<u32> {
         pub fn new() -> Self {
-            Self(0)
+            Self(core::cell::RefCell::new(0))
         }
     }
 
@@ -47,13 +53,15 @@ mod test_clock {
             embedded_time::rate::Fraction::new(1, 1);
 
         fn try_now(&self) -> Result<embedded_time::Instant<Self>, embedded_time::clock::Error> {
-            Ok(embedded_time::Instant::new(self.0))
+            Ok(embedded_time::Instant::new(*self.0.borrow()))
         }
     }
 }
 
 #[cfg(feature = "std")]
 mod std_clock {
+
+    #[derive(Clone, Debug)]
     pub struct StdClock;
 
     impl embedded_time::Clock for StdClock {
@@ -67,6 +75,12 @@ mod std_clock {
             let time_passed = now.elapsed().as_secs();
 
             Ok(embedded_time::Instant::new(time_passed))
+        }
+    }
+
+    impl Default for StdClock {
+        fn default() -> Self {
+            Self {}
         }
     }
 }
