@@ -27,6 +27,17 @@ My general plan is this:
 - Do old transfer sessions get immediately overwritten when a new
   transfer ID comes in?
 
+## Port to embedded
+
+### steps
+
+1. make lib *no_std* as default
+1. added feature _std_ for std support
+1. use crate [embedded_time](https://github.com/FluenTech/embedded-time/) for timestamping
+1. added Clocks:
+   1. StdClock for std environments
+   1. TestClock for tests
+2. write another session for no std use (with crate [heapless](https://github.com/japaric/heapless))
 
 # License
 
