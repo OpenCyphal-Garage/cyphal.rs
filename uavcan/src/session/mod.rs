@@ -11,11 +11,15 @@ use crate::internal::InternalRxFrame;
 use crate::transfer::Transfer;
 use crate::types::*;
 
+#[cfg(not(feature = "std"))]
+mod pool_vec;
 #[cfg(feature = "std")]
 mod std_vec;
 
 #[cfg(feature = "std")]
 pub use std_vec::StdVecSessionManager;
+
+use embedded_time::fixed_point::FixedPoint;
 
 /// Session-related errors, caused by reception errors.
 #[derive(Copy, Clone, Debug)]
@@ -56,7 +60,10 @@ pub trait SessionManager<C: embedded_time::Clock> {
     ///
     /// It's not necessary to use this in your implementation, you may have
     /// a more efficient way to check, but this is a spec-compliant function.
-    fn matches_sub(subscription: &crate::Subscription, frame: &InternalRxFrame<C>) -> bool {
+    fn matches_sub<D: embedded_time::duration::Duration + FixedPoint>(
+        subscription: &crate::Subscription<D>,
+        frame: &InternalRxFrame<C>,
+    ) -> bool {
         // Order is chosen to short circuit the most common inconsistencies.
         if frame.port_id != subscription.port_id {
             return false;
@@ -67,4 +74,22 @@ pub trait SessionManager<C: embedded_time::Clock> {
 
         return true;
     }
+}
+
+fn timestamp_expired<C: embedded_time::Clock, D>(
+    timeout: D,
+    now: Timestamp<C>,
+    then: Option<Timestamp<C>>,
+) -> bool
+where
+    D: embedded_time::duration::Duration + FixedPoint,
+    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
+    if let Some(then) = then {
+        if now - then > timeout.to_generic(C::SCALING_FACTOR).unwrap() {
+            return true;
+        }
+    }
+
+    return false;
 }
