@@ -21,9 +21,6 @@ use crate::{RxError, TxError};
 pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> {
     id: Option<NodeId>,
 
-    /// A clock to get instants inside the node
-    clock: C,
-
     /// Session manager. Made public so it could be managed by implementation.
     ///
     /// Instead of being public, could be placed behind a `with_session_manager` fn
@@ -32,6 +29,7 @@ pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> 
 
     /// Transport type
     transport: PhantomData<T>,
+    _clock: PhantomData<C>,
 }
 
 impl<S, T, C> Node<S, T, C>
@@ -40,12 +38,12 @@ where
     S: SessionManager<C>,
     C: embedded_time::Clock + Clone,
 {
-    pub fn new(id: Option<NodeId>, clock: C, session_manager: S) -> Self {
+    pub fn new(id: Option<NodeId>, session_manager: S) -> Self {
         Self {
             id,
-            clock,
             sessions: session_manager,
             transport: PhantomData,
+            _clock: PhantomData,
         }
     }
 
@@ -87,6 +85,6 @@ where
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
     pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
-        T::transmit(transfer, self.clock.clone())
+        T::transmit(transfer)
     }
 }

@@ -47,6 +47,5 @@ pub trait Transport<C: embedded_time::Clock> {
     /// Prepare an iterator of frames to send out on the wire.
     fn transmit<'a>(
         transfer: &'a crate::transfer::Transfer<C>,
-        clock: C,
     ) -> Result<Self::FrameIter<'a>, TxError>;
 }

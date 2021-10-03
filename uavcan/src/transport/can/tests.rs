@@ -225,7 +225,7 @@ fn transfer_valid_ids() {
     // but this is the most ergonomic entry point for this test.
 
     // Anonymous message
-    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, None, clock.to_owned())
+    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, None)
         .unwrap()
         .next()
         .expect("Failed to create iter");
@@ -236,10 +236,8 @@ fn transfer_valid_ids() {
     assert!(id.priority() == Priority::Nominal as u8);
     // Source ID should be random, not sure how to handle this...
 
-    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, Some(12), clock.to_owned())
-        .unwrap()
-        .next()
-        .expect("");
+    let frame: CanFrame<TestClock<u32>> =
+        CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
     let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(!id.is_anon());
@@ -247,8 +245,7 @@ fn transfer_valid_ids() {
     assert!(id.priority() == Priority::Nominal as u8);
 
     transfer.transfer_kind = TransferKind::Request;
-    let err = CanIter::new(&transfer, None, clock.to_owned())
-        .expect_err("Anonymous service transfers not allowed");
+    let err = CanIter::new(&transfer, None).expect_err("Anonymous service transfers not allowed");
     assert!(std::matches!(err, TxError::ServiceNoSourceID));
 
     // TODO finish out these tests. Maybe split this into more tests as well?
