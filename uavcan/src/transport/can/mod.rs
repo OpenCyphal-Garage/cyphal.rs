@@ -129,8 +129,9 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
 
     fn transmit<'a>(
         transfer: &'a crate::transfer::Transfer<C>,
+        clock: C,
     ) -> Result<Self::FrameIter<'a>, TxError> {
-        CanIter::new(transfer, Some(1))
+        CanIter::new(transfer, Some(1), clock)
     }
 }
 
@@ -148,12 +149,14 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
     crc_left: u8,
     toggle: bool,
     is_start: bool,
+    clock: C,
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
     fn new(
         transfer: &'a crate::transfer::Transfer<C>,
         node_id: Option<NodeId>,
+        clock: C,
     ) -> Result<Self, TxError> {
         let frame_id = match transfer.transfer_kind {
             TransferKind::Message => {
@@ -207,6 +210,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
             crc_left: 2,
             toggle: true,
             is_start: true,
+            clock,
         })
     }
 }
