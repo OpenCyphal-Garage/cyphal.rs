@@ -27,7 +27,7 @@ fn all_frame_asserts<C: embedded_time::Clock>(
 /// Ensure valid anonymous frames are recieved properly.
 #[test]
 fn receive_anon_frame() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
@@ -47,7 +47,7 @@ fn receive_anon_frame() {
 /// Ensure that valid message frames are recieved properly.
 #[test]
 fn receive_message_frame() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
@@ -65,7 +65,7 @@ fn receive_message_frame() {
 /// Ensure that valid service frames are recieved properly.
 #[test]
 fn receive_service_frame() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
@@ -89,7 +89,7 @@ fn receive_service_frame() {
 /// Any transmitted frame must at minimum have a tail byte, so discard empty frames.
 #[test]
 fn discard_empty_frame() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: 0,
@@ -106,7 +106,7 @@ fn discard_empty_frame() {
 /// Anonymous transfers must be limited to single frames.
 #[test]
 fn discard_anon_multi_frame() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
@@ -135,7 +135,7 @@ fn discard_anon_multi_frame() {
 /// Service transfers to non-local nodes can safely be ignored.
 #[test]
 fn discard_misguided_service_frames() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
@@ -179,7 +179,7 @@ fn discard_misguided_service_frames() {
 /// Tests that several validity checks on tail bytes are properly caught.
 #[test]
 fn tail_byte_checks() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     // Start with invalid tail byte - toggle should be true to start transfer
     let tail_byte = TailByte::new(true, true, false, 0);
     let mut frame = CanFrame {
@@ -210,7 +210,7 @@ fn tail_byte_checks() {
 /// Tests that creating new transfers populates the ID correctly.
 #[test]
 fn transfer_valid_ids() {
-    let clock = TestClock::new();
+    let clock = TestClock::default();
     let mut transfer = crate::transfer::Transfer {
         timestamp: clock.try_now().unwrap(),
         priority: Priority::Nominal,
