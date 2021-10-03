@@ -9,7 +9,7 @@ use arrayvec::ArrayVec;
 use socketcan::{CANFrame, CANSocket};
 
 fn main() {
-    let clock = StdClock::default();
+    let clock = StdClock::new();
     let mut session_manager = StdVecSessionManager::<CanMetadata, Milliseconds>::new();
     session_manager
         .subscribe(Subscription::new(
