@@ -8,6 +8,8 @@
 
 use core::marker::PhantomData;
 
+use core::clone::Clone;
+
 use crate::session::SessionManager;
 use crate::transfer::Transfer;
 use crate::transport::Transport;
@@ -32,7 +34,12 @@ pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> 
     transport: PhantomData<T>,
 }
 
-impl<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> Node<S, T, C> {
+impl<S, T, C> Node<S, T, C>
+where
+    T: Transport<C>,
+    S: SessionManager<C>,
+    C: embedded_time::Clock + Clone,
+{
     pub fn new(id: Option<NodeId>, clock: C, session_manager: S) -> Self {
         Self {
             id,
@@ -80,6 +87,6 @@ impl<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> Node<S, T, 
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
     pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
-        T::transmit(transfer)
+        T::transmit(transfer, self.clock.clone())
     }
 }
