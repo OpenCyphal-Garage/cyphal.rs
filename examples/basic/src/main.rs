@@ -30,7 +30,7 @@ fn main() {
     let mut node: Node<
         StdVecSessionManager<CanMetadata, embedded_time::duration::Milliseconds>,
         Can,
-        uavcan::time::StdClock,
+        _,
     > = Node::new(Some(42), session_manager);
 
     let sock = CANSocket::open("vcan0").unwrap();
