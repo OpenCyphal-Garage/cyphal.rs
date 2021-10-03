@@ -3,7 +3,10 @@
 //! This is intended to be the lowest-friction interface to get
 //! started, both for library development and eventually for using the library.
 
+use embedded_time::fixed_point::FixedPoint;
+
 use crate::session::*;
+use crate::time::StdClock;
 use crate::types::NodeId;
 
 use std::collections::HashMap;
@@ -11,16 +14,16 @@ use std::vec::Vec;
 
 /// Internal session object.
 #[derive(Clone, Debug)]
-struct Session<T: crate::transport::SessionMetadata<C>, C> {
+struct Session<T: crate::transport::SessionMetadata<StdClock>> {
     // Timestamp of first frame
-    pub timestamp: Option<Timestamp<C>>,
+    pub timestamp: Option<Timestamp<StdClock>>,
     pub payload: Vec<u8>,
     pub transfer_id: TransferId,
 
     pub md: T,
 }
 
-impl<T: crate::transport::SessionMetadata<C>, C> Session<T, C> {
+impl<T: crate::transport::SessionMetadata<StdClock>> Session<T> {
     pub fn new(transfer_id: TransferId) -> Self {
         Self {
             timestamp: None,
@@ -32,27 +35,20 @@ impl<T: crate::transport::SessionMetadata<C>, C> Session<T, C> {
 }
 
 /// Internal subscription object. Contains hash map of sessions.
-struct Subscription<T: crate::transport::SessionMetadata<C>, C> {
-    sub: crate::Subscription,
-    sessions: HashMap<NodeId, Session<T, C>>,
+struct Subscription<
+    T: crate::transport::SessionMetadata<StdClock>,
+    D: embedded_time::duration::Duration + FixedPoint,
+> {
+    sub: crate::Subscription<D>,
+    sessions: HashMap<NodeId, Session<T>>,
 }
 
-fn timestamp_expired<C>(
-    timeout: core::time::Duration,
-    now: Timestamp<C>,
-    then: Option<Timestamp<C>>,
-) -> bool {
-    if let Some(then) = then {
-        if now - then > timeout {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
-    pub fn new(sub: crate::Subscription) -> Self {
+impl<T: crate::transport::SessionMetadata<StdClock>, D> Subscription<T, D>
+where
+    D: embedded_time::duration::Duration + FixedPoint,
+    <StdClock as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
+    pub fn new(sub: crate::Subscription<D>) -> Self {
         Self {
             sub,
             sessions: HashMap::new(),
@@ -60,7 +56,10 @@ impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
     }
 
     /// Update subscription with incoming frame
-    fn update(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
+    fn update(
+        &mut self,
+        frame: InternalRxFrame<StdClock>,
+    ) -> Result<Option<Transfer<StdClock>>, SessionError> {
         // TODO maybe some of the logic here can be skipped with anon transfers.
         let session = frame.source_node_id.unwrap();
         // Create default session if it doesn't exist
@@ -98,8 +97,8 @@ impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
     fn accept_frame(
         &mut self,
         session: NodeId,
-        frame: InternalRxFrame<C>,
-    ) -> Result<Option<Transfer<C>>, SessionError> {
+        frame: InternalRxFrame<StdClock>,
+    ) -> Result<Option<Transfer<StdClock>>, SessionError> {
         let mut session = self.sessions.get_mut(&session).unwrap();
 
         if frame.start_of_transfer {
@@ -137,11 +136,18 @@ impl<T: crate::transport::SessionMetadata<C>, C> Subscription<T> {
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct StdVecSessionManager<T: crate::transport::SessionMetadata<C>, C> {
-    subscriptions: Vec<Subscription<T, C>>,
+pub struct StdVecSessionManager<
+    T: crate::transport::SessionMetadata<StdClock>,
+    D: embedded_time::duration::Duration + FixedPoint,
+> {
+    subscriptions: Vec<Subscription<T, D>>,
 }
 
-impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
+impl<T: crate::transport::SessionMetadata<StdClock>, D> StdVecSessionManager<T, D>
+where
+    D: embedded_time::duration::Duration + FixedPoint,
+    <StdClock as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
     pub fn new() -> Self {
         Self {
             subscriptions: Vec::new(),
@@ -151,7 +157,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
     /// Add a subscription
     pub fn subscribe(
         &mut self,
-        subscription: crate::Subscription,
+        subscription: crate::Subscription<D>,
     ) -> Result<(), SubscriptionError> {
         if self.subscriptions.iter().any(|s| s.sub == subscription) {
             return Err(SubscriptionError::SubscriptionExists);
@@ -164,7 +170,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
     /// Modify subscription in place, creating a new one if not found.
     pub fn edit_subscription(
         &mut self,
-        subscription: crate::Subscription,
+        subscription: crate::Subscription<D>,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -182,7 +188,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
     /// Removes a subscription from the list.
     pub fn unsubscribe(
         &mut self,
-        subscription: crate::Subscription,
+        subscription: crate::Subscription<D>,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -198,8 +204,16 @@ impl<T: crate::transport::SessionMetadata<C>, C> StdVecSessionManager<T, C> {
     }
 }
 
-impl<T: crate::transport::SessionMetadata<C>, C> SessionManager<C> for StdVecSessionManager<T, C> {
-    fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
+impl<T: crate::transport::SessionMetadata<StdClock>, D> SessionManager<StdClock>
+    for StdVecSessionManager<T, D>
+where
+    D: embedded_time::duration::Duration + FixedPoint,
+    <StdClock as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
+    fn ingest(
+        &mut self,
+        frame: InternalRxFrame<StdClock>,
+    ) -> Result<Option<Transfer<StdClock>>, SessionError> {
         match self
             .subscriptions
             .iter_mut()
@@ -210,7 +224,7 @@ impl<T: crate::transport::SessionMetadata<C>, C> SessionManager<C> for StdVecSes
         }
     }
 
-    fn update_sessions(&mut self, timestamp: Timestamp<C>) {
+    fn update_sessions(&mut self, timestamp: Timestamp<StdClock>) {
         for sub in &mut self.subscriptions {
             for session in sub.sessions.values_mut() {
                 if timestamp_expired(sub.sub.timeout, timestamp, session.timestamp) {
