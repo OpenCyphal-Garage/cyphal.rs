@@ -21,7 +21,13 @@
 //! and storage backends. Application level functionality can live on top of
 //! this. I can see issues with this running into issues in multi-threaded
 //! environments, but I'll get to those when I get to them.
+#![no_std]
 #![feature(generic_associated_types)]
+
+#[allow(unused_imports)]
+#[cfg(any(feature = "std", test))]
+#[macro_use]
+extern crate std;
 
 #[macro_use]
 extern crate num_derive;
