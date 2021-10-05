@@ -12,6 +12,7 @@ arrayvec = "0.5.2"
 
 [dependencies.uavcan]
 path = "../../uavcan"
+features = ["std"]
 
 # idk what to do with workspaces
 [workspace]
