@@ -22,3 +22,7 @@ num-traits = "0.2"
 bitfield = "0.13"
 crc-any = "2.3.5"
 arrayvec = "0.5.2"
+
+[features]
+default = []
+std = []
