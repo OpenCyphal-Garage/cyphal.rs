@@ -11,8 +11,10 @@ use crate::internal::InternalRxFrame;
 use crate::transfer::Transfer;
 use crate::types::*;
 
+#[cfg(feature = "std")]
 mod std_vec;
 
+#[cfg(feature = "std")]
 pub use std_vec::StdVecSessionManager;
 
 /// Session-related errors, caused by reception errors.
