@@ -7,6 +7,7 @@ use crate::session::*;
 use crate::types::NodeId;
 
 use std::collections::HashMap;
+use std::vec::Vec;
 
 /// Internal session object.
 #[derive(Clone, Debug)]
@@ -173,8 +174,8 @@ impl<T: crate::transport::SessionMetadata> StdVecSessionManager<T> {
             Some(pos) => {
                 self.subscriptions[pos] = Subscription::new(subscription);
                 Ok(())
-            },
-            None => Err(SubscriptionError::SubscriptionDoesNotExist)
+            }
+            None => Err(SubscriptionError::SubscriptionDoesNotExist),
         }
     }
 
