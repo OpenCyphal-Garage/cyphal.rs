@@ -32,10 +32,13 @@ extern crate std;
 #[macro_use]
 extern crate num_derive;
 
+pub mod time;
+
 pub mod transfer;
 pub mod transport;
 pub mod types;
 
+use embedded_time::fixed_point::FixedPoint;
 pub use node::Node;
 pub use transfer::TransferKind;
 
@@ -97,20 +100,15 @@ pub enum Priority {
 }
 
 /// Simple subscription type to
-pub struct Subscription {
+pub struct Subscription<D: embedded_time::duration::Duration + FixedPoint> {
     transfer_kind: TransferKind,
     port_id: PortId,
     extent: usize,
-    timeout: core::time::Duration,
+    timeout: D,
 }
 
-impl Subscription {
-    pub fn new(
-        transfer_kind: TransferKind,
-        port_id: PortId,
-        extent: usize,
-        timeout: core::time::Duration,
-    ) -> Self {
+impl<D: embedded_time::duration::Duration + FixedPoint> Subscription<D> {
+    pub fn new(transfer_kind: TransferKind, port_id: PortId, extent: usize, timeout: D) -> Self {
         Self {
             transfer_kind,
             port_id,
@@ -120,7 +118,7 @@ impl Subscription {
     }
 }
 
-impl PartialEq for Subscription {
+impl<D: embedded_time::duration::Duration + FixedPoint> PartialEq for Subscription<D> {
     fn eq(&self, other: &Self) -> bool {
         return self.transfer_kind == other.transfer_kind && self.port_id == other.port_id;
     }

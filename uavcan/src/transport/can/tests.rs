@@ -1,18 +1,20 @@
+use crate::time::TestClock;
+
 use super::*;
 
 // I feel I may have gone overboard with these tests, but I'm still getting to grips with
 // testing well so I'm not sure where the boundary should be.
 
 // TODO make this a macro or something for more relevant error messages
-fn all_frame_asserts(
-    frame: InternalRxFrame,
+fn all_frame_asserts<C: embedded_time::Clock>(
+    frame: InternalRxFrame<C>,
     source_id: Option<NodeId>,
     destination_id: Option<NodeId>,
     start: bool,
     end: bool,
     payload: &[u8],
 ) {
-    assert!(std::matches!(frame.priority, Priority::Nominal));
+    assert!(matches!(frame.priority, Priority::Nominal));
     assert_eq!(frame.source_node_id, source_id);
     assert_eq!(frame.destination_node_id, destination_id);
     assert_eq!(frame.port_id, 0);
@@ -25,8 +27,9 @@ fn all_frame_asserts(
 /// Ensure valid anonymous frames are recieved properly.
 #[test]
 fn receive_anon_frame() {
+    let clock = TestClock::default();
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
@@ -44,8 +47,9 @@ fn receive_anon_frame() {
 /// Ensure that valid message frames are recieved properly.
 #[test]
 fn receive_message_frame() {
+    let clock = TestClock::default();
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
         payload: ArrayVec::new(),
     };
@@ -61,8 +65,9 @@ fn receive_message_frame() {
 /// Ensure that valid service frames are recieved properly.
 #[test]
 fn receive_service_frame() {
+    let clock = TestClock::default();
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
         payload: ArrayVec::new(),
     };
@@ -73,7 +78,7 @@ fn receive_service_frame() {
     let internal_frame = result.expect("Failed to process valid service response frame");
     all_frame_asserts(internal_frame, Some(41), Some(42), true, true, &[224]);
 
-    let mut frame = frame.clone();
+    let mut frame = frame;
     frame.id = CanServiceId::new(Priority::Nominal, true, 0, 42, 41);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing service request frame");
@@ -84,8 +89,9 @@ fn receive_service_frame() {
 /// Any transmitted frame must at minimum have a tail byte, so discard empty frames.
 #[test]
 fn discard_empty_frame() {
+    let clock = TestClock::default();
     let frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: 0,
         payload: ArrayVec::new(),
     };
@@ -100,8 +106,9 @@ fn discard_empty_frame() {
 /// Anonymous transfers must be limited to single frames.
 #[test]
 fn discard_anon_multi_frame() {
+    let clock = TestClock::default();
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
@@ -128,8 +135,9 @@ fn discard_anon_multi_frame() {
 /// Service transfers to non-local nodes can safely be ignored.
 #[test]
 fn discard_misguided_service_frames() {
+    let clock = TestClock::default();
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
         payload: ArrayVec::new(),
     };
@@ -171,10 +179,11 @@ fn discard_misguided_service_frames() {
 /// Tests that several validity checks on tail bytes are properly caught.
 #[test]
 fn tail_byte_checks() {
+    let clock = TestClock::default();
     // Start with invalid tail byte - toggle should be true to start transfer
     let tail_byte = TailByte::new(true, true, false, 0);
     let mut frame = CanFrame {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
@@ -201,8 +210,9 @@ fn tail_byte_checks() {
 /// Tests that creating new transfers populates the ID correctly.
 #[test]
 fn transfer_valid_ids() {
+    let clock = TestClock::default();
     let mut transfer = crate::transfer::Transfer {
-        timestamp: std::time::Instant::now(),
+        timestamp: clock.try_now().unwrap(),
         priority: Priority::Nominal,
         transfer_kind: TransferKind::Message,
         port_id: 0,
@@ -215,7 +225,7 @@ fn transfer_valid_ids() {
     // but this is the most ergonomic entry point for this test.
 
     // Anonymous message
-    let frame: CanFrame = CanIter::new(&transfer, None)
+    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, None)
         .unwrap()
         .next()
         .expect("Failed to create iter");
@@ -226,7 +236,8 @@ fn transfer_valid_ids() {
     assert!(id.priority() == Priority::Nominal as u8);
     // Source ID should be random, not sure how to handle this...
 
-    let frame: CanFrame = CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
+    let frame: CanFrame<TestClock<u32>> =
+        CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
     let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(!id.is_anon());

@@ -14,4 +14,4 @@ pub type PortId = u16;
 pub type TransferId = u8;
 
 // TODO whole timing overhaul
-pub type Timestamp = std::time::Instant;
+pub type Timestamp<C> = embedded_time::Instant<C>;
