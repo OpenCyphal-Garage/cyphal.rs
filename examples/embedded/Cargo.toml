@@ -7,7 +7,23 @@ edition = "2021"
 
 [dependencies]
 
+cortex-m = "0.6.0"
+cortex-m-rt = "0.6.10"
+stm32g4xx-hal = {version = "0.0.0", git = "https://github.com/stm32-rs/stm32g4xx-hal", features = ["rt", "stm32g431"] }
+
+panic-halt = "0.2.0"
+panic-itm = "0.4.2"
 
 [dependencies.uavcan]
 version = "0.2.0-preview0"
 path = "../../uavcan"
+
+[[bin]]
+name = "embedded"
+test = false
+bench = false
+
+[profile.release]
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
