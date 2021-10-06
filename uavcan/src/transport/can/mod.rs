@@ -39,6 +39,8 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
     type Frame = CanFrame<C>;
     type FrameIter<'a> = CanIter<'a, C>;
 
+    const MAX_PAYLOAD_SIZE: usize = 64;
+
     fn rx_process_frame<'a>(
         node_id: &Option<NodeId>,
         frame: &'a Self::Frame,

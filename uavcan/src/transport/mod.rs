@@ -37,6 +37,9 @@ pub trait Transport<C: embedded_time::Clock> {
     type Frame;
     type FrameIter<'a>: Iterator;
 
+    /// Max payload which can be transported per frame/packet.
+    const MAX_PAYLOAD_SIZE: usize;
+
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
     fn rx_process_frame<'a>(
