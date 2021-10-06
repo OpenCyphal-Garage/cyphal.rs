@@ -6,3 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+
+[dependencies.uavcan]
+version = "0.2.0-preview0"
+path = "../../uavcan"

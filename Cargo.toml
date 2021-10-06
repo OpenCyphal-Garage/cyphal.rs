@@ -1,4 +1,6 @@
 [workspace]
 members = [
-    "uavcan"
+    "uavcan",
+    "examples/basic",
+    "examples/embedded"
 ]

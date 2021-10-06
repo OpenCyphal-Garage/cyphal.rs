@@ -14,6 +14,3 @@ embedded-time = "0.12.0"
 [dependencies.uavcan]
 path = "../../uavcan"
 features = ["std"]
-
-# idk what to do with workspaces
-[workspace]
