@@ -12,7 +12,7 @@ use crate::transfer::Transfer;
 use crate::types::*;
 
 #[cfg(not(feature = "std"))]
-mod pool_vec;
+mod heap_based;
 #[cfg(feature = "std")]
 mod std_vec;
 
