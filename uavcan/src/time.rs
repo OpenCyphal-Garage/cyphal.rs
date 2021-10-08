@@ -1,3 +1,5 @@
+pub type Timestamp<C> = embedded_time::Instant<C>;
+
 #[cfg(test)]
 pub use test_clock::TestClock;
 
