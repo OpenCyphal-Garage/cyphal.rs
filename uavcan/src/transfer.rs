@@ -3,6 +3,7 @@
 //! as a serialized buffer of data, which encodes DSDL-based data.
 
 use crate::internal::InternalRxFrame;
+use crate::time::Timestamp;
 use crate::types::*;
 use crate::Priority;
 

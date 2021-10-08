@@ -8,6 +8,7 @@
 //! using the SessionManager trait.
 
 use crate::internal::InternalRxFrame;
+use crate::time::Timestamp;
 use crate::transfer::Transfer;
 use crate::types::*;
 

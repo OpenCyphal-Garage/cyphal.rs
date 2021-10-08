@@ -1,6 +1,7 @@
 //! Internal types for passing data around. Overly verbose
 //! and not useful to the user, thus not publicly visible.
 
+use crate::time::Timestamp;
 use crate::transfer::TransferKind;
 use crate::types::*;
 use crate::Priority;

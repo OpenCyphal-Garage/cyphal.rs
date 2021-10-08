@@ -13,8 +13,9 @@ use arrayvec::ArrayVec;
 use embedded_time::Clock;
 use num_traits::{FromPrimitive, ToPrimitive};
 
+use crate::time::Timestamp;
 use crate::Priority;
-use crate::{types::*, TxError};
+use crate::TxError;
 
 use super::Transport;
 use crate::internal::InternalRxFrame;
