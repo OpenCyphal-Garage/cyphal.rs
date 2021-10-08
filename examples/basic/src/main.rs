@@ -10,7 +10,7 @@ use socketcan::{CANFrame, CANSocket};
 
 fn main() {
     let clock = StdClock::new();
-    let mut session_manager = StdVecSessionManager::<CanMetadata, Milliseconds>::new();
+    let mut session_manager = StdVecSessionManager::<CanMetadata, Milliseconds, StdClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
