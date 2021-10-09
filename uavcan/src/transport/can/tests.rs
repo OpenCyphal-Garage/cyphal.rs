@@ -251,12 +251,23 @@ fn transfer_valid_ids() {
     // TODO finish out these tests. Maybe split this into more tests as well?
 }
 
+fn count_frames(transfer: &crate::transfer::Transfer<TestClock>, mut expected: usize) {
+    for _frame in CanIter::new(transfer, Some(0)).unwrap() {
+        assert!(expected > 0);
+        expected -= 1;
+    }
+}
+
 /// Tests that the appropriate number of frames are sent for some edge cases in MTU size.
+// TODO genericise around different MTU sizes maybe
+// TODO perhaps test placement of CRC
 #[test]
-fn transfer_split_crc() {
+fn iter_various_payload_lengths() {
     let clock = TestClock::default();
+
+    // Splits the CRC portion of a multi-frame transfer in half
     let buf = vec![0u8; 13];
-    let transfer = crate::transfer::Transfer {
+    let mut transfer = crate::transfer::Transfer {
         timestamp: clock.try_now().unwrap(),
         priority: Priority::Nominal,
         transfer_kind: TransferKind::Message,
@@ -265,12 +276,17 @@ fn transfer_split_crc() {
         transfer_id: 0,
         payload: buf.as_slice(),
     };
+    count_frames(&transfer, 3);
 
-    let mut frame_ctr = 0;
-    for _frame in CanIter::new(&transfer, Some(0)).unwrap() {
-        assert!(frame_ctr < 3);
-        frame_ctr += 1;
-    }
+    // CRC included in last data frame of transfer
+    let buf = vec![0u8; 12];
+    transfer.payload = buf.as_slice();
+    count_frames(&transfer, 2);
+
+    // CRC pushed to it's own frame at the end
+    let buf = vec![0u8; 12];
+    transfer.payload = buf.as_slice();
+    count_frames(&transfer, 3);
 }
 
 // TODO: These don't properly test the transmit path
