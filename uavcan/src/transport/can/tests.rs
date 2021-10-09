@@ -257,4 +257,16 @@ fn transfer_valid_ids() {
     // TODO finish out these tests. Maybe split this into more tests as well?
 }
 
+/// Tests that the appropriate number of frames are sent for some edge cases in MTU size.
+#[test]
+fn transfer_split_crc() {
+    let buf = vec![0u8; 13];
+    let transfer = make_generic_message_transfer(buf.as_slice());
+    let mut frame_ctr = 0;
+    for _frame in CanIter::new(&transfer, Some(0)).unwrap() {
+        assert!(frame_ctr < 3);
+        frame_ctr += 1;
+    }
+}
+
 // TODO: These don't properly test the transmit path
