@@ -18,19 +18,27 @@ license = "Apache-2.0/MIT"
 # Most of these are temporary until I replace the functionality I need from them
 [dependencies]
 num-derive = "0.3"
-num-traits = "0.2"
 bitfield = "0.13"
 crc-any = "2.3.5"
-arrayvec = "0.5.2"
+
 
 embedded-time = "0.12.0"
 
 # should only in no_std, so if feature std not set - ref: https://github.com/rust-lang/cargo/issues/1839
 heapless = "0.7.7"
 
+[dependencies.num-traits]
+version = "0.2"
+default-features = false
+features = ["libm"]
+
+[dependencies.arrayvec]
+version = "0.5.2"
+default-features = false
+
 [dev-dependencies]
 mock_instant = { version = "0.2", features = ["sync"] }
 
 [features]
-default = ["std"]
+default = []
 std = []
