@@ -145,7 +145,7 @@ where
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct StdVecSessionManager<T, D, C>
+pub struct HeapSessionManager<T, D, C>
 where
     T: crate::transport::SessionMetadata<C>,
     D: Duration + FixedPoint,
@@ -154,7 +154,7 @@ where
     subscriptions: Vec<Subscription<T, D, C>>,
 }
 
-impl<T, D, C> StdVecSessionManager<T, D, C>
+impl<T, D, C> HeapSessionManager<T, D, C>
 where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
@@ -217,7 +217,7 @@ where
     }
 }
 
-impl<T, D, C> SessionManager<C> for StdVecSessionManager<T, D, C>
+impl<T, D, C> SessionManager<C> for HeapSessionManager<T, D, C>
 where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
