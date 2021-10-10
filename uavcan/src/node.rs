@@ -85,6 +85,6 @@ where
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
     pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
-        T::transmit(transfer)
+        T::transmit(transfer, self.id)
     }
 }
