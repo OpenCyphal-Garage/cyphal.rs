@@ -8,6 +8,8 @@
 
 use core::marker::PhantomData;
 
+use core::clone::Clone;
+
 use crate::session::SessionManager;
 use crate::transfer::Transfer;
 use crate::transport::Transport;
@@ -16,7 +18,7 @@ use crate::{RxError, TxError};
 
 /// Node implementation. Generic across session managers and transport types.
 #[derive(Debug)]
-pub struct Node<S: SessionManager, T: Transport> {
+pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> {
     id: Option<NodeId>,
 
     /// Session manager. Made public so it could be managed by implementation.
@@ -27,14 +29,21 @@ pub struct Node<S: SessionManager, T: Transport> {
 
     /// Transport type
     transport: PhantomData<T>,
+    _clock: PhantomData<C>,
 }
 
-impl<S: SessionManager, T: Transport> Node<S, T> {
+impl<S, T, C> Node<S, T, C>
+where
+    T: Transport<C>,
+    S: SessionManager<C>,
+    C: embedded_time::Clock + Clone,
+{
     pub fn new(id: Option<NodeId>, session_manager: S) -> Self {
         Self {
             id,
             sessions: session_manager,
             transport: PhantomData,
+            _clock: PhantomData,
         }
     }
 
@@ -51,7 +60,10 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame<'a>(&mut self, frame: T::Frame) -> Result<Option<Transfer>, RxError> {
+    pub fn try_receive_frame<'a>(
+        &mut self,
+        frame: T::Frame,
+    ) -> Result<Option<Transfer<C>>, RxError> {
         let frame = T::rx_process_frame(&self.id, &frame)?;
 
         if let Some(frame) = frame {
@@ -72,7 +84,7 @@ impl<S: SessionManager, T: Transport> Node<S, T> {
     //
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
-    pub fn transmit<'a>(&self, transfer: &'a Transfer) -> Result<T::FrameIter<'a>, TxError> {
+    pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
         T::transmit(transfer)
     }
 }

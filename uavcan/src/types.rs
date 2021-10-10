@@ -12,6 +12,3 @@ pub type PortId = u16;
 
 // TODO set type with min/max bounds
 pub type TransferId = u8;
-
-// TODO whole timing overhaul
-pub type Timestamp = std::time::Instant;
