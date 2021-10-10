@@ -16,7 +16,7 @@
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "Cargo Build (debug)",
             "runToMain": true,
-            "executable": "./target/thumbv7em-none-eabihf/debug/stm32_can_test",
+            "executable": "../../target/thumbv7em-none-eabihf/debug/embedded",
             /* Run `cargo build --example itm` and uncomment this line to run itm example */
             // "executable": "./target/thumbv7em-none-eabihf/debug/examples/itm",
             "svdFile": "${workspaceRoot}/STM32G431xx.svd",
