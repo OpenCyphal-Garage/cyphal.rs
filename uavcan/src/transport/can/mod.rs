@@ -281,6 +281,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                     unsafe {
                         frame.payload.push_unchecked(crc[1]);
                     }
+                    self.crc_left = 0;
                 }
             }
 

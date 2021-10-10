@@ -207,19 +207,25 @@ fn tail_byte_checks() {
     );
 }
 
-/// Tests that creating new transfers populates the ID correctly.
-#[test]
-fn transfer_valid_ids() {
+/// Creates a transfer of message type to reduce boilerplate code in testing some
+/// CanIter functionality
+fn make_generic_message_transfer(payload: &[u8]) -> crate::transfer::Transfer<TestClock> {
     let clock = TestClock::default();
-    let mut transfer = crate::transfer::Transfer {
+    crate::transfer::Transfer {
         timestamp: clock.try_now().unwrap(),
         priority: Priority::Nominal,
         transfer_kind: TransferKind::Message,
         port_id: 0,
         remote_node_id: None,
         transfer_id: 0,
-        payload: &[1, 2, 3],
-    };
+        payload,
+    }
+}
+
+/// Tests that creating new transfers populates the ID correctly.
+#[test]
+fn transfer_valid_ids() {
+    let mut transfer = make_generic_message_transfer(&[1, 2, 3]);
 
     // User wouldn't be expected to deal with CanIter, as it's called higher up the stack,
     // but this is the most ergonomic entry point for this test.
@@ -251,4 +257,38 @@ fn transfer_valid_ids() {
     // TODO finish out these tests. Maybe split this into more tests as well?
 }
 
-// TODO: These don't properly test the transmit path
+/// Checks that the iterator produces the expected number of frames.
+fn assert_frame_count(iter: CanIter<TestClock>, mut expected: usize) {
+    for _frame in iter {
+        assert!(expected > 0);
+        expected -= 1;
+    }
+}
+
+// TODO perhaps test placement of CRC as well in these functions
+/// Tests that the iterator operates correctly when CRC portion is split between the last
+/// two frames.
+#[test]
+fn iter_crc_split() {
+    let buf = vec![0u8; 13];
+    let transfer = make_generic_message_transfer(buf.as_slice());
+    assert_frame_count(CanIter::new(&transfer, Some(0)).unwrap(), 3);
+}
+
+/// Tests that the iterator operates correctly when CRC portion is included with the last
+/// data frame.
+#[test]
+fn iter_crc_inclusive() {
+    let buf = vec![0u8; 12];
+    let transfer = make_generic_message_transfer(buf.as_slice());
+    assert_frame_count(CanIter::new(&transfer, Some(0)).unwrap(), 2);
+}
+
+/// Tests that the iterator operates correctly when the CRC portion is the entire contents
+/// of the last frame.
+#[test]
+fn iter_crc_exclusive() {
+    let buf = vec![0u8; 14];
+    let transfer = make_generic_message_transfer(buf.as_slice());
+    assert_frame_count(CanIter::new(&transfer, Some(0)).unwrap(), 3);
+}
