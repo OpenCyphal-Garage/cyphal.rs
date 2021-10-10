@@ -29,5 +29,5 @@ embedded-time = "0.12.0"
 mock_instant = { version = "0.2", features = ["sync"] }
 
 [features]
-default = ["std"]
+default = []
 std = []
