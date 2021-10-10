@@ -26,12 +26,14 @@ use crate::NodeId;
 use crate::RxError;
 use crate::TransferKind;
 
+mod fd;
 mod legacy;
 mod bitfields;
 
 #[cfg(test)]
 mod tests;
 
+pub use fd::*;
 pub use legacy::*;
 pub use bitfields::{CanMessageId, CanServiceId};
 

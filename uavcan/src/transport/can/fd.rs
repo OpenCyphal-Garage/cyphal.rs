@@ -1,13 +1,4 @@
-//! UAVCAN/CAN transport implementation.
-//!
-//! CAN will essentially be the "reference implementation", and *should* always follow
-//! the best practices, so if you want to add support for a new transport, you should
-//! follow the conventions here.
-//!
-//! Provides a unit struct to create a Node for CAN. This implements the common
-//! transmit function that *must* be implemented by any transport. This can't be a
-//! trait in stable unfortunately because it would require GATs, which won't be stable
-//! for quite a while... :(.
+//! UAVCAN/CAN-FD transport implementation WIP
 
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
@@ -27,7 +18,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for FdCan {
     type Frame = FdCanFrame<C>;
     type FrameIter<'a> = FdCanIter<'a, C>;
 
-    const MTU_SIZE: usize = 8;
+    const MTU_SIZE: usize = 64;
 
     fn rx_process_frame<'a>(
         node_id: &Option<NodeId>,
@@ -140,6 +131,7 @@ pub struct FdCanIter<'a, C: embedded_time::Clock> {
     is_start: bool,
 }
 
+// TODO there must be a way to link the MTU sizes into here? I tried with const generics but that got complicated and unstable
 impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
     pub fn new(
         transfer: &'a crate::transfer::Transfer<C>,
@@ -147,7 +139,7 @@ impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
     ) -> Result<Self, TxError> {
         let frame_id = match transfer.transfer_kind {
             TransferKind::Message => {
-                if node_id.is_none() && transfer.payload.len() > 7 {
+                if node_id.is_none() && transfer.payload.len() > 63 {
                     return Err(TxError::AnonNotSingleFrame);
                 }
 
@@ -210,12 +202,13 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
             // TODO enough to use the transfer timestamp, or need actual timestamp
             timestamp: self.transfer.timestamp,
             id: self.frame_id,
+            dlc: 0,
             payload: ArrayVec::new(),
         };
 
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
-        let is_end = bytes_left <= 7;
-        let copy_len = core::cmp::min(bytes_left, 7);
+        let is_end = bytes_left <= 63;
+        let mut copy_len = core::cmp::min(bytes_left, 63);
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -258,12 +251,14 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
                         frame.payload.push(crc[0]);
                         frame.payload.push(crc[1]);
                         self.crc_left = 0;
+                        copy_len += 2;
                     } else {
                         // SAFETY: only written if we have enough space
                         unsafe {
                             frame.payload.push_unchecked(crc[0]);
                         }
                         self.crc_left = 1;
+                        copy_len += 1;
                     }
                 } else if self.crc_left == 1 {
                     // SAFETY: only written if we have enough space
@@ -271,6 +266,7 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
                         frame.payload.push_unchecked(crc[1]);
                     }
                     self.crc_left = 0;
+                    copy_len += 1;
                 }
             }
 
@@ -283,12 +279,49 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
                     self.transfer.transfer_id,
                 ));
             }
+            copy_len += 1;
 
             // Advance state of iter
             self.toggle = !self.toggle;
         }
 
         self.is_start = false;
+
+        // Set DLC and 0-pad remaining bytes in DLC length
+        // TODO find a better solution for this
+        let zeroes = [0u8; 16];
+        frame.dlc = match copy_len {
+            0..=8 => copy_len as u8,
+            9..=12 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..12-copy_len]).unwrap();
+                9
+            },
+            13..=16 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..16-copy_len]).unwrap();
+                10
+            },
+            17..=20 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..20-copy_len]).unwrap();
+                11
+            },
+            21..=24 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..24-copy_len]).unwrap();
+                12
+            },
+            25..=32 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..32-copy_len]).unwrap();
+                13
+            },
+            33..=48 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..48-copy_len]).unwrap();
+                14
+            },
+            49..=64 => {
+                frame.payload.try_extend_from_slice(&zeroes[0..64-copy_len]).unwrap();
+                15
+            },
+            _ => panic!("Copied data should never exceed 64 bytes!"),
+        };
 
         Some(frame)
     }
@@ -318,60 +351,7 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
 pub struct FdCanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub id: u32,
-    pub payload: ArrayVec<[u8; 8]>,
-}
-
-/// Keeps track of toggle bit and CRC during frame processing.
-#[derive(Debug)]
-pub struct CanMetadata {
-    toggle: bool,
-    crc: crc_any::CRCu16,
-}
-
-impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetadata {
-    fn new() -> Self {
-        Self {
-            // Toggle starts off true, but we compare against the opposite value.
-            toggle: false,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
-        }
-    }
-
-    fn update(&mut self, frame: &crate::internal::InternalRxFrame<C>) -> Option<usize> {
-        // Single frame transfers don't need to be validated
-        if frame.start_of_transfer && frame.end_of_transfer {
-            // Still need to truncate tail byte
-            return Some(frame.payload.len() - 1);
-        }
-
-        // CRC all but the tail byte
-        self.crc.digest(&frame.payload[0..frame.payload.len() - 1]);
-        self.toggle = !self.toggle;
-
-        let tail = TailByte(frame.payload[frame.payload.len() - 1]);
-
-        if tail.toggle() == self.toggle {
-            if tail.end_of_transfer() {
-                // Exclude CRC from data
-                Some(frame.payload.len() - 3)
-            } else {
-                // Just truncate tail byte
-                Some(frame.payload.len() - 1)
-            }
-        } else {
-            None
-        }
-    }
-
-    fn is_valid(&self, frame: &crate::internal::InternalRxFrame<C>) -> bool {
-        if frame.start_of_transfer && frame.end_of_transfer {
-            return true;
-        }
-
-        if self.crc.get_crc() == 0x0000u16 {
-            return true;
-        }
-
-        return false;
-    }
+    // Seperate here because there are extra semantics around CAN-FD DLC
+    pub dlc: u8,
+    pub payload: ArrayVec<[u8; 64]>,
 }
