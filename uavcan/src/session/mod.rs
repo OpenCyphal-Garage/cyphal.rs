@@ -16,6 +16,9 @@ mod heap_based;
 #[cfg(feature = "std")]
 mod std_vec;
 
+#[cfg(not(feature = "std"))]
+pub use heap_based::HeapSessionManager;
+
 #[cfg(feature = "std")]
 pub use std_vec::StdVecSessionManager;
 
