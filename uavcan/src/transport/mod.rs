@@ -41,6 +41,8 @@ pub trait Transport<C: embedded_time::Clock> {
     // I implemented this as a quick fix to get the PR tests going - David
     type FrameIter<'a>: StreamingIterator where C: 'a;
 
+    const MTU_SIZE: usize;
+
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.
     fn rx_process_frame<'a>(
