@@ -207,19 +207,25 @@ fn tail_byte_checks() {
     );
 }
 
-/// Tests that creating new transfers populates the ID correctly.
-#[test]
-fn transfer_valid_ids() {
+/// Creates a transfer of message type to reduce boilerplate code in testing some
+/// CanIter functionality
+fn make_generic_message_transfer(payload: &[u8]) -> crate::transfer::Transfer<TestClock> {
     let clock = TestClock::default();
-    let mut transfer = crate::transfer::Transfer {
+    crate::transfer::Transfer {
         timestamp: clock.try_now().unwrap(),
         priority: Priority::Nominal,
         transfer_kind: TransferKind::Message,
         port_id: 0,
         remote_node_id: None,
         transfer_id: 0,
-        payload: &[1, 2, 3],
-    };
+        payload,
+    }
+}
+
+/// Tests that creating new transfers populates the ID correctly.
+#[test]
+fn transfer_valid_ids() {
+    let mut transfer = make_generic_message_transfer(&[1, 2, 3]);
 
     // User wouldn't be expected to deal with CanIter, as it's called higher up the stack,
     // but this is the most ergonomic entry point for this test.
