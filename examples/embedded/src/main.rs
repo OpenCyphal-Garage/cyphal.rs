@@ -3,42 +3,46 @@
 // to use the global allocator
 #![feature(alloc_error_handler)]
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
 mod allocator;
 mod clock;
+mod util;
 
 use core::{
     alloc::Layout,
-    borrow::Borrow,
     mem::MaybeUninit,
     num::{NonZeroU16, NonZeroU8},
-    ptr::NonNull,
 };
 
 use allocator::MyAllocator;
 use clock::StmClock;
+
 use panic_halt as _;
 
-use alloc_cortex_m::CortexMHeap;
 use cortex_m_rt::entry;
 
 use cortex_m as _;
 
 use embedded_time::{duration::Milliseconds, Clock};
 use hal::{
-    delay::{DelayFromCountDownTimer, SYSTDelayExt},
+    delay::SYSTDelayExt,
     fdcan::{
         config::{ClockDivider, NominalBitTiming},
         filter::{StandardFilter, StandardFilterSlot},
+        frame::TxFrameHeader,
+        id::ExtendedId,
+        id::Id,
         FdCan,
     },
     gpio::{GpioExt, Speed},
+    nb::block,
     prelude::*,
     rcc::{Config, PLLSrc, PllConfig, Rcc, RccExt, SysClockSrc},
     stm32::Peripherals,
-    timer::{MonoTimer, Timer},
 };
-use rlsf::Tlsf;
-// use log::info;
 use stm32g4xx_hal as hal;
 
 use uavcan::{
@@ -47,7 +51,8 @@ use uavcan::{
     transport::can::{Can, CanMetadata},
     Node, Priority, Subscription, TransferKind,
 };
-// use util::logger;
+
+use util::insert_u8_array_in_u32_array;
 
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
@@ -56,15 +61,10 @@ static ALLOCATOR: MyAllocator = MyAllocator::INIT;
 
 #[entry]
 fn main() -> ! {
-    // Initialize cortex heap allocator
-    // let start = cortex_m_rt::heap_start() as usize;
-    // let size = 1024; // in bytes
-
+    // init heap
     let cursor = unsafe { POOL.as_mut_ptr() } as *mut u8;
     let size = 1024;
     unsafe { ALLOCATOR.init(cursor, size) };
-
-    // logger::init();
 
     // define peripherals of the board
     let dp = Peripherals::take().unwrap();
@@ -76,8 +76,9 @@ fn main() -> ! {
 
     let mut led = gpioa.pa5.into_push_pull_output();
     let mut delay_syst = cp.SYST.delay(&rcc.clocks);
+
     // init can
-    let can = {
+    let mut can = {
         let rx = gpioa.pa11.into_alternate().set_speed(Speed::VeryHigh);
         let tx = gpioa.pa12.into_alternate().set_speed(Speed::VeryHigh);
 
@@ -112,7 +113,7 @@ fn main() -> ! {
     };
 
     // init clock
-    let clock = StmClock::new(cp.DWT, cp.DCB, &rcc.clocks);
+    let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
     let mut session_manager = HeapSessionManager::<CanMetadata, Milliseconds, StmClock>::new();
     session_manager
@@ -130,7 +131,8 @@ fn main() -> ! {
     let mut last_published = clock.try_now().unwrap();
 
     loop {
-        if clock.try_now().unwrap() - last_published
+        let now = clock.try_now().unwrap();
+        if now - last_published
             > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
         {
             // Publish string
@@ -152,7 +154,19 @@ fn main() -> ! {
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id += 1;
 
-            for mut frame in node.transmit(&transfer).unwrap() {}
+            for frame in node.transmit(&transfer).unwrap() {
+                let header = TxFrameHeader {
+                    bit_rate_switching: false,
+                    frame_format: hal::fdcan::frame::FrameFormat::Standard,
+                    id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
+                    len: frame.payload.len() as u8,
+                    marker: None,
+                };
+                block!(can.transmit(header, &mut |b| {
+                    insert_u8_array_in_u32_array(&frame.payload, b)
+                },))
+                .unwrap();
+            }
 
             last_published = clock.try_now().unwrap();
 
