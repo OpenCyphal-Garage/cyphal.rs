@@ -1,0 +1,42 @@
+[package]
+name = "embedded"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+cortex-m = "0.6.0"
+cortex-m-rt = "0.6.10"
+stm32g4xx-hal = {version = "0.0.0", git = "https://github.com/stm32-rs/stm32g4xx-hal", features = ["rt", "stm32g431"] }
+
+alloc-cortex-m = "0.4.1"
+
+panic-halt = "0.2.0"
+panic-itm = "0.4.2"
+
+embedded-time = "0.12.0"
+heapless = "0.7.7"
+
+rlsf = "0.1.2"
+
+[dependencies.uavcan]
+version = "0.2.0-preview0"
+default-features = false
+path = "../../uavcan"
+
+
+[[bin]]
+name = "embedded"
+test = false
+bench = false
+
+[profile.release]
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
+
+# to use example in outer workspace (because of std feature collision in dev)
+[workspace]
+members = []
