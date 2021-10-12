@@ -1,10 +1,34 @@
-use cortex_m::peripheral::{DCB, DWT};
+use core::{
+    cell::RefCell,
+    ops::DerefMut,
+    sync::atomic::{AtomicU32, Ordering},
+};
+use cortex_m::interrupt::Mutex;
 use embedded_time::Clock;
-use stm32g4xx_hal::rcc::Clocks;
+use stm32g4xx_hal::{
+    prelude::*,
+    rcc::Clocks,
+    stm32::TIM7,
+    stm32::{interrupt, Interrupt},
+    timer::{CountDownTimer, Event, Timer},
+};
+
+static mut CLOCK_COUNTER: AtomicU32 = AtomicU32::new(0);
+static TIMER_TIM7: Mutex<RefCell<Option<CountDownTimer<TIM7>>>> = Mutex::new(RefCell::new(None));
+
+#[interrupt]
+fn TIM7() {
+    unsafe {
+        CLOCK_COUNTER.fetch_add(1, Ordering::Relaxed);
+    }
+    cortex_m::interrupt::free(|cs| {
+        if let Some(ref mut tim) = TIMER_TIM7.borrow(cs).borrow_mut().deref_mut() {
+            tim.clear_interrupt(Event::TimeOut);
+        }
+    })
+}
 
 /// A clock for the stm32
-///
-/// Uses the stm32 hal `HAL_GetTick`. Underlying u32 counter, will wrap after 50 days.
 #[derive(Clone)]
 pub struct StmClock;
 
@@ -12,18 +36,15 @@ impl StmClock
 where
     Self: Clock,
 {
-    pub fn new(mut dwt: DWT, mut dcb: DCB, clocks: &Clocks) -> Self {
-        dcb.enable_trace();
-        dwt.enable_cycle_counter();
+    pub fn new(tim7: TIM7, clocks: &Clocks) -> Self {
+        let timer = Timer::new(tim7, clocks);
+        let mut timer = timer.start_count_down(1000.hz());
+        timer.listen(Event::TimeOut);
 
-        // now the CYCCNT counter can't be stopped or reset
-        drop(dwt);
+        cortex_m::interrupt::free(|cs| TIMER_TIM7.borrow(cs).replace(Some(timer)));
 
-        // assert_eq!(
-        //     *(Self::SCALING_FACTOR.denominator()),
-        //     clocks.ahb_clk.0,
-        //     "clock ahb has not correct frequency"
-        // );
+        // enable interrupt for tim6
+        unsafe { cortex_m::peripheral::NVIC::unmask(Interrupt::TIM7) };
 
         Self {}
     }
@@ -33,9 +54,11 @@ impl Clock for StmClock {
     type T = u32;
 
     const SCALING_FACTOR: embedded_time::rate::Fraction =
-        embedded_time::rate::Fraction::new(1, 170_000_000);
+        embedded_time::rate::Fraction::new(1, 1000);
 
     fn try_now(&self) -> Result<embedded_time::Instant<Self>, embedded_time::clock::Error> {
-        Ok(embedded_time::Instant::new(DWT::get_cycle_count()))
+        Ok(embedded_time::Instant::new(unsafe {
+            CLOCK_COUNTER.load(Ordering::Relaxed)
+        }))
     }
 }
