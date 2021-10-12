@@ -1,0 +1,7 @@
+# vscode extension
+.cortex-debug.*
+
+# for analyzis
+/tmp
+*.asm
+call_stack_graph.svg
