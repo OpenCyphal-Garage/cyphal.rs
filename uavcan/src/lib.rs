@@ -23,17 +23,24 @@
 //! environments, but I'll get to those when I get to them.
 #![no_std]
 #![feature(generic_associated_types)]
+#![feature(test)]
 
 #[allow(unused_imports)]
-#[cfg(any(feature = "std", test))]
+#[cfg(feature = "std")]
 #[macro_use]
 extern crate std;
+
+#[cfg(test)]
+extern crate test;
 
 #[macro_use]
 extern crate num_derive;
 
+extern crate alloc;
+
 pub mod time;
 
+mod crc16;
 pub mod transfer;
 pub mod transport;
 pub mod types;
