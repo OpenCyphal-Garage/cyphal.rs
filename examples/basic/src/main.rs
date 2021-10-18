@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use embedded_time::duration::Milliseconds;
 use embedded_time::Clock;
 use uavcan::session::StdVecSessionManager;
@@ -29,63 +31,63 @@ fn main() {
         .unwrap();
     let mut node = Node::<_, Can, StdClock>::new(Some(42), session_manager);
 
-    let sock = CANSocket::open("vcan0").unwrap();
+    // let sock = CANSocket::open("vcan0").unwrap();
 
     let mut last_publish = clock.try_now().unwrap();
     let mut transfer_id: TransferId = 30;
 
-    sock.set_read_timeout(std::time::Duration::from_millis(100))
-        .unwrap();
+    // sock.set_read_timeout(std::time::Duration::from_millis(100))
+    //     .unwrap();
 
     loop {
-        let socketcan_frame = sock.read_frame().ok();
+        // let socketcan_frame = sock.read_frame().ok();
 
-        if let Some(socketcan_frame) = socketcan_frame {
-            // Note that this exposes some things I *don't* like about the API
-            // 1: we should have CanFrame::new or something
-            // 2: I don't like how the payload is working
-            let mut uavcan_frame = UavcanFrame {
-                timestamp: clock.try_now().unwrap(),
-                id: socketcan_frame.id(),
-                payload: ArrayVec::new(),
-            };
-            uavcan_frame
-                .payload
-                .extend(socketcan_frame.data().iter().copied());
+        // if let Some(socketcan_frame) = socketcan_frame {
+        //     // Note that this exposes some things I *don't* like about the API
+        //     // 1: we should have CanFrame::new or something
+        //     // 2: I don't like how the payload is working
+        //     let mut uavcan_frame = UavcanFrame {
+        //         timestamp: clock.try_now().unwrap(),
+        //         id: socketcan_frame.id(),
+        //         payload: ArrayVec::new(),
+        //     };
+        //     uavcan_frame
+        //         .payload
+        //         .extend(socketcan_frame.data().iter().copied());
 
-            let xfer = match node.try_receive_frame(uavcan_frame) {
-                Ok(xfer) => xfer,
-                Err(err) => {
-                    println!("try_receive_frame error: {:?}", err);
-                    return;
-                }
-            };
+        //     let xfer = match node.try_receive_frame(uavcan_frame) {
+        //         Ok(xfer) => xfer,
+        //         Err(err) => {
+        //             println!("try_receive_frame error: {:?}", err);
+        //             return;
+        //         }
+        //     };
 
-            if let Some(xfer) = xfer {
-                match xfer.transfer_kind {
-                    TransferKind::Message => {
-                        println!("UAVCAN message received!");
-                        print!("\tData: ");
-                        for byte in xfer.payload {
-                            print!("0x{:02x} ", byte);
-                        }
-                        println!("");
-                    }
-                    TransferKind::Request => {
-                        println!("Request Received!");
-                    }
-                    TransferKind::Response => {
-                        println!("Response Received!");
-                    }
-                }
-            }
-        }
+        //     if let Some(xfer) = xfer {
+        //         match xfer.transfer_kind {
+        //             TransferKind::Message => {
+        //                 println!("UAVCAN message received!");
+        //                 print!("\tData: ");
+        //                 for byte in xfer.payload {
+        //                     print!("0x{:02x} ", byte);
+        //                 }
+        //                 println!("");
+        //             }
+        //             TransferKind::Request => {
+        //                 println!("Request Received!");
+        //             }
+        //             TransferKind::Response => {
+        //                 println!("Response Received!");
+        //             }
+        //         }
+        //     }
+        // }
 
         if clock.try_now().unwrap() - last_publish
             > embedded_time::duration::Generic::new(500, StdClock::SCALING_FACTOR)
         {
             // Publish string
-            let hello = "Hello Python!";
+            let hello = "Hello";
             let mut str = Vec::from([hello.len() as u8, 0]);
             str.extend_from_slice(hello.as_bytes());
 
@@ -103,20 +105,14 @@ fn main() {
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id = (std::num::Wrapping(transfer_id) + std::num::Wrapping(1)).0;
 
-            for frame in node.transmit(&transfer).unwrap() {
-                sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap())
-                    .unwrap();
+            let start = std::time::Instant::now();
+            let mut iter = node.transmit(&transfer).unwrap();
+            let elapsed = std::time::Instant::now().duration_since(start);
+            let frame = iter.next().unwrap();
 
-                //print!("Can frame {}: ", i);
-                //for byte in &frame.payload {
-                //    print!("0x{:02x} ", byte);
-                //}
-                //println!("");
+            println!("elapsed {}", elapsed.as_nanos());
 
-                //if let Some(in_xfer) = node.try_receive_frame(frame).unwrap() {
-                //    println!("Received xfer!");
-                //}
-            }
+            println!("{}", frame.id);
 
             last_publish = clock.try_now().unwrap();
         }

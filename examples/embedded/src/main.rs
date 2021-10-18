@@ -14,6 +14,8 @@ mod allocator;
 mod clock;
 mod util;
 
+mod to_test;
+
 use defmt::info;
 #[cfg(not(feature = "logging"))]
 use panic_halt as _;
@@ -58,6 +60,8 @@ use uavcan::{
 };
 
 use util::insert_u8_array_in_u32_array;
+
+use crate::to_test::publish;
 
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
@@ -161,7 +165,7 @@ fn main() -> ! {
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id += 1;
 
-            publish(&mut node, transfer, &mut can);
+            publish(&measure_clock, &mut node, transfer, &mut can);
 
             last_published = clock.try_now().unwrap();
 
@@ -169,26 +173,6 @@ fn main() -> ! {
             delay_syst.delay(1000.ms());
             led.toggle().unwrap();
         }
-    }
-}
-
-pub fn publish(
-    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
-    transfer: Transfer<StmClock>,
-    can: &mut FdCan<FDCAN1, NormalOperationMode>,
-) {
-    for frame in node.transmit(&transfer).unwrap() {
-        let header = TxFrameHeader {
-            bit_rate_switching: false,
-            frame_format: hal::fdcan::frame::FrameFormat::Standard,
-            id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
-            len: frame.payload.len() as u8,
-            marker: None,
-        };
-        block!(can.transmit(header, &mut |b| {
-            insert_u8_array_in_u32_array(&frame.payload, b)
-        },))
-        .unwrap();
     }
 }
 

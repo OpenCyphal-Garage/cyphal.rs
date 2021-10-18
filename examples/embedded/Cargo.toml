@@ -26,11 +26,21 @@ defmt = {version = "0.2.0", optional = true }
 defmt-rtt = {version = "0.2.0", optional = true }
 panic-probe = { version = "0.2.0", features = ["print-defmt"], optional = true }
 
+crc-any = "2.3.5"
+
 [dependencies.uavcan]
 version = "0.2.0-preview0"
 default-features = false
 path = "../../uavcan"
 
+[dependencies.num-traits]
+version = "0.2"
+default-features = false
+features = ["libm"]
+
+[dependencies.arrayvec]
+version = "0.5.2"
+default-features = false
 
 [features]
 default = [

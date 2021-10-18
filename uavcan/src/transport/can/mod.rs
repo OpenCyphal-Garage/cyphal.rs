@@ -152,7 +152,7 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
-    fn new(
+    pub fn new(
         transfer: &'a crate::transfer::Transfer<C>,
         node_id: Option<NodeId>,
     ) -> Result<Self, TxError> {
@@ -234,6 +234,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                 .payload
                 .extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
+            self.crc_left = 0;
             unsafe {
                 frame.payload.push_unchecked(
                     TailByte::new(true, true, true, self.transfer.transfer_id)

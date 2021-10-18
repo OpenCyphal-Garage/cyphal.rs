@@ -1,0 +1,1 @@
+cargo objdump --quiet --release --target thumbv7em-none-eabihf -- --disassemble --no-show-raw-insn > .asm
