@@ -7,9 +7,16 @@
 #[macro_use]
 extern crate std;
 
+#[cfg(feature = "logging")]
+mod logging;
+
 mod allocator;
 mod clock;
 mod util;
+
+use defmt::info;
+#[cfg(not(feature = "logging"))]
+use panic_halt as _;
 
 use core::{
     alloc::Layout,
@@ -20,11 +27,8 @@ use core::{
 use allocator::MyAllocator;
 use clock::StmClock;
 
-use panic_halt as _;
-
-use cortex_m_rt::entry;
-
 use cortex_m as _;
+use cortex_m_rt::entry;
 
 use embedded_time::{duration::Milliseconds, Clock};
 use hal::{
@@ -35,13 +39,14 @@ use hal::{
         frame::TxFrameHeader,
         id::ExtendedId,
         id::Id,
-        FdCan,
+        FdCan, NormalOperationMode,
     },
     gpio::{GpioExt, Speed},
     nb::block,
     prelude::*,
     rcc::{Config, PLLSrc, PllConfig, Rcc, RccExt, SysClockSrc},
-    stm32::Peripherals,
+    stm32::{Peripherals, FDCAN1},
+    timer::MonoTimer,
 };
 use stm32g4xx_hal as hal;
 
@@ -112,6 +117,8 @@ fn main() -> ! {
         can.into_normal()
     };
 
+    let measure_clock = MonoTimer::new(cp.DWT, cp.DCB, &rcc.clocks);
+
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
@@ -136,8 +143,8 @@ fn main() -> ! {
             > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
         {
             // Publish string
-            let hello = "Hello Python!";
-            let mut str = heapless::Vec::<u8, 13>::new();
+            let hello = "Hello!";
+            let mut str = heapless::Vec::<u8, 6>::new();
             str.extend_from_slice(hello.as_bytes()).unwrap();
 
             let transfer = Transfer {
@@ -154,19 +161,7 @@ fn main() -> ! {
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id += 1;
 
-            for frame in node.transmit(&transfer).unwrap() {
-                let header = TxFrameHeader {
-                    bit_rate_switching: false,
-                    frame_format: hal::fdcan::frame::FrameFormat::Standard,
-                    id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
-                    len: frame.payload.len() as u8,
-                    marker: None,
-                };
-                block!(can.transmit(header, &mut |b| {
-                    insert_u8_array_in_u32_array(&frame.payload, b)
-                },))
-                .unwrap();
-            }
+            publish(&mut node, transfer, &mut can);
 
             last_published = clock.try_now().unwrap();
 
@@ -174,6 +169,26 @@ fn main() -> ! {
             delay_syst.delay(1000.ms());
             led.toggle().unwrap();
         }
+    }
+}
+
+pub fn publish(
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    transfer: Transfer<StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+) {
+    for frame in node.transmit(&transfer).unwrap() {
+        let header = TxFrameHeader {
+            bit_rate_switching: false,
+            frame_format: hal::fdcan::frame::FrameFormat::Standard,
+            id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
+            len: frame.payload.len() as u8,
+            marker: None,
+        };
+        block!(can.transmit(header, &mut |b| {
+            insert_u8_array_in_u32_array(&frame.payload, b)
+        },))
+        .unwrap();
     }
 }
 

@@ -12,7 +12,9 @@
             "request": "launch",
             "name": "Debug (OpenOCD)",
             "servertype": "external",
-            "gdbTarget": "192.168.56.1:3333",
+            "gdbPath": "C:\\Users\\alext\\toolchains\\gcc-arm-none-eabi-10.3-2021.07\\bin\\arm-none-eabi-gdb.exe",
+            // "gdbTarget": "192.168.56.1:3333",
+            "gdbTarget": "localhost:3333",
             "cwd": "${workspaceRoot}",
             "preLaunchTask": "Cargo Build (debug)",
             "runToMain": true,
@@ -37,7 +39,8 @@
                         "port": 0,
                     }
                 ],
-                "swoPort": "192.168.56.1:3333",
+                // "swoPort": "192.168.56.1:3333",
+                "swoPort": "localhost:3333",
             },
         },
     ]

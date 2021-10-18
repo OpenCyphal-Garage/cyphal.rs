@@ -6,10 +6,15 @@
 # uncomment ONE of these three option to make `cargo run` start a GDB session
 # which option to pick depends on your system
 # runner = "arm-none-eabif-gdb -q -x openocd.gdb"
-runner = "gdb-multiarch -q -x openocd.gdb"
 # runner = "gdb -q -x openocd.gdb"
+# runner = "gdb-multiarch -q -x openocd.gdb"
+runner = "probe-run --chip STM32G431RBTx"
 
 rustflags = [
+  # only for logging
+  "-C", "link-arg=-Tdefmt.x",
+  "-C", "linker=flip-link",
+
   # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
   # See https://github.com/rust-embedded/cortex-m-quickstart/pull/95
   "-C", "link-arg=--nmagic",
@@ -38,3 +43,7 @@ target = "thumbv7em-none-eabihf"     # Cortex-M4F and Cortex-M7F (with FPU)
 # target = "thumbv8m.base-none-eabi"   # Cortex-M23
 # target = "thumbv8m.main-none-eabi"   # Cortex-M33 (no FPU)
 # target = "thumbv8m.main-none-eabihf" # Cortex-M33 (with FPU)
+
+[alias]
+rb = "run --bin"
+rrb = "run --release --bin"
