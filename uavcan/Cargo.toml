@@ -20,13 +20,13 @@ license = "Apache-2.0/MIT"
 num-derive = "0.3"
 num-traits = "0.2"
 bitfield = "0.13"
-crc-any = "2.3.5"
 arrayvec = "0.5.2"
 
 embedded-time = "0.12.0"
 
 [dev-dependencies]
 mock_instant = { version = "0.2", features = ["sync"] }
+crc-any = "2.3.5"
 
 [features]
 default = ["std"]
