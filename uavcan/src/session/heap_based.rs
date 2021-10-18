@@ -3,8 +3,6 @@
 //! This is intended to be the lowest-friction interface to get
 //! started, both for library development and eventually for using the library.
 
-extern crate alloc;
-
 use embedded_time::{duration::Duration, fixed_point::FixedPoint, Clock};
 
 use crate::session::*;
