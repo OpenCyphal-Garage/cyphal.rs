@@ -18,6 +18,7 @@ use crate::Priority;
 use crate::TxError;
 
 use super::Transport;
+use crate::crc16::Crc16;
 use crate::internal::InternalRxFrame;
 use crate::NodeId;
 use crate::RxError;
@@ -145,8 +146,8 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
     transfer: &'a crate::transfer::Transfer<'a, C>,
     frame_id: u32,
     payload_offset: usize,
-    crc: crc_any::CRCu16,
     crc_left: u8,
+    crc: Crc16,
     toggle: bool,
     is_start: bool,
 }
@@ -204,8 +205,8 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
             transfer,
             frame_id,
             payload_offset: 0,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
             crc_left: 2,
+            crc: Crc16::init(),
             toggle: true,
             is_start: true,
         })
@@ -259,7 +260,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
             // Finished with our data, now we deal with crc
             // (we can't do anything if bytes_left == 7, so ignore that case)
             if bytes_left < 7 {
-                let crc = &self.crc.get_crc().to_be_bytes();
+                let crc = self.crc.get_crc().to_be_bytes();
 
                 // TODO I feel like this logic could be cleaned up somehow
                 if self.crc_left == 2 {
@@ -336,7 +337,7 @@ pub struct CanFrame<C: embedded_time::Clock> {
 #[derive(Debug)]
 pub struct CanMetadata {
     toggle: bool,
-    crc: crc_any::CRCu16,
+    crc: Crc16,
 }
 
 impl<C: embedded_time::Clock> super::SessionMetadata<C> for CanMetadata {
@@ -344,7 +345,7 @@ impl<C: embedded_time::Clock> super::SessionMetadata<C> for CanMetadata {
         Self {
             // Toggle starts off true, but we compare against the opposite value.
             toggle: false,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
+            crc: Crc16::init(),
         }
     }
 
