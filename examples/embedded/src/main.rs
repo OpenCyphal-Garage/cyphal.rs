@@ -16,6 +16,9 @@ mod util;
 
 mod to_test;
 
+extern crate alloc;
+
+use alloc::vec::Vec;
 use arrayvec::ArrayVec;
 use defmt::info;
 #[cfg(not(feature = "logging"))]
@@ -55,9 +58,9 @@ use stm32g4xx_hal as hal;
 
 use uavcan::{
     session::HeapSessionManager,
-    transfer::Transfer,
-    transport::can::{Can, CanFrame, CanMetadata, TailByte},
-    Node, Priority, Subscription, TransferKind,
+    transport::can::{Can, CanFrame, CanMessageId, CanMetadata, FakePayloadIter, TailByte},
+    types::{PortId, TransferId},
+    Node, Subscription, TransferKind,
 };
 
 use util::insert_u8_array_in_u32_array;
@@ -127,17 +130,19 @@ fn main() -> ! {
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
+    let port_id: PortId = 7168;
+
     let mut session_manager = HeapSessionManager::<CanMetadata, Milliseconds, StmClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
-            7168, // TODO check
-            12,
+            port_id, // TODO check
+            12 + 6 * 7,
             embedded_time::duration::Milliseconds(500),
         ))
         .unwrap();
 
-    let mut node = Node::<_, Can, StmClock>::new(Some(42), session_manager);
+    let mut node = Node::<_, Can, StmClock>::new(Some(100), session_manager);
 
     let mut transfer_id = 0u8;
     let mut last_published = clock.try_now().unwrap();
@@ -178,71 +183,34 @@ fn main() -> ! {
         if now - last_published
             > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
         {
-            let (id, (p1, p2)) = fake_can_frame_12_byte(&mut transfer_id, &clock);
-            let frame = CanFrame {
-                id,
-                payload: p1,
-                timestamp: clock.try_now().unwrap(),
-            };
-            let start = measure_clock.now();
-            let _ = node.try_receive_frame(frame).unwrap();
-            let frame = CanFrame {
-                id,
-                payload: p2,
-                timestamp: clock.try_now().unwrap(),
-            };
-            if let Some(frame) = node.try_receive_frame(frame).unwrap() {
-                match frame.transfer_kind {
-                    TransferKind::Message => (),
-                    _ => (),
+            let mut general_elapsed = 0;
+            let mut success = false;
+            let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+            let payload_iter = FakePayloadIter::multi_frame(8, transfer_id);
+            for payload in payload_iter {
+                let payload = ArrayVec::from(payload);
+                let frame = CanFrame {
+                    id: message_id,
+                    payload,
+                    timestamp: clock.try_now().unwrap(),
+                };
+                let start = measure_clock.now();
+                if let Some(_) = node.try_receive_frame(frame).unwrap() {
+                    success = true;
                 }
+                let elapsed = start.elapsed();
+                general_elapsed += elapsed;
             }
-            let elapsed = start.elapsed();
-            let micros: u32 = measure_clock.frequency().duration(elapsed).0;
+
+            let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
             info!("elapsed: {} micros", micros);
+            info!("success: {}", success);
+
+            transfer_id = transfer_id.wrapping_add(1);
 
             last_published = now;
         }
     }
-}
-
-// 1 frame in normal can mode
-fn fake_can_frame_7_byte(transfer_id: &mut u8, clock: &StmClock) -> CanFrame<StmClock> {
-    let mut payload = ArrayVec::from([0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x0]);
-    let tail = TailByte::new(true, true, true, *transfer_id);
-    *transfer_id = (*transfer_id).wrapping_add(1);
-    payload[7] = tail;
-    CanFrame {
-        id: 0x107c000d,
-        payload,
-        timestamp: clock.try_now().unwrap(),
-    }
-}
-
-// 2 frame in normal can mode
-fn fake_can_frame_12_byte(
-    transfer_id: &mut u8,
-    clock: &StmClock,
-) -> (u32, (ArrayVec<[u8; 8]>, ArrayVec<[u8; 8]>)) {
-    let mut payload = [
-        ArrayVec::from([0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x0]),
-        ArrayVec::from([0x8, 0x9, 0xA, 0xB, 0xC, 0x0, 0x0, 0x0]),
-    ];
-    let mut crc = crc_any::CRCu16::crc16ccitt_false();
-    let tail = TailByte::new(true, false, true, *transfer_id);
-    payload[0][7] = tail;
-    let tail = TailByte::new(false, true, false, *transfer_id);
-    payload[1][7] = tail;
-
-    crc.digest(&payload[0][..7]);
-    crc.digest(&payload[1][..5]);
-
-    let crc = crc.get_crc().to_be_bytes();
-    payload[1][5] = crc[0];
-    payload[1][6] = crc[1];
-
-    *transfer_id = (*transfer_id).wrapping_add(1);
-    (0x107c000d, (payload[0].clone(), payload[1].clone()))
 }
 
 fn config_rcc(rcc: Rcc) -> Rcc {
