@@ -16,6 +16,7 @@ mod util;
 
 mod to_test;
 
+use arrayvec::ArrayVec;
 use defmt::info;
 #[cfg(not(feature = "logging"))]
 use panic_halt as _;
@@ -55,7 +56,7 @@ use stm32g4xx_hal as hal;
 use uavcan::{
     session::HeapSessionManager,
     transfer::Transfer,
-    transport::can::{Can, CanMetadata},
+    transport::can::{Can, CanFrame, CanMetadata, TailByte},
     Node, Priority, Subscription, TransferKind,
 };
 
@@ -130,8 +131,8 @@ fn main() -> ! {
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
-            7509, // TODO check
-            7,
+            7168, // TODO check
+            12,
             embedded_time::duration::Milliseconds(500),
         ))
         .unwrap();
@@ -143,37 +144,105 @@ fn main() -> ! {
 
     loop {
         let now = clock.try_now().unwrap();
+        // if now - last_published
+        //     > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
+        // {
+        //     // Publish string
+        //     let hello = "Hello!";
+        //     let mut str = heapless::Vec::<u8, 6>::new();
+        //     str.extend_from_slice(hello.as_bytes()).unwrap();
+
+        //     let transfer = Transfer {
+        //         timestamp: clock.try_now().unwrap(),
+        //         priority: Priority::Nominal,
+        //         transfer_kind: TransferKind::Message,
+        //         port_id: 100,
+        //         remote_node_id: None,
+        //         transfer_id,
+        //         payload: &str,
+        //     };
+
+        //     // unchecked_add is unstable :(
+        //     // unsafe { transfer_id.unchecked_add(1); }
+        //     transfer_id += 1;
+
+        //     publish(&measure_clock, &mut node, transfer, &mut can);
+
+        //     last_published = clock.try_now().unwrap();
+
+        //     led.toggle().unwrap();
+        //     delay_syst.delay(1000.ms());
+        //     led.toggle().unwrap();
+        // }
+
         if now - last_published
             > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
         {
-            // Publish string
-            let hello = "Hello!";
-            let mut str = heapless::Vec::<u8, 6>::new();
-            str.extend_from_slice(hello.as_bytes()).unwrap();
-
-            let transfer = Transfer {
+            let (id, (p1, p2)) = fake_can_frame_12_byte(&mut transfer_id, &clock);
+            let frame = CanFrame {
+                id,
+                payload: p1,
                 timestamp: clock.try_now().unwrap(),
-                priority: Priority::Nominal,
-                transfer_kind: TransferKind::Message,
-                port_id: 100,
-                remote_node_id: None,
-                transfer_id,
-                payload: &str,
             };
+            let start = measure_clock.now();
+            let _ = node.try_receive_frame(frame).unwrap();
+            let frame = CanFrame {
+                id,
+                payload: p2,
+                timestamp: clock.try_now().unwrap(),
+            };
+            if let Some(frame) = node.try_receive_frame(frame).unwrap() {
+                match frame.transfer_kind {
+                    TransferKind::Message => (),
+                    _ => (),
+                }
+            }
+            let elapsed = start.elapsed();
+            let micros: u32 = measure_clock.frequency().duration(elapsed).0;
+            info!("elapsed: {} micros", micros);
 
-            // unchecked_add is unstable :(
-            // unsafe { transfer_id.unchecked_add(1); }
-            transfer_id += 1;
-
-            publish(&measure_clock, &mut node, transfer, &mut can);
-
-            last_published = clock.try_now().unwrap();
-
-            led.toggle().unwrap();
-            delay_syst.delay(1000.ms());
-            led.toggle().unwrap();
+            last_published = now;
         }
     }
+}
+
+// 1 frame in normal can mode
+fn fake_can_frame_7_byte(transfer_id: &mut u8, clock: &StmClock) -> CanFrame<StmClock> {
+    let mut payload = ArrayVec::from([0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x0]);
+    let tail = TailByte::new(true, true, true, *transfer_id);
+    *transfer_id = (*transfer_id).wrapping_add(1);
+    payload[7] = tail;
+    CanFrame {
+        id: 0x107c000d,
+        payload,
+        timestamp: clock.try_now().unwrap(),
+    }
+}
+
+// 2 frame in normal can mode
+fn fake_can_frame_12_byte(
+    transfer_id: &mut u8,
+    clock: &StmClock,
+) -> (u32, (ArrayVec<[u8; 8]>, ArrayVec<[u8; 8]>)) {
+    let mut payload = [
+        ArrayVec::from([0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x0]),
+        ArrayVec::from([0x8, 0x9, 0xA, 0xB, 0xC, 0x0, 0x0, 0x0]),
+    ];
+    let mut crc = crc_any::CRCu16::crc16ccitt_false();
+    let tail = TailByte::new(true, false, true, *transfer_id);
+    payload[0][7] = tail;
+    let tail = TailByte::new(false, true, false, *transfer_id);
+    payload[1][7] = tail;
+
+    crc.digest(&payload[0][..7]);
+    crc.digest(&payload[1][..5]);
+
+    let crc = crc.get_crc().to_be_bytes();
+    payload[1][5] = crc[0];
+    payload[1][6] = crc[1];
+
+    *transfer_id = (*transfer_id).wrapping_add(1);
+    (0x107c000d, (payload[0].clone(), payload[1].clone()))
 }
 
 fn config_rcc(rcc: Rcc) -> Rcc {
