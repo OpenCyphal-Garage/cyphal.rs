@@ -24,12 +24,15 @@ use crate::NodeId;
 use crate::RxError;
 use crate::TransferKind;
 
+mod fake_payload;
+
 mod bitfields;
 
 #[cfg(test)]
 mod tests;
 
 pub use bitfields::*;
+pub use fake_payload::FakePayloadIter;
 
 pub const MTU_SIZE: usize = 8;
 
