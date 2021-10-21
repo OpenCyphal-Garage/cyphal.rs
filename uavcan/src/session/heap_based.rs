@@ -30,10 +30,10 @@ where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
 {
-    pub fn new(transfer_id: TransferId) -> Self {
+    pub fn new(transfer_id: TransferId, known_max_payload_size: Option<usize>) -> Self {
         Self {
             timestamp: None,
-            payload: Vec::with_capacity(20),
+            payload: Vec::with_capacity(known_max_payload_size.unwrap_or(10)),
             transfer_id,
             md: T::new(),
         }
@@ -74,14 +74,17 @@ where
             if !frame.start_of_transfer {
                 return Err(SessionError::NewSessionNoStart);
             }
-            self.sessions
-                .insert(session, Session::new(frame.transfer_id));
+            self.sessions.insert(
+                session,
+                Session::new(frame.transfer_id, Some(self.sub.extent)),
+            );
         }
 
         if self.sessions[&session].transfer_id != frame.transfer_id {
+            let extent = self.sub.extent;
             // Create new session
             self.sessions.entry(session).and_modify(|s| {
-                *s = Session::new(frame.transfer_id);
+                *s = Session::new(frame.transfer_id, Some(extent));
             });
         } else {
             // Check for session expiration
@@ -91,8 +94,9 @@ where
                 self.sessions[&session].timestamp,
             ) {
                 let transfer_id = self.sessions[&session].transfer_id;
+                let extent = self.sub.extent;
                 self.sessions.entry(session).and_modify(|s| {
-                    *s = Session::new(transfer_id);
+                    *s = Session::new(transfer_id, Some(extent));
                 });
                 return Err(SessionError::Timeout);
             }
@@ -235,10 +239,11 @@ where
 
     fn update_sessions(&mut self, timestamp: Timestamp<C>) {
         for sub in &mut self.subscriptions {
+            let extent = sub.sub.extent;
             for session in sub.sessions.values_mut() {
                 if timestamp_expired(sub.sub.timeout, timestamp, session.timestamp) {
                     let transfer_id = session.transfer_id;
-                    *session = Session::new(transfer_id);
+                    *session = Session::new(transfer_id, Some(extent));
                 }
             }
         }
