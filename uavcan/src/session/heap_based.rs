@@ -38,6 +38,17 @@ where
             md: T::new(),
         }
     }
+
+    pub fn reset(&mut self) {
+        self.payload.clear();
+        self.timestamp = None;
+        self.md = T::new()
+    }
+
+    pub fn reset_to_new_transfer_id(&mut self, transfer_id: TransferId) {
+        self.reset();
+        self.transfer_id = transfer_id;
+    }
 }
 
 /// Internal subscription object. Contains hash map of sessions.
@@ -68,41 +79,33 @@ where
     /// Update subscription with incoming frame
     fn update(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         // TODO maybe some of the logic here can be skipped with anon transfers.
-        let session = frame.source_node_id.unwrap();
-        // Create default session if it doesn't exist
-        if !self.sessions.contains_key(&session) {
-            if !frame.start_of_transfer {
-                return Err(SessionError::NewSessionNoStart);
-            }
-            self.sessions.insert(
-                session,
-                Session::new(frame.transfer_id, Some(self.sub.extent)),
-            );
-        }
+        let session_id = frame.source_node_id.unwrap();
 
-        if self.sessions[&session].transfer_id != frame.transfer_id {
-            let extent = self.sub.extent;
-            // Create new session
-            self.sessions.entry(session).and_modify(|s| {
-                *s = Session::new(frame.transfer_id, Some(extent));
-            });
-        } else {
-            // Check for session expiration
-            if timestamp_expired(
-                self.sub.timeout,
-                frame.timestamp,
-                self.sessions[&session].timestamp,
-            ) {
-                let transfer_id = self.sessions[&session].transfer_id;
-                let extent = self.sub.extent;
-                self.sessions.entry(session).and_modify(|s| {
-                    *s = Session::new(transfer_id, Some(extent));
-                });
+        let extent = self.sub.extent;
+        let session = self.sessions.get_mut(&session_id);
+        match session {
+            // error if session not exists and not start of transfer
+            None if !frame.start_of_transfer => return Err(SessionError::NewSessionNoStart),
+            // create new session if not exists (start of transfer)
+            None => {
+                self.sessions
+                    .insert(session_id, Session::new(frame.transfer_id, Some(extent)));
+            }
+            // session already exists and check for wrong transfer_id
+            Some(session) if session.transfer_id != frame.transfer_id => {
+                session.reset_to_new_transfer_id(frame.transfer_id);
+            }
+            // session already exists and check for timeout
+            Some(session)
+                if timestamp_expired(self.sub.timeout, frame.timestamp, session.timestamp) =>
+            {
+                session.reset();
                 return Err(SessionError::Timeout);
             }
+            _ => (),
         }
 
-        self.accept_frame(session, frame)
+        self.accept_frame(session_id, frame)
     }
 
     fn accept_frame(
