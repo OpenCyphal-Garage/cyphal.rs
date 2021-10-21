@@ -33,7 +33,7 @@ where
     pub fn new(transfer_id: TransferId) -> Self {
         Self {
             timestamp: None,
-            payload: Vec::new(),
+            payload: Vec::with_capacity(20),
             transfer_id,
             md: T::new(),
         }
