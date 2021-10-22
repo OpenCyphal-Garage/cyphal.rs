@@ -1,6 +1,6 @@
 # uavcan.rs [![Build Status](https://travis-ci.org/UAVCAN/uavcan.rs.svg?branch=master)](https://travis-ci.org/UAVCAN/uavcan.rs) [![Crates.io](https://img.shields.io/crates/UAVCAN/uavcan-core.svg)](https://crates.io/crates/uavcan-core)
 
-**THE PROJECT IS LOOKING FOR A NEW MAINTAINER. PLEASE COORDINATE VIA THE [UAVCAN FORUM](http://forum.uavcan.org).**
+**EXPERIMENTAL, UNFINISHED, AND SUBJECT TO CHANGE AT ANY TIME. USE AT YOUR OWN RISK**
 
 **Meanwhile consider using [Canadensis](https://github.com/samcrow/canadensis) instead, which is an independent effort.**
 
