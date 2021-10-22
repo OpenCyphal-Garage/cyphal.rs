@@ -9,12 +9,14 @@ extern crate std;
 
 #[cfg(feature = "logging")]
 mod logging;
+#[cfg(feature = "logging")]
+use defmt::info;
 
 mod allocator;
 mod clock;
 mod util;
 
-use defmt::info;
+
 #[cfg(not(feature = "logging"))]
 use panic_halt as _;
 
