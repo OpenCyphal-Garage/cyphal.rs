@@ -2,6 +2,7 @@
 #![no_std]
 // to use the global allocator
 #![feature(alloc_error_handler)]
+#![feature(asm)]
 
 #[cfg(test)]
 #[macro_use]
@@ -9,18 +10,21 @@ extern crate std;
 
 #[cfg(feature = "logging")]
 mod logging;
+#[cfg(feature = "logging")]
+use defmt::info;
 
 mod allocator;
 mod clock;
 mod util;
 
+mod stack_analysis;
 mod to_test;
 
 extern crate alloc;
 
 use alloc::vec::Vec;
 use arrayvec::ArrayVec;
-use defmt::info;
+
 #[cfg(not(feature = "logging"))]
 use panic_halt as _;
 
@@ -34,7 +38,7 @@ use allocator::MyAllocator;
 use clock::StmClock;
 
 use cortex_m as _;
-use cortex_m_rt::entry;
+use cortex_m_rt::{entry, pre_init};
 
 use embedded_time::{duration::Milliseconds, Clock};
 use hal::{
@@ -65,7 +69,12 @@ use uavcan::{
 
 use util::insert_u8_array_in_u32_array;
 
-use crate::to_test::publish;
+use crate::{stack_analysis::RAM_START, to_test::publish};
+
+#[pre_init]
+unsafe fn before_main() {
+    stack_analysis::fill_stack()
+}
 
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
@@ -147,70 +156,99 @@ fn main() -> ! {
     let mut transfer_id = 0u8;
     let mut last_published = clock.try_now().unwrap();
 
-    loop {
-        let now = clock.try_now().unwrap();
-        // if now - last_published
-        //     > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
-        // {
-        //     // Publish string
-        //     let hello = "Hello!";
-        //     let mut str = heapless::Vec::<u8, 6>::new();
-        //     str.extend_from_slice(hello.as_bytes()).unwrap();
+    // loop {
+    let now = clock.try_now().unwrap();
+    // if now - last_published
+    //     > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
+    // {
+    //     // Publish string
+    //     let hello = "Hello!";
+    //     let mut str = heapless::Vec::<u8, 6>::new();
+    //     str.extend_from_slice(hello.as_bytes()).unwrap();
 
-        //     let transfer = Transfer {
-        //         timestamp: clock.try_now().unwrap(),
-        //         priority: Priority::Nominal,
-        //         transfer_kind: TransferKind::Message,
-        //         port_id: 100,
-        //         remote_node_id: None,
-        //         transfer_id,
-        //         payload: &str,
-        //     };
+    //     let transfer = Transfer {
+    //         timestamp: clock.try_now().unwrap(),
+    //         priority: Priority::Nominal,
+    //         transfer_kind: TransferKind::Message,
+    //         port_id: 100,
+    //         remote_node_id: None,
+    //         transfer_id,
+    //         payload: &str,
+    //     };
 
-        //     // unchecked_add is unstable :(
-        //     // unsafe { transfer_id.unchecked_add(1); }
-        //     transfer_id += 1;
+    //     // unchecked_add is unstable :(
+    //     // unsafe { transfer_id.unchecked_add(1); }
+    //     transfer_id += 1;
 
-        //     publish(&measure_clock, &mut node, transfer, &mut can);
+    //     publish(&measure_clock, &mut node, transfer, &mut can);
 
-        //     last_published = clock.try_now().unwrap();
+    //     last_published = clock.try_now().unwrap();
 
-        //     led.toggle().unwrap();
-        //     delay_syst.delay(1000.ms());
-        //     led.toggle().unwrap();
-        // }
+    //     led.toggle().unwrap();
+    //     delay_syst.delay(1000.ms());
+    //     led.toggle().unwrap();
+    // }
 
-        if now - last_published
-            > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
-        {
-            let mut general_elapsed = 0;
-            let mut success = false;
-            let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
-            let payload_iter = FakePayloadIter::multi_frame(8, transfer_id);
-            for payload in payload_iter {
-                let payload = ArrayVec::from(payload);
-                let frame = CanFrame {
-                    id: message_id,
-                    payload,
-                    timestamp: clock.try_now().unwrap(),
-                };
-                let start = measure_clock.now();
-                if let Some(_) = node.try_receive_frame(frame).unwrap() {
-                    success = true;
-                }
-                let elapsed = start.elapsed();
-                general_elapsed += elapsed;
-            }
-
-            let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
-            info!("elapsed: {} micros", micros);
-            info!("success: {}", success);
-
-            transfer_id = transfer_id.wrapping_add(1);
-
-            last_published = now;
+    // if now - last_published > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
+    // {
+    let mut general_elapsed = 0;
+    let mut success = false;
+    let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+    let payload_iter = FakePayloadIter::multi_frame(8, transfer_id);
+    for payload in payload_iter {
+        let payload = ArrayVec::from(payload);
+        let frame = CanFrame {
+            id: message_id,
+            payload,
+            timestamp: clock.try_now().unwrap(),
+        };
+        let start = measure_clock.now();
+        if let Some(_) = node.try_receive_frame(frame).unwrap() {
+            success = true;
         }
+        let elapsed = start.elapsed();
+        general_elapsed += elapsed;
     }
+
+    let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
+    // info!("elapsed: {} micros", micros);
+    // info!("success: {}", success);
+
+    transfer_id = transfer_id.wrapping_add(1);
+
+    last_published = now;
+    // }
+    // }
+
+    // unsafe {
+    //     let mut c = 0;
+    //     stack_analysis::copy_stack(RAM_START, RAM_START + 10, &mut c);
+    //     stack_analysis::print_stack();
+    // }
+
+    let (used, start_stack_ptr) = unsafe { stack_analysis::count_used_ram() };
+    // info!(
+    //     "used stack: {}bytes\n static data: {}bytes",
+    //     used,
+    //     0x20_008_000 - start_stack_ptr
+    // );
+
+    let m_p = micros.to_be_bytes();
+    let mut payload = used.to_be_bytes();
+    payload[1] = m_p[0];
+    let header = TxFrameHeader {
+        bit_rate_switching: false,
+        frame_format: stm32g4xx_hal::fdcan::frame::FrameFormat::Standard,
+        id: Id::Extended(ExtendedId::new(0x1).unwrap()),
+        len: payload.len() as u8,
+        marker: None,
+    };
+    block!(can.transmit(header, &mut |b| {
+        insert_u8_array_in_u32_array(&payload, b)
+    },))
+    .unwrap();
+
+    loop {}
 }
 
 fn config_rcc(rcc: Rcc) -> Rcc {
