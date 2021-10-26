@@ -45,3 +45,42 @@
         },
     ]
 }
+// {
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "preLaunchTask": "${defaultBuildTask}",
+//             "type": "probe-rs-debug",
+//             "request": "launch",
+//             "name": "probe_rs Executable Test",
+//             "program_binary": "./target/thumbv7em-none-eabihf/release/embedded", //!MODIFY
+//             "chip": "STM32G431RBTx", //!MODIFY
+//         }
+//     ]
+// }
+// {
+//     "version": "0.2.0",
+//     "configurations": [
+//         {
+//             "type": "probe-rs-debug",
+//             "request": "launch",
+//             "name": "probe_rs Executable launch example",
+//             "cwd": "${workspaceFolder}",
+//             "program_binary": "./target/thumbv7em-none-eabihf/release/embedded", //!MODIFY
+//             "chip": "STM32G431RBTx", //!MODIFY
+//             "connect_under_reset": true,
+//             // "speed": 24000, //!MODIFY
+//             // "probe": "PID:VID:<Serial>", //!MODIFY
+//             "runtimeExecutable": "probe-rs-debugger",
+//             "runtimeArgs": [
+//                 "debug",
+//                 "--dap"
+//             ],
+//             "core_index": 0,
+//             "flashing_enabled": true,
+//             "reset_after_flashing": true,
+//             "halt_after_reset": true,
+//             "console_log_level": "Info", //Error, Warn, Info, Debug 
+//         }
+//     ]
+// }
