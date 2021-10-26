@@ -13,6 +13,7 @@ runner = "probe-run --chip STM32G431RBTx"
 rustflags = [
   # only for logging
   "-C", "link-arg=-Tdefmt.x",
+  # https://github.com/knurling-rs/flip-link
   "-C", "linker=flip-link",
 
   # This is needed if your flash or ram addresses are not aligned to 0x10000 in memory.x
