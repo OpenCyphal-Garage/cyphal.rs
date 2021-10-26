@@ -1,0 +1,42 @@
+[package]
+name = "benching-no_std"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+cortex-m = "0.6.0"
+cortex-m-rt = "0.6.10"
+stm32g4xx-hal = {version = "0.0.0", git = "https://github.com/stm32-rs/stm32g4xx-hal", features = ["rt", "stm32g431"] }
+
+embedded-time = "0.12.1"
+
+# for logging
+defmt = {version = "0.2.0" }
+defmt-rtt = {version = "0.2.0" }
+panic-probe = { version = "0.2.0", features = ["print-defmt"] }
+
+liar = {version = "0.5.0", default-features = false }
+
+[dependencies.uavcan]
+version = "0.2.0-preview0"
+default-features = false
+path = "../../uavcan"
+
+[features]
+default = [
+    "defmt-default",
+]
+
+# logging level features
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
+
+[workspace]
+members = []
