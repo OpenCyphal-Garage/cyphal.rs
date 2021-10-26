@@ -1,4 +1,3 @@
-use defmt::info;
 use embedded_time::duration::Milliseconds;
 use stm32g4xx_hal::{
     block,
@@ -33,7 +32,7 @@ pub fn publish(
     transmit_fdcan(frame, can);
 
     let micros: u32 = clock.frequency().duration(elapsed).0;
-    info!("elapsed: {} micros", micros);
+    // info!("elapsed: {} micros", micros);
 }
 
 #[no_mangle]
