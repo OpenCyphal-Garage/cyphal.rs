@@ -47,7 +47,7 @@ use hal::{
     fdcan::{
         config::{ClockDivider, NominalBitTiming},
         filter::{StandardFilter, StandardFilterSlot},
-        frame::TxFrameHeader,
+        frame::{self, TxFrameHeader},
         id::ExtendedId,
         id::Id,
         FdCan, NormalOperationMode,
@@ -88,17 +88,19 @@ pub fn publish(
     can: &mut FdCan<FDCAN1, NormalOperationMode>,
 ) {
     let mut elapsed = 0;
-    let mut frame_iter = node.transmit(&transfer).unwrap();
+    let mut frame_count = 0;
     let start = clock.now();
+    let mut frame_iter = node.transmit(&transfer).unwrap();
     while let Some(frame) = frame_iter.next() {
         // transmit_fdcan(frame, can);
         elapsed += start.elapsed();
 
+        frame_count += 1;
         core::hint::black_box(frame);
     }
 
     let micros: u32 = clock.frequency().duration(elapsed).0;
-    info!("elapsed: {} micros", micros);
+    info!("elapsed: {} micros for {} frames", micros, frame_count);
 }
 
 #[entry]
