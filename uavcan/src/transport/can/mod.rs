@@ -231,8 +231,6 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     // I'm sure I could take an optimization pass at the logic here
     fn advance(&mut self) {
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
-        let is_end = bytes_left <= 7;
-        let copy_len = core::cmp::min(bytes_left, 7);
 
         // Nothing left to transmit, we are done
         if bytes_left == 0 && self.crc_left == 0 {
@@ -240,16 +238,14 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             return;
         }
 
-        if self.can_frame.is_none() {
-            self.can_frame = Some(CanFrame {
-                // TODO enough to use the transfer timestamp, or need actual timestamp
-                timestamp: self.transfer.timestamp,
-                id: self.frame_id,
-                payload: ArrayVec::new(),
-            });
-        }
+        let is_end = bytes_left <= 7;
+        let copy_len = core::cmp::min(bytes_left, 7);
 
-        let frame = self.can_frame.as_mut().unwrap();
+        // TODO enough to use the transfer timestamp, or need actual timestamp
+        let frame = self
+            .can_frame
+            .get_or_insert(CanFrame::new(self.transfer.timestamp, self.frame_id));
+
         frame.payload.clear();
 
         if self.is_start && is_end {
@@ -286,8 +282,10 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
-                        frame.payload.push(crc[0]);
-                        frame.payload.push(crc[1]);
+                        unsafe {
+                            frame.payload.push_unchecked(crc[0]);
+                            frame.payload.push_unchecked(crc[1]);
+                        }
                         self.crc_left = 0;
                     } else {
                         // SAFETY: only written if we have enough space
@@ -347,7 +345,17 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
 pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub id: u32,
-    pub payload: ArrayVec<[u8; 8]>,
+    pub payload: heapless::Vec<u8, 8>,
+}
+
+impl<C: embedded_time::Clock> CanFrame<C> {
+    fn new(timestamp: Timestamp<C>, id: u32) -> Self {
+        Self {
+            timestamp,
+            id,
+            payload: heapless::Vec::new(),
+        }
+    }
 }
 
 /// Keeps track of toggle bit and CRC during frame processing.

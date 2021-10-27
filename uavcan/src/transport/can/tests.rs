@@ -33,7 +33,7 @@ fn receive_anon_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     frame.payload.extend(0..5);
@@ -53,7 +53,7 @@ fn receive_message_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     frame.payload.push(TailByte::new(true, true, true, 0));
@@ -71,7 +71,7 @@ fn receive_service_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     frame.payload.push(TailByte::new(true, true, true, 0));
@@ -95,7 +95,7 @@ fn discard_empty_frame() {
     let frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: 0,
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Empty frame did not error out.");
@@ -112,7 +112,7 @@ fn discard_anon_multi_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     // Need to fill frame to avoid tail_byte_checks() cases
@@ -141,7 +141,7 @@ fn discard_misguided_service_frames() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     // Request
@@ -187,7 +187,7 @@ fn tail_byte_checks() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: heapless::Vec::new(),
     };
 
     frame.payload.push(tail_byte.to_u8().unwrap());
