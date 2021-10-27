@@ -22,6 +22,7 @@ bitfield = "0.13"
 
 
 embedded-time = "0.12.0"
+streaming-iterator = "0.1.5"
 
 # should only in no_std, so if feature std not set - ref: https://github.com/rust-lang/cargo/issues/1839
 heapless = "0.7.7"
