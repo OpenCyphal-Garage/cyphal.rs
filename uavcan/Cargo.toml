@@ -2,7 +2,7 @@
 name = "uavcan"
 authors = ["David Lenfesty <lenfesty@ualberta.ca>"]
 version = "0.2.0-preview0"
-edition = "2018"
+edition = "2021"
 
 description = "Full functionality reference implementation of UAVCAN/CAN in Rust"
 
