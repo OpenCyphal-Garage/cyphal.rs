@@ -9,6 +9,8 @@
 // Declaring all of the sub transport modules here.
 pub mod can;
 
+use streaming_iterator::StreamingIterator;
+
 use crate::internal::InternalRxFrame;
 use crate::NodeId;
 use crate::{RxError, TxError};
@@ -35,7 +37,7 @@ pub trait SessionMetadata<C: embedded_time::Clock> {
 /// for different transport types.
 pub trait Transport<C: embedded_time::Clock> {
     type Frame;
-    type FrameIter<'a>: Iterator;
+    type FrameIter<'a>: StreamingIterator;
 
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.

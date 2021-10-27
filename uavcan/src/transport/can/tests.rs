@@ -232,10 +232,8 @@ fn transfer_valid_ids() {
     // but this is the most ergonomic entry point for this test.
 
     // Anonymous message
-    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, None)
-        .unwrap()
-        .next()
-        .expect("Failed to create iter");
+    let mut can_iter = CanIter::new(&transfer, None).unwrap();
+    let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("Failed to create iter");
     let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(id.is_anon());
@@ -243,8 +241,8 @@ fn transfer_valid_ids() {
     assert!(id.priority() == Priority::Nominal as u8);
     // Source ID should be random, not sure how to handle this...
 
-    let frame: CanFrame<TestClock<u32>> =
-        CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
+    let mut can_iter = CanIter::new(&transfer, Some(12)).unwrap();
+    let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("");
     let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(!id.is_anon());
@@ -259,8 +257,8 @@ fn transfer_valid_ids() {
 }
 
 /// Checks that the iterator produces the expected number of frames.
-fn assert_frame_count(iter: CanIter<TestClock>, mut expected: usize) {
-    for _frame in iter {
+fn assert_frame_count(mut iter: CanIter<TestClock>, mut expected: usize) {
+    while let Some(_frame) = iter.next() {
         assert!(expected > 0);
         expected -= 1;
     }

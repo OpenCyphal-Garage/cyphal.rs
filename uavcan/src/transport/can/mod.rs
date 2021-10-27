@@ -9,9 +9,12 @@
 //! trait in stable unfortunately because it would require GATs, which won't be stable
 //! for quite a while... :(.
 
+use core::marker::PhantomData;
+
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
 use num_traits::{FromPrimitive, ToPrimitive};
+use streaming_iterator::StreamingIterator;
 
 use crate::time::Timestamp;
 use crate::Priority;
@@ -153,6 +156,7 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
     crc: Crc16,
     toggle: bool,
     is_start: bool,
+    can_frame: Option<CanFrame<C>>,
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
@@ -212,25 +216,41 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
             crc: Crc16::init(),
             toggle: true,
             is_start: true,
+            can_frame: None,
         })
     }
 }
 
-impl<'a, C: Clock> Iterator for CanIter<'a, C> {
+impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     type Item = CanFrame<C>;
 
-    // I'm sure I could take an optimization pass at the logic here
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut frame = CanFrame {
-            // TODO enough to use the transfer timestamp, or need actual timestamp
-            timestamp: self.transfer.timestamp,
-            id: self.frame_id,
-            payload: ArrayVec::new(),
-        };
+    fn get(&self) -> Option<&Self::Item> {
+        self.can_frame.as_ref()
+    }
 
+    // I'm sure I could take an optimization pass at the logic here
+    fn advance(&mut self) {
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
         let is_end = bytes_left <= 7;
         let copy_len = core::cmp::min(bytes_left, 7);
+
+        // Nothing left to transmit, we are done
+        if bytes_left == 0 && self.crc_left == 0 {
+            let _ = self.can_frame.take();
+            return;
+        }
+
+        if self.can_frame.is_none() {
+            self.can_frame = Some(CanFrame {
+                // TODO enough to use the transfer timestamp, or need actual timestamp
+                timestamp: self.transfer.timestamp,
+                id: self.frame_id,
+                payload: ArrayVec::new(),
+            });
+        }
+
+        let frame = self.can_frame.as_mut().unwrap();
+        frame.payload.clear();
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -247,11 +267,6 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                 )
             }
         } else {
-            // Nothing left to transmit, we are done
-            if bytes_left == 0 && self.crc_left == 0 {
-                return None;
-            }
-
             // Handle CRC
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
@@ -305,8 +320,6 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
         }
 
         self.is_start = false;
-
-        Some(frame)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
