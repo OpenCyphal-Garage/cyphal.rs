@@ -3,6 +3,7 @@
 // to use the global allocator
 #![feature(alloc_error_handler)]
 #![feature(asm)]
+#![feature(bench_black_box)]
 
 #[cfg(test)]
 #[macro_use]
@@ -18,7 +19,6 @@ mod clock;
 mod util;
 
 mod stack_analysis;
-mod to_test;
 
 extern crate alloc;
 
@@ -62,24 +62,42 @@ use stm32g4xx_hal as hal;
 
 use uavcan::{
     session::HeapSessionManager,
+    transfer::Transfer,
     transport::can::{Can, CanFrame, CanMessageId, CanMetadata, FakePayloadIter, TailByte},
     types::{PortId, TransferId},
-    Node, Subscription, TransferKind,
+    Node, Priority, Subscription, TransferKind,
 };
 
 use util::insert_u8_array_in_u32_array;
 
-use crate::{stack_analysis::RAM_START, to_test::publish};
-
-#[pre_init]
-unsafe fn before_main() {
-    stack_analysis::fill_stack()
-}
+// #[pre_init]
+// unsafe fn before_main() {
+//     stack_analysis::fill_stack()
+// }
 
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
 #[global_allocator]
 static ALLOCATOR: MyAllocator = MyAllocator::INIT;
+
+pub fn publish(
+    clock: &MonoTimer,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    transfer: Transfer<StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+) {
+    let mut elapsed = 0;
+    let start = clock.now();
+    for frame in node.transmit(&transfer).unwrap() {
+        // transmit_fdcan(frame, can);
+        elapsed += start.elapsed();
+
+        core::hint::black_box(frame);
+    }
+
+    let micros: u32 = clock.frequency().duration(elapsed).0;
+    info!("elapsed: {} micros", micros);
+}
 
 #[entry]
 fn main() -> ! {
@@ -156,69 +174,74 @@ fn main() -> ! {
     let mut transfer_id = 0u8;
     let mut last_published = clock.try_now().unwrap();
 
-    // loop {
-    let now = clock.try_now().unwrap();
-    // if now - last_published
-    //     > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
-    // {
-    //     // Publish string
-    //     let hello = "Hello!";
-    //     let mut str = heapless::Vec::<u8, 6>::new();
-    //     str.extend_from_slice(hello.as_bytes()).unwrap();
+    loop {
+        let now = clock.try_now().unwrap();
+        if now - last_published
+            > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
+        {
+            let data = heapless::Vec::<u8, 69>::from_iter(
+                core::iter::from_fn(|| {
+                    static mut COUNT: u8 = 0;
+                    unsafe {
+                        COUNT += 1;
+                        Some(COUNT)
+                    }
+                })
+                .take(69),
+            );
+            // str.extend_from_slice(hello.as_bytes()).unwrap();
 
-    //     let transfer = Transfer {
-    //         timestamp: clock.try_now().unwrap(),
-    //         priority: Priority::Nominal,
-    //         transfer_kind: TransferKind::Message,
-    //         port_id: 100,
-    //         remote_node_id: None,
-    //         transfer_id,
-    //         payload: &str,
-    //     };
+            let transfer = Transfer {
+                timestamp: clock.try_now().unwrap(),
+                priority: Priority::Nominal,
+                transfer_kind: TransferKind::Message,
+                port_id: 100,
+                remote_node_id: None,
+                transfer_id,
+                payload: &data,
+            };
 
-    //     // unchecked_add is unstable :(
-    //     // unsafe { transfer_id.unchecked_add(1); }
-    //     transfer_id += 1;
+            transfer_id += 1;
 
-    //     publish(&measure_clock, &mut node, transfer, &mut can);
+            publish(&measure_clock, &mut node, transfer, &mut can);
 
-    //     last_published = clock.try_now().unwrap();
+            last_published = clock.try_now().unwrap();
 
-    //     led.toggle().unwrap();
-    //     delay_syst.delay(1000.ms());
-    //     led.toggle().unwrap();
-    // }
-
-    // if now - last_published > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
-    // {
-    let mut general_elapsed = 0;
-    let mut success = false;
-    let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
-    let payload_iter = FakePayloadIter::multi_frame(8, transfer_id);
-    for payload in payload_iter {
-        let payload = ArrayVec::from(payload);
-        let frame = CanFrame {
-            id: message_id,
-            payload,
-            timestamp: clock.try_now().unwrap(),
-        };
-        let start = measure_clock.now();
-        if let Some(_) = node.try_receive_frame(frame).unwrap() {
-            success = true;
+            led.toggle().unwrap();
+            delay_syst.delay(1000.ms());
+            led.toggle().unwrap();
         }
-        let elapsed = start.elapsed();
-        general_elapsed += elapsed;
+
+        // if now - last_published > embedded_time::duration::Generic::new(1000, StmClock::SCALING_FACTOR)
+        // {
+        // let mut general_elapsed = 0;
+        // let mut success = false;
+        // let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+        // let payload_iter = FakePayloadIter::multi_frame(8, transfer_id);
+        // for payload in payload_iter {
+        //     let payload = ArrayVec::from(payload);
+        //     let frame = CanFrame {
+        //         id: message_id,
+        //         payload,
+        //         timestamp: clock.try_now().unwrap(),
+        //     };
+        //     let start = measure_clock.now();
+        //     if let Some(_) = node.try_receive_frame(frame).unwrap() {
+        //         success = true;
+        //     }
+        //     let elapsed = start.elapsed();
+        //     general_elapsed += elapsed;
+        // }
+
+        // let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
+        // // info!("elapsed: {} micros", micros);
+        // // info!("success: {}", success);
+
+        // transfer_id = transfer_id.wrapping_add(1);
+
+        // last_published = now;
+        // }
     }
-
-    let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
-    // info!("elapsed: {} micros", micros);
-    // info!("success: {}", success);
-
-    transfer_id = transfer_id.wrapping_add(1);
-
-    last_published = now;
-    // }
-    // }
 
     // unsafe {
     //     let mut c = 0;
@@ -226,29 +249,43 @@ fn main() -> ! {
     //     stack_analysis::print_stack();
     // }
 
-    let (used, start_stack_ptr) = unsafe { stack_analysis::count_used_ram() };
+    // let (used, start_stack_ptr) = unsafe { stack_analysis::count_used_ram() };
     // info!(
     //     "used stack: {}bytes\n static data: {}bytes",
     //     used,
     //     0x20_008_000 - start_stack_ptr
     // );
 
-    let m_p = micros.to_be_bytes();
-    let mut payload = used.to_be_bytes();
-    payload[1] = m_p[0];
+    // let m_p = micros.to_be_bytes();
+    // let mut payload = used.to_be_bytes();
+    // payload[1] = m_p[0];
+    // let header = TxFrameHeader {
+    //     bit_rate_switching: false,
+    //     frame_format: stm32g4xx_hal::fdcan::frame::FrameFormat::Standard,
+    //     id: Id::Extended(ExtendedId::new(0x1).unwrap()),
+    //     len: payload.len() as u8,
+    //     marker: None,
+    // };
+    // block!(can.transmit(header, &mut |b| {
+    //     insert_u8_array_in_u32_array(&payload, b)
+    // },))
+    // .unwrap();
+
+    // loop {}
+}
+
+fn transmit_fdcan(frame: CanFrame<StmClock>, can: &mut FdCan<FDCAN1, NormalOperationMode>) {
     let header = TxFrameHeader {
         bit_rate_switching: false,
         frame_format: stm32g4xx_hal::fdcan::frame::FrameFormat::Standard,
-        id: Id::Extended(ExtendedId::new(0x1).unwrap()),
-        len: payload.len() as u8,
+        id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
+        len: frame.payload.len() as u8,
         marker: None,
     };
     block!(can.transmit(header, &mut |b| {
-        insert_u8_array_in_u32_array(&payload, b)
+        insert_u8_array_in_u32_array(&frame.payload, b)
     },))
     .unwrap();
-
-    loop {}
 }
 
 fn config_rcc(rcc: Rcc) -> Rcc {
