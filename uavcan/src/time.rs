@@ -14,7 +14,7 @@ mod test_clock {
         hash::Hash,
         ops::{Add, AddAssign, Deref},
     };
-
+  
     use alloc::rc::Rc;
 
     use embedded_time::{

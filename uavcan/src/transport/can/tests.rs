@@ -1,5 +1,5 @@
-use alloc::vec;
 
+use alloc::vec;
 use crate::time::TestClock;
 
 use super::*;
