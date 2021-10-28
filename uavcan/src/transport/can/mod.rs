@@ -244,7 +244,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
         // TODO enough to use the transfer timestamp, or need actual timestamp
         let frame = self
             .can_frame
-            .get_or_insert(CanFrame::new(self.transfer.timestamp, self.frame_id));
+            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id));
 
         frame.payload.clear();
 
