@@ -264,7 +264,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend(out_data.iter().copied());
+            frame.payload.extend_from_slice(out_data).unwrap();
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -279,10 +279,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
-                        unsafe {
-                            frame.payload.push_unchecked(crc[0]);
-                            frame.payload.push_unchecked(crc[1]);
-                        }
+                        frame.payload.extend_from_slice(&crc).unwrap();
                         self.crc_left = 0;
                     } else {
                         // SAFETY: only written if we have enough space
