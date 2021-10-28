@@ -264,7 +264,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend_from_slice(out_data).unwrap();
+            frame.payload.extend(out_data.into_iter().copied());
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -279,7 +279,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
-                        frame.payload.extend_from_slice(&crc).unwrap();
+                        frame.payload.extend(crc.into_iter());
                         self.crc_left = 0;
                     } else {
                         // SAFETY: only written if we have enough space
@@ -339,7 +339,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
 pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub id: u32,
-    pub payload: heapless::Vec<u8, 8>,
+    pub payload: arrayvec::ArrayVec<[u8; 8]>,
 }
 
 impl<C: embedded_time::Clock> CanFrame<C> {
@@ -347,7 +347,7 @@ impl<C: embedded_time::Clock> CanFrame<C> {
         Self {
             timestamp,
             id,
-            payload: heapless::Vec::new(),
+            payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
         }
     }
 }
