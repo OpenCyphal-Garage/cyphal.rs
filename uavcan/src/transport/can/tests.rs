@@ -33,7 +33,7 @@ fn receive_anon_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     frame.payload.extend(0..5);
@@ -53,7 +53,7 @@ fn receive_message_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     frame.payload.push(TailByte::new(true, true, true, 0).0);
@@ -71,7 +71,7 @@ fn receive_service_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     frame.payload.push(TailByte::new(true, true, true, 0).0);
@@ -112,7 +112,7 @@ fn discard_anon_multi_frame() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     // Need to fill frame to avoid tail_byte_checks() cases
@@ -141,7 +141,7 @@ fn discard_misguided_service_frames() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     // Request
@@ -186,7 +186,7 @@ fn tail_byte_checks() {
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
         id: CanMessageId::new(Priority::Nominal, 0, None),
-        payload: ArrayVec::new(),
+        payload: arrayvec::ArrayVec::<[u8; 8]>::new(),
     };
 
     frame.payload.push(TailByte::new(true, true, false, 0).0);
@@ -230,20 +230,18 @@ fn transfer_valid_ids() {
     // but this is the most ergonomic entry point for this test.
 
     // Anonymous message
-    let frame: CanFrame<TestClock<u32>> = CanIter::new(&transfer, None)
-        .unwrap()
-        .next()
-        .expect("Failed to create iter");
-    let id = CanMessageId::from(frame.id);
+    let mut can_iter = CanIter::new(&transfer, None).unwrap();
+    let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("Failed to create iter");
+    let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(id.is_anon());
     assert!(id.subject_id() == 0);
     assert!(id.priority() == Priority::Nominal as u8);
     // Source ID should be random, not sure how to handle this...
 
-    let frame: CanFrame<TestClock<u32>> =
-        CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
-    let id = CanMessageId::from(frame.id);
+    let mut can_iter = CanIter::new(&transfer, Some(12)).unwrap();
+    let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("");
+    let id = CanMessageId(frame.id);
     assert!(id.is_message());
     assert!(!id.is_anon());
     assert!(id.subject_id() == 0);
@@ -257,8 +255,8 @@ fn transfer_valid_ids() {
 }
 
 /// Checks that the iterator produces the expected number of frames.
-fn assert_frame_count(iter: CanIter<TestClock>, mut expected: usize) {
-    for _frame in iter {
+fn assert_frame_count(mut iter: CanIter<TestClock>, mut expected: usize) {
+    while let Some(_frame) = iter.next() {
         assert!(expected > 0);
         expected -= 1;
     }

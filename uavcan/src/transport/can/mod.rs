@@ -235,7 +235,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
         // TODO enough to use the transfer timestamp, or need actual timestamp
         let frame = self
             .can_frame
-            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id));
+            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
 
         frame.payload.clear();
 
@@ -338,7 +338,8 @@ impl<C: embedded_time::Clock> CanFrame<C> {
     fn new(timestamp: Timestamp<C>, id: u32) -> Self {
         Self {
             timestamp,
-            id,
+            // TODO get rid of this expect, it probably isn't necessary, just added quickly
+            id: ExtendedId::new(id).expect("invalid ID"),
             payload: ArrayVec::<[u8; 8]>::new(),
         }
     }
