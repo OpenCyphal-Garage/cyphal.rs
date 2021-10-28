@@ -91,12 +91,18 @@ pub fn publish(
     let mut frame_count = 0;
     let start = clock.now();
     let mut frame_iter = node.transmit(&transfer).unwrap();
-    while let Some(frame) = frame_iter.next() {
-        // transmit_fdcan(frame, can);
-        elapsed += start.elapsed();
+    elapsed += start.elapsed();
+    loop {
+        let start = clock.now();
+        if let Some(frame) = frame_iter.next() {
+            // transmit_fdcan(frame, can);
+            elapsed += start.elapsed();
 
-        frame_count += 1;
-        core::hint::black_box(frame);
+            frame_count += 1;
+            core::hint::black_box(frame);
+        } else {
+            break;
+        }
     }
 
     let micros: u32 = clock.frequency().duration(elapsed).0;
