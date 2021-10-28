@@ -33,7 +33,7 @@ static NO_REF_16_1021: [u16; 256] = [
 
 /// calculate a crc16
 ///
-/// ```ignore
+/// ```not_run
 /// |Check |Poly  |Init  |Ref  |XorOut|
 /// |---   |---   |---   |---  |---   |
 /// |0x29B1|0x1021|0xFFFF|false|0x0000|
