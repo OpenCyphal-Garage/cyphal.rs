@@ -9,9 +9,6 @@
 //! trait in stable unfortunately because it would require GATs, which won't be stable
 //! for quite a while... :(.
 
-use core::marker::PhantomData;
-
-use arrayvec::ArrayVec;
 use embedded_time::Clock;
 use num_traits::{FromPrimitive, ToPrimitive};
 use streaming_iterator::StreamingIterator;
