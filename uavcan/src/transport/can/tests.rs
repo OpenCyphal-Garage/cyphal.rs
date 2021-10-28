@@ -232,7 +232,7 @@ fn transfer_valid_ids() {
     // Anonymous message
     let mut can_iter = CanIter::new(&transfer, None).unwrap();
     let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("Failed to create iter");
-    let id = CanMessageId(frame.id);
+    let id = CanMessageId(frame.id.as_raw());
     assert!(id.is_message());
     assert!(id.is_anon());
     assert!(id.subject_id() == 0);
@@ -241,7 +241,7 @@ fn transfer_valid_ids() {
 
     let mut can_iter = CanIter::new(&transfer, Some(12)).unwrap();
     let frame: &CanFrame<TestClock<u32>> = can_iter.next().expect("");
-    let id = CanMessageId(frame.id);
+    let id = CanMessageId(frame.id.as_raw());
     assert!(id.is_message());
     assert!(!id.is_anon());
     assert!(id.subject_id() == 0);
