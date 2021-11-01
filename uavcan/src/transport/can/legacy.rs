@@ -207,7 +207,6 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
     // I'm sure I could take an optimization pass at the logic here
     fn next(&mut self) -> Option<Self::Item> {
         let mut frame = CanFrame {
-            // TODO enough to use the transfer timestamp, or need actual timestamp
             timestamp: self.transfer.timestamp,
             id: self.frame_id,
             payload: ArrayVec::new(),

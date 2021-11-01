@@ -199,7 +199,6 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
     // I'm sure I could take an optimization pass at the logic here
     fn next(&mut self) -> Option<Self::Item> {
         let mut frame = FdCanFrame {
-            // TODO enough to use the transfer timestamp, or need actual timestamp
             timestamp: self.transfer.timestamp,
             id: self.frame_id,
             dlc: 0,
@@ -346,7 +345,7 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
 }
 
 // TODO convert to embedded-hal PR type
-/// Extended CAN frame (the only one supported by UAVCAN/CAN)
+/// Extended CAN FD frame (the only one supported by UAVCAN/CAN)
 #[derive(Clone, Debug)]
 pub struct FdCanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
