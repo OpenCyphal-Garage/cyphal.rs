@@ -48,7 +48,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
-        if frame.payload.len() == 0 {
+        if frame.payload.is_empty() {
             return Err(RxError::FrameEmpty);
         }
 
@@ -384,6 +384,6 @@ impl<C: embedded_time::Clock> super::SessionMetadata<C> for CanMetadata {
             return true;
         }
 
-        return false;
+        false
     }
 }

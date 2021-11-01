@@ -39,13 +39,13 @@ impl<'a, C: embedded_time::Clock> Transfer<'a, C> {
         payload: &'a [u8],
     ) -> Self {
         Self {
-            timestamp: timestamp,
+            timestamp,
             priority: frame.priority,
             transfer_kind: frame.transfer_kind,
             port_id: frame.port_id,
             remote_node_id: frame.source_node_id,
             transfer_id: frame.transfer_id,
-            payload: payload,
+            payload,
         }
     }
 }

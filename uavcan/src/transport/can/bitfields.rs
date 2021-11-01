@@ -38,11 +38,8 @@ impl CanMessageId {
     // TODO bounds checks (can these be auto-implemented?)
     pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> u32 {
         let is_anon = source_id.is_none();
-        let source_id = match source_id {
-            Some(id) => id,
-            // TODO do better than XKCD 221
-            None => 4,
-        };
+        // TODO do better than XKCD 221
+        let source_id = source_id.unwrap_or(4);
         let mut id = CanMessageId(0);
         id.set_priority(priority.to_u8().unwrap());
         id.set_svc(false);
@@ -72,7 +69,7 @@ impl CanMessageId {
             return false;
         }
 
-        return true;
+        true
     }
 }
 

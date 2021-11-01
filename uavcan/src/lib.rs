@@ -127,6 +127,6 @@ impl<D: embedded_time::duration::Duration + FixedPoint> Subscription<D> {
 
 impl<D: embedded_time::duration::Duration + FixedPoint> PartialEq for Subscription<D> {
     fn eq(&self, other: &Self) -> bool {
-        return self.transfer_kind == other.transfer_kind && self.port_id == other.port_id;
+        self.transfer_kind == other.transfer_kind && self.port_id == other.port_id
     }
 }
