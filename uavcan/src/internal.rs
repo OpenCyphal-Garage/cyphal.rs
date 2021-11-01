@@ -26,6 +26,7 @@ pub struct InternalRxFrame<'a, C: embedded_time::Clock> {
 
 impl<'a, C: embedded_time::Clock> InternalRxFrame<'a, C> {
     /// Construct internal frame as a message type
+    #[allow(clippy::too_many_arguments)]
     pub fn as_message(
         timestamp: Timestamp<C>,
         priority: Priority,
@@ -52,6 +53,7 @@ impl<'a, C: embedded_time::Clock> InternalRxFrame<'a, C> {
     }
 
     /// Construct internal frame as a service type
+    #[allow(clippy::too_many_arguments)]
     pub fn as_service(
         timestamp: Timestamp<C>,
         priority: Priority,

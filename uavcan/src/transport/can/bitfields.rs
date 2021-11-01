@@ -36,7 +36,7 @@ bitfield! {
 
 impl CanMessageId {
     // TODO bounds checks (can these be auto-implemented?)
-    pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> u32 {
+    pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> Self {
         let is_anon = source_id.is_none();
         // TODO do better than XKCD 221
         let source_id = source_id.unwrap_or(4);
@@ -52,7 +52,7 @@ impl CanMessageId {
         id.set_rsvd2(true);
         id.set_rsvd3(false);
         // Return data
-        id.0
+        id
     }
 
     /// Is this a message or a service ID?
@@ -100,7 +100,7 @@ impl CanServiceId {
         service_id: PortId,
         destination: NodeId,
         source: NodeId,
-    ) -> u32 {
+    ) -> Self {
         let mut id = CanServiceId(0);
         id.set_priority(priority.to_u8().unwrap());
         id.set_svc(true);
@@ -109,7 +109,7 @@ impl CanServiceId {
         id.set_service_id(service_id);
         id.set_destination_id(destination);
         id.set_source_id(source);
-        id.0
+        id
     }
 
     pub fn valid(&self) -> bool {
@@ -136,12 +136,12 @@ bitfield! {
 }
 
 impl TailByte {
-    pub fn new(is_start: bool, is_end: bool, toggle: bool, transfer_id: u8) -> u8 {
+    pub fn new(is_start: bool, is_end: bool, toggle: bool, transfer_id: u8) -> Self {
         let mut byte = TailByte(0);
         byte.set_start_of_transfer(is_start);
         byte.set_end_of_transfer(is_end);
         byte.set_toggle(toggle);
         byte.set_transfer_id(transfer_id);
-        byte.0
+        byte
     }
 }
