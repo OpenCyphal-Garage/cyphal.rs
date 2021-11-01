@@ -216,6 +216,18 @@ where
     }
 }
 
+impl<T, D, C> Default for StdVecSessionManager<T, D, C>
+where
+    T: crate::transport::SessionMetadata<C>,
+    D: embedded_time::duration::Duration + FixedPoint,
+    C: embedded_time::Clock,
+    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, D, C> SessionManager<C> for StdVecSessionManager<T, D, C>
 where
     T: crate::transport::SessionMetadata<C>,
