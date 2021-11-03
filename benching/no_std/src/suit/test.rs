@@ -13,5 +13,10 @@ fn mann(m: usize, n: usize) -> usize {
 }
 
 pub(crate) fn bench_test<CM: embedded_time::Clock>(bencher: &mut Bencher<CM>, _: &mut Context) {
-    bencher.run(|| mann(3, 5))
+    bencher.run_with_watch(|w| {
+        let n = core::hint::black_box(5);
+        w.start();
+        core::hint::black_box(mann(3, n));
+        w.stop();
+    })
 }
