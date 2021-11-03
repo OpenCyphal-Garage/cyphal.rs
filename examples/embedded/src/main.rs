@@ -186,74 +186,74 @@ fn main() -> ! {
 
     loop {
         let now = clock.try_now().unwrap();
-        if now - last_published
-            > embedded_time::duration::Generic::new(100, StmClock::SCALING_FACTOR)
-        {
-            const PAYLOAD_LEN: usize = 7;
-            let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
-                core::iter::from_fn(|| {
-                    static mut COUNT: u8 = 0;
-                    unsafe {
-                        COUNT += 1;
-                        Some(COUNT)
-                    }
-                })
-                .take(PAYLOAD_LEN),
-            );
-            // str.extend_from_slice(hello.as_bytes()).unwrap();
-
-            let transfer = Transfer {
-                timestamp: clock.try_now().unwrap(),
-                priority: Priority::Nominal,
-                transfer_kind: TransferKind::Message,
-                port_id: 100,
-                remote_node_id: None,
-                transfer_id,
-                payload: &data,
-            };
-
-            transfer_id += 1;
-
-            publish(&measure_clock, &mut node, transfer, &mut can);
-
-            last_published = clock.try_now().unwrap();
-
-            led.toggle().unwrap();
-            delay_syst.delay(1000.ms());
-            led.toggle().unwrap();
-        }
-
         // if now - last_published
         //     > embedded_time::duration::Generic::new(100, StmClock::SCALING_FACTOR)
         // {
-        //     let mut general_elapsed = 0;
-        //     let mut frame_count = 0;
-        //     let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
-        //     let payload_iter = FakePayloadIter::<8>::multi_frame(6, transfer_id);
-        //     for payload in payload_iter {
-        //         let payload = heapless::Vec::from_iter(payload);
-        //         let frame = CanFrame {
-        //             id: message_id,
-        //             payload,
-        //             timestamp: clock.try_now().unwrap(),
-        //         };
-        //         let start = measure_clock.now();
-        //         if let Some(frame) = node.try_receive_frame(frame).unwrap() {
-        //             core::hint::black_box(frame);
-        //         }
-        //         let elapsed = start.elapsed();
-        //         general_elapsed += elapsed;
-        //         frame_count += 1;
-        //     }
+        //     const PAYLOAD_LEN: usize = 7;
+        //     let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
+        //         core::iter::from_fn(|| {
+        //             static mut COUNT: u8 = 0;
+        //             unsafe {
+        //                 COUNT += 1;
+        //                 Some(COUNT)
+        //             }
+        //         })
+        //         .take(PAYLOAD_LEN),
+        //     );
+        //     // str.extend_from_slice(hello.as_bytes()).unwrap();
 
-        //     let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
-        //     info!("elapsed: {} micros for {} frames", micros, frame_count);
-        //     // info!("success: {}", success);
+        //     let transfer = Transfer {
+        //         timestamp: clock.try_now().unwrap(),
+        //         priority: Priority::Nominal,
+        //         transfer_kind: TransferKind::Message,
+        //         port_id: 100,
+        //         remote_node_id: None,
+        //         transfer_id,
+        //         payload: &data,
+        //     };
 
-        //     transfer_id = transfer_id.wrapping_add(1);
+        //     transfer_id += 1;
 
-        //     last_published = now;
+        //     publish(&measure_clock, &mut node, transfer, &mut can);
+
+        //     last_published = clock.try_now().unwrap();
+
+        //     led.toggle().unwrap();
+        //     delay_syst.delay(1000.ms());
+        //     led.toggle().unwrap();
         // }
+
+        if now - last_published
+            > embedded_time::duration::Generic::new(100, StmClock::SCALING_FACTOR)
+        {
+            let mut general_elapsed = 0;
+            let mut frame_count = 0;
+            let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+            let payload_iter = FakePayloadIter::<8>::multi_frame(6, transfer_id);
+            for payload in payload_iter {
+                let payload = arrayvec::ArrayVec::from_iter(payload);
+                let frame = CanFrame {
+                    id: message_id,
+                    payload,
+                timestamp: clock.try_now().unwrap(),
+            };
+                let start = measure_clock.now();
+                if let Some(frame) = node.try_receive_frame(frame).unwrap() {
+                    core::hint::black_box(frame);
+                }
+                let elapsed = start.elapsed();
+                general_elapsed += elapsed;
+                frame_count += 1;
+            }
+
+            let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
+            info!("elapsed: {} micros for {} frames", micros, frame_count);
+            // info!("success: {}", success);
+
+            transfer_id = transfer_id.wrapping_add(1);
+
+            last_published = now;
+        }
     }
 
     // unsafe {
