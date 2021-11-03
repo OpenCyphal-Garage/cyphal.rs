@@ -12,18 +12,30 @@ cortex-m-rt = "0.6.10"
 stm32g4xx-hal = {version = "0.0.0", git = "https://github.com/stm32-rs/stm32g4xx-hal", features = ["rt", "stm32g431"] }
 
 embedded-time = "0.12.1"
+heapless = "0.7.7"
 
 # for logging
 defmt = {version = "0.2.0" }
 defmt-rtt = {version = "0.2.0" }
 panic-probe = { version = "0.2.0", features = ["print-defmt"] }
 
-liar = {version = "0.5.0", default-features = false }
+# liar = {version = "0.5.0", path = "/Users/alext/playground/rust/liar", default-features = false }
+
+rlsf = "0.1.2"
+streaming-iterator = "0.1.5"
 
 [dependencies.uavcan]
 version = "0.2.0-preview0"
 default-features = false
 path = "../../uavcan"
+
+[dependencies.num-traits]
+version = "0.2.14"
+default-features = false
+
+[dependencies.arrayvec]
+version = "0.5.2"
+default-features = false
 
 [features]
 default = [
@@ -40,3 +52,14 @@ defmt-error = []
 
 [workspace]
 members = []
+
+[[bin]]
+name = "benching-no_std"
+test = false
+bench = false
+
+[profile.release]
+codegen-units = 1 # better optimizations
+debug = true # symbols are nice and they don't increase the size on Flash
+lto = true # better optimizations
+opt-level = 3
