@@ -6,6 +6,8 @@
 #![feature(slice_pattern)]
 #![feature(bench_black_box)]
 #![feature(trait_alias)]
+#![feature(optimize_attribute)]
+#![allow(warnings)]
 
 extern crate alloc;
 
@@ -45,16 +47,6 @@ static mut POOL: MaybeUninit<[u8; 10240]> = MaybeUninit::uninit();
 #[global_allocator]
 static ALLOCATOR: MyAllocator = MyAllocator::INIT;
 
-fn mann(m: usize, n: usize) -> usize {
-    match m {
-        0 => n + 1,
-        _ => match n {
-            0 => mann(m - 1, 1),
-            n => mann(m - 1, mann(m, n - 1)),
-        },
-    }
-}
-
 #[entry]
 fn main() -> ! {
     // init heap
@@ -66,12 +58,6 @@ fn main() -> ! {
 
     let measure_clock = board.get_clock();
 
-    let start = measure_clock.try_now().unwrap();
-    core::hint::black_box(mann(3, 5));
-    let elapsed = measure_clock.elapsed_nanos(&start);
-
-    info!("{}", elapsed.0);
-
     let mut bencher = Bencher::new(measure_clock);
 
     // init clock
@@ -80,106 +66,113 @@ fn main() -> ! {
     let session_manager = HeapSessionManager::<CanMetadata, Milliseconds, MonotonicClock>::new();
     let node = Node::<_, Can, MonotonicClock>::new(Some(100), session_manager);
 
+    info!("running benches ...\n");
+
+    // let needs = suit::send::run_single(node, clock, measure_clock);
+    // info!("needs {}", needs.0);
+
     let mut context = suit::send::Context {
         node,
         clock: &clock,
     };
 
-    info!("running benches ...\n");
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 7>,
+        &mut context,
+    ));
 
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 7>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 12>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 19>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 26>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 33>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 40>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 47>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_send",
-    //     &mut send::bench_send::<_, _, _, 54>,
-    //     &mut context,
-    // ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 12>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 19>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 26>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 33>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 40>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 47>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_send",
+        &mut send::bench_send::<_, _, _, 54>,
+        &mut context,
+    ));
 
-    // let session_manager = HeapSessionManager::<CanMetadata, Milliseconds, MonotonicClock>::new();
-    // let node = Node::<_, Can, MonotonicClock>::new(Some(100), session_manager);
+    let session_manager = HeapSessionManager::<CanMetadata, Milliseconds, MonotonicClock>::new();
+    let node = Node::<_, Can, MonotonicClock>::new(Some(100), session_manager);
 
-    // let mut context = suit::receive::Context {
-    //     node,
-    //     clock: &clock,
-    // };
+    let mut context = suit::receive::Context {
+        node,
+        clock: &clock,
+    };
 
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 1>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 2>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 3>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 4>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 5>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 6>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 7>,
-    //     &mut context,
-    // ));
-    // report(&bencher.bench(
-    //     "bench_receive",
-    //     &mut receive::bench_receive::<_, _, _, 8>,
-    //     &mut context,
-    // ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 1>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 2>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 3>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 4>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 5>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 6>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 7>,
+        &mut context,
+    ));
+    report(&bencher.bench(
+        "bench_receive",
+        &mut receive::bench_receive::<_, _, _, 8>,
+        &mut context,
+    ));
 
-    let mut context = suit::test::Context;
-
-    report(&bencher.bench("test", &mut suit::test::bench_test::<_>, &mut context));
+    #[cfg(feature = "test")]
+    {
+        let mut context = suit::test::Context;
+        report(&bencher.bench("test", &mut suit::test::bench_test::<_, 3>, &mut context));
+        report(&bencher.bench("test", &mut suit::test::bench_test::<_, 4>, &mut context));
+    }
 
     info!("finished");
 
@@ -202,7 +195,7 @@ pub fn report<T: TimeInt + Into<u32>>(s: &Samples<T>) {
         })
         .collect::<heapless::Vec<f64, 100>>();
 
-    info!("{:?}", data.as_slice());
+    // info!("{:?}", data.as_slice());
 
     let summary = stats::Summary::new::<100>(&data.into_array().unwrap());
 
