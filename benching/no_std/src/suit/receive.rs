@@ -1,6 +1,9 @@
 use uavcan::{
     session::SessionManager,
-    transport::can::{Can, CanFrame, CanMessageId, FakePayloadIter},
+    transport::{
+        can::{Can, CanFrame, CanMessageId, FakePayloadIter},
+        Transport,
+    },
     types::PortId,
     Node,
 };
@@ -12,7 +15,19 @@ pub struct Context<'a, S: SessionManager<C>, C: embedded_time::Clock + 'static +
     pub clock: &'a C,
 }
 
-pub(crate) fn bench_receive<
+#[optimize(speed)]
+fn receive<S: SessionManager<C>, C: embedded_time::Clock + 'static + Clone>(
+    node: &mut Node<S, Can, C>,
+    frame: CanFrame<C>,
+) -> bool {
+    if let Some(frame) = node.try_receive_frame(frame).unwrap() {
+        core::hint::black_box(frame);
+        return true;
+    }
+    false
+}
+
+pub fn bench_receive<
     S: SessionManager<C>,
     C: embedded_time::Clock + 'static + Clone,
     CM: embedded_time::Clock,
@@ -29,14 +44,15 @@ pub(crate) fn bench_receive<
         let payload_iter = FakePayloadIter::<8>::multi_frame(N, transfer_id);
         for payload in payload_iter {
             let payload = arrayvec::ArrayVec::from_iter(payload);
-            let frame = CanFrame {
+            let frame = core::hint::black_box(CanFrame {
                 id: message_id,
                 payload,
                 timestamp: context.clock.try_now().unwrap(),
-            };
+            });
             watch.start();
-            if let Some(frame) = context.node.try_receive_frame(frame).unwrap() {
-                core::hint::black_box(frame);
+            if receive(&mut context.node, core::hint::black_box(frame)) {
+                watch.stop();
+                break;
             }
             watch.stop();
             transfer_id = transfer_id.wrapping_add(1);
