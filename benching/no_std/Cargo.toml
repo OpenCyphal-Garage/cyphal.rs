@@ -39,7 +39,7 @@ default-features = false
 
 [features]
 default = [
-    "defmt-default",
+    "defmt-default"
 ]
 
 # logging level features
@@ -49,6 +49,8 @@ defmt-debug = []
 defmt-info = []
 defmt-warn = []
 defmt-error = []
+
+test = []
 
 [workspace]
 members = []
@@ -62,4 +64,7 @@ bench = false
 codegen-units = 1 # better optimizations
 debug = true # symbols are nice and they don't increase the size on Flash
 lto = true # better optimizations
-opt-level = 3
+opt-level = "s"
+
+# [profile.release.package."*"]
+# opt-level = "z"
