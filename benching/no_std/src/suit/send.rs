@@ -1,9 +1,11 @@
 use defmt::{info, Format};
-use embedded_time::fixed_point::FixedPoint;
+use embedded_time::{duration::Nanoseconds, fixed_point::FixedPoint, Instant};
 use streaming_iterator::StreamingIterator;
 use uavcan::{
     session::SessionManager, transfer::Transfer, transport::can::Can, Node, Priority, TransferKind,
 };
+
+use crate::benching::Elapsed;
 
 use super::Bencher;
 
@@ -25,6 +27,17 @@ fn get_test_payload<const N: usize>() -> heapless::Vec<u8, N> {
     )
 }
 
+#[optimize(speed)]
+fn publish<S: SessionManager<C>, C: embedded_time::Clock + 'static + Clone>(
+    node: &mut Node<S, Can, C>,
+    transfer: Transfer<C>,
+) {
+    let mut frame_iter = node.transmit(&transfer).unwrap();
+    while let Some(frame) = frame_iter.next() {
+        core::hint::black_box(frame);
+    }
+}
+
 pub(crate) fn bench_send<
     S: SessionManager<C>,
     C: embedded_time::Clock + 'static + Clone,
@@ -34,7 +47,7 @@ pub(crate) fn bench_send<
     bencher: &mut Bencher<CM>,
     context: &mut Context<S, C>,
 ) {
-    let data = get_test_payload::<N>();
+    let data = core::hint::black_box(get_test_payload::<N>());
     let mut transfer_id = 0;
 
     bencher.run_with_watch(|watch| {
@@ -49,10 +62,7 @@ pub(crate) fn bench_send<
         };
         {
             watch.start();
-            let mut frame_iter = context.node.transmit(&transfer).unwrap();
-            while let Some(frame) = frame_iter.next() {
-                core::hint::black_box(frame);
-            }
+            publish(&mut context.node, core::hint::black_box(transfer));
             watch.stop();
         }
 
