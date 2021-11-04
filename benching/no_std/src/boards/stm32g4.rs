@@ -13,6 +13,7 @@ use hal::{
 };
 use stm32g4xx_hal as hal;
 
+#[derive(Clone)]
 pub struct StmClock;
 
 impl Clock for StmClock {
