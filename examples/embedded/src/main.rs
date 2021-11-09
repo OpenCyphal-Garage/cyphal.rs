@@ -38,7 +38,7 @@ use core::{
 use allocator::MyAllocator;
 use clock::StmClock;
 
-use cortex_m as _;
+use cortex_m::{self as _, peripheral::DWT};
 use cortex_m_rt::{entry, pre_init};
 
 use embedded_time::{duration::Milliseconds, Clock};
@@ -235,8 +235,8 @@ fn main() -> ! {
                 let frame = CanFrame {
                     id: message_id,
                     payload,
-                timestamp: clock.try_now().unwrap(),
-            };
+                    timestamp: clock.try_now().unwrap(),
+                };
                 let start = measure_clock.now();
                 if let Some(frame) = node.try_receive_frame(frame).unwrap() {
                     core::hint::black_box(frame);
