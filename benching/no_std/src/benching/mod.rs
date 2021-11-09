@@ -1,6 +1,11 @@
 pub mod bencher;
+mod report;
 pub mod runner;
+mod stats;
 mod watch;
+
+pub use report::report;
+pub use stats::Summary;
 
 use embedded_time::{
     duration::{Generic, Nanoseconds},

@@ -1,9 +1,6 @@
 use core::ops::Add;
 
-use embedded_time::{
-    duration::{Generic, Nanoseconds},
-    Instant,
-};
+use embedded_time::{duration::Nanoseconds, Instant};
 
 use super::Elapsed;
 

@@ -1,19 +1,15 @@
+use embedded_time::Clock;
 use uavcan::{
     session::SessionManager,
-    transport::{
-        can::{Can, CanFrame, CanMessageId, FakePayloadIter},
-        Transport,
-    },
+    transport::can::{Can, CanFrame, CanMessageId, FakePayloadIter},
     types::PortId,
     Node,
 };
 
-use super::Bencher;
-
-pub struct Context<'a, S: SessionManager<C>, C: embedded_time::Clock + 'static + Clone> {
-    pub node: Node<S, Can, C>,
-    pub clock: &'a C,
-}
+use super::{
+    context::{NeedsClock, NeedsNode},
+    Bencher,
+};
 
 #[optimize(speed)]
 fn receive<S: SessionManager<C>, C: embedded_time::Clock + 'static + Clone>(
@@ -27,15 +23,12 @@ fn receive<S: SessionManager<C>, C: embedded_time::Clock + 'static + Clone>(
     false
 }
 
-pub fn bench_receive<
-    S: SessionManager<C>,
-    C: embedded_time::Clock + 'static + Clone,
-    CM: embedded_time::Clock,
-    const N: usize,
->(
+pub fn bench_receive<Context, CM: embedded_time::Clock, const N: usize>(
     bencher: &mut Bencher<CM>,
-    context: &mut Context<S, C>,
-) {
+    context: &mut Context,
+) where
+    Context: NeedsNode<TransportType = Can> + NeedsClock,
+{
     let port_id: PortId = 7168;
     let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
     let mut transfer_id = 0u8;
@@ -47,10 +40,10 @@ pub fn bench_receive<
             let frame = core::hint::black_box(CanFrame {
                 id: message_id,
                 payload,
-                timestamp: context.clock.try_now().unwrap(),
+                timestamp: context.clock_as_mut().try_now().unwrap(),
             });
             watch.start();
-            if receive(&mut context.node, core::hint::black_box(frame)) {
+            if receive(context.node_as_mut(), core::hint::black_box(frame)) {
                 watch.stop();
                 break;
             }

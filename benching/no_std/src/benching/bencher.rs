@@ -7,6 +7,10 @@ use super::{
     Watch,
 };
 
+pub trait RenewableContext {
+    fn reset(&mut self);
+}
+
 pub struct Bencher<C: embedded_time::Clock, const SAMPLE_AMOUNT: usize, const ROUND_SIZE: usize> {
     data: [Nanoseconds<C::T>; SAMPLE_AMOUNT],
     runner: Runner<C, ROUND_SIZE>,
