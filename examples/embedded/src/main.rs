@@ -17,6 +17,7 @@ use defmt::info;
 mod allocator;
 mod clock;
 mod util;
+mod watch;
 
 mod stack_analysis;
 
@@ -41,7 +42,10 @@ use clock::StmClock;
 use cortex_m::{self as _, peripheral::DWT};
 use cortex_m_rt::{entry, pre_init};
 
-use embedded_time::{duration::Milliseconds, Clock};
+use embedded_time::{
+    duration::{Microseconds, Milliseconds, Nanoseconds},
+    Clock,
+};
 use hal::{
     delay::SYSTDelayExt,
     fdcan::{
@@ -64,12 +68,16 @@ use stm32g4xx_hal as hal;
 use uavcan::{
     session::HeapSessionManager,
     transfer::Transfer,
-    transport::can::{Can, CanFrame, CanMessageId, CanMetadata, FakePayloadIter, TailByte},
+    transport::can::{
+        Can, CanFrame, CanIter, CanMessageId, CanMetadata, FakePayloadIter, TailByte,
+    },
     types::{PortId, TransferId},
     Node, Priority, Subscription, TransferKind,
 };
 
 use util::insert_u8_array_in_u32_array;
+
+use watch::Elapsed;
 
 // #[pre_init]
 // unsafe fn before_main() {
@@ -81,22 +89,95 @@ static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 #[global_allocator]
 static ALLOCATOR: MyAllocator = MyAllocator::INIT;
 
-pub fn publish(
-    clock: &MonoTimer,
+#[no_mangle]
+fn measure_receive(
+    clock: &StmClock,
+    watch: &mut watch::TraceWatch,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+    port_id: PortId,
+    transfer_id: &mut u8,
+) {
+    let mut frame_count = 0;
+    let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+    let payload_iter = FakePayloadIter::<8>::multi_frame(3, *transfer_id);
+    for payload in payload_iter {
+        let payload = arrayvec::ArrayVec::from_iter(payload);
+        let frame = CanFrame {
+            id: message_id,
+            payload,
+            timestamp: clock.try_now().unwrap(),
+        };
+        watch.start();
+        if let Some(frame) = node
+            .try_receive_frame(core::hint::black_box(frame))
+            .unwrap()
+        {
+            core::hint::black_box(frame);
+        }
+        watch.stop();
+        frame_count += 1;
+    }
+
+    let nanos = watch.get_elapsed().unwrap().0;
+    info!("elapsed: {} nanos for {} frames", nanos, frame_count);
+    watch.reset();
+    *transfer_id = transfer_id.wrapping_add(1);
+}
+
+#[no_mangle]
+fn measure_send(
+    clock: &StmClock,
+    watch: &mut watch::TraceWatch,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+    port_id: PortId,
+    transfer_id: &mut u8,
+) {
+    const PAYLOADS: [usize; 9] = [7, 12, 19, 26, 33, 40, 47, 54, 110];
+    const PAYLOAD_LEN: usize = PAYLOADS[6];
+    let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
+        core::iter::from_fn(|| {
+            static mut COUNT: u8 = 0;
+            unsafe {
+                COUNT += 1;
+                Some(COUNT)
+            }
+        })
+        .take(PAYLOAD_LEN),
+    );
+
+    let transfer = Transfer {
+        timestamp: clock.try_now().unwrap(),
+        priority: Priority::Nominal,
+        transfer_kind: TransferKind::Message,
+        port_id: 100,
+        remote_node_id: None,
+        transfer_id: *transfer_id,
+        payload: &data,
+    };
+
+    *transfer_id = transfer_id.wrapping_add(1);
+
+    publish(watch, node, transfer, can);
+}
+
+fn publish(
+    watch: &mut watch::TraceWatch,
     node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
     transfer: Transfer<StmClock>,
     can: &mut FdCan<FDCAN1, NormalOperationMode>,
 ) {
-    let mut elapsed = 0;
     let mut frame_count = 0;
-    let start = clock.now();
+    watch.start();
     let mut frame_iter = node.transmit(&transfer).unwrap();
-    elapsed += start.elapsed();
+    watch.stop();
     loop {
-        let start = clock.now();
-        if let Some(frame) = frame_iter.next() {
+        watch.start();
+        let frame = frame_iter.next();
+        watch.stop();
+        if let Some(frame) = frame {
             // transmit_fdcan(frame, can);
-            elapsed += start.elapsed();
 
             frame_count += 1;
             core::hint::black_box(frame);
@@ -105,9 +186,24 @@ pub fn publish(
         }
     }
 
-    let micros: u32 = clock.frequency().duration(elapsed).0;
-    info!("elapsed: {} micros for {} frames", micros, frame_count);
+    let nanos = watch.get_elapsed().unwrap().0;
+    info!("elapsed: {} nanos for {} frames", nanos, frame_count);
+    watch.reset();
 }
+
+// #[no_mangle]
+// fn test(clock: &StmClock) {
+//     let now = clock.try_now().unwrap();
+//     let start = DWT::get_cycle_count();
+//     loop {
+//         if clock.elapsed_millis(&now).0 >= 10 {
+//             break;
+//         }
+//     }
+//     let stop = DWT::get_cycle_count();
+
+//     info!("took {}", (stop - start) * 1000 / 170);
+// }
 
 #[entry]
 fn main() -> ! {
@@ -162,8 +258,8 @@ fn main() -> ! {
         can.into_normal()
     };
 
-    let measure_clock = MonoTimer::new(cp.DWT, cp.DCB, &rcc.clocks);
-
+    let measure_clock = watch::StmClock::new(cp.DWT, cp.DCB);
+    let mut watch = watch::TraceWatch::new(&measure_clock);
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
@@ -174,8 +270,8 @@ fn main() -> ! {
         .subscribe(Subscription::new(
             TransferKind::Message,
             port_id, // TODO check
-            12 + 6 * 7,
-            embedded_time::duration::Milliseconds(500),
+            12 + 14 * 7,
+            embedded_time::duration::Milliseconds(10000),
         ))
         .unwrap();
 
@@ -185,106 +281,30 @@ fn main() -> ! {
     let mut last_published = clock.try_now().unwrap();
 
     loop {
-        let now = clock.try_now().unwrap();
-        // if now - last_published
-        //     > embedded_time::duration::Generic::new(100, StmClock::SCALING_FACTOR)
-        // {
-        //     const PAYLOAD_LEN: usize = 7;
-        //     let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
-        //         core::iter::from_fn(|| {
-        //             static mut COUNT: u8 = 0;
-        //             unsafe {
-        //                 COUNT += 1;
-        //                 Some(COUNT)
-        //             }
-        //         })
-        //         .take(PAYLOAD_LEN),
-        //     );
-        //     // str.extend_from_slice(hello.as_bytes()).unwrap();
-
-        //     let transfer = Transfer {
-        //         timestamp: clock.try_now().unwrap(),
-        //         priority: Priority::Nominal,
-        //         transfer_kind: TransferKind::Message,
-        //         port_id: 100,
-        //         remote_node_id: None,
-        //         transfer_id,
-        //         payload: &data,
-        //     };
-
-        //     transfer_id += 1;
-
-        //     publish(&measure_clock, &mut node, transfer, &mut can);
-
-        //     last_published = clock.try_now().unwrap();
-
-        //     led.toggle().unwrap();
-        //     delay_syst.delay(1000.ms());
-        //     led.toggle().unwrap();
-        // }
-
-        if now - last_published
-            > embedded_time::duration::Generic::new(100, StmClock::SCALING_FACTOR)
-        {
-            let mut general_elapsed = 0;
-            let mut frame_count = 0;
-            let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
-            let payload_iter = FakePayloadIter::<8>::multi_frame(6, transfer_id);
-            for payload in payload_iter {
-                let payload = arrayvec::ArrayVec::from_iter(payload);
-                let frame = CanFrame {
-                    id: message_id,
-                    payload,
-                    timestamp: clock.try_now().unwrap(),
-                };
-                let start = measure_clock.now();
-                if let Some(frame) = node.try_receive_frame(frame).unwrap() {
-                    core::hint::black_box(frame);
-                }
-                let elapsed = start.elapsed();
-                general_elapsed += elapsed;
-                frame_count += 1;
-            }
-
-            let micros: u32 = measure_clock.frequency().duration(general_elapsed).0;
-            info!("elapsed: {} micros for {} frames", micros, frame_count);
-            // info!("success: {}", success);
-
-            transfer_id = transfer_id.wrapping_add(1);
-
-            last_published = now;
+        if clock.elapsed_millis(&last_published).0 >= 1_000 {
+            measure_send(
+                &clock,
+                &mut watch,
+                &mut node,
+                &mut can,
+                port_id,
+                &mut transfer_id,
+            );
+            last_published = clock.try_now().unwrap();
         }
+
+        // if clock.elapsed_millis(&last_published).0 >= 1_000 {
+        //     measure_receive(
+        //         &clock,
+        //         &mut watch,
+        //         &mut node,
+        //         &mut can,
+        //         port_id,
+        //         &mut transfer_id,
+        //     );
+        //     last_published = clock.try_now().unwrap();
+        // }
     }
-
-    // unsafe {
-    //     let mut c = 0;
-    //     stack_analysis::copy_stack(RAM_START, RAM_START + 10, &mut c);
-    //     stack_analysis::print_stack();
-    // }
-
-    // let (used, start_stack_ptr) = unsafe { stack_analysis::count_used_ram() };
-    // info!(
-    //     "used stack: {}bytes\n static data: {}bytes",
-    //     used,
-    //     0x20_008_000 - start_stack_ptr
-    // );
-
-    // let m_p = micros.to_be_bytes();
-    // let mut payload = used.to_be_bytes();
-    // payload[1] = m_p[0];
-    // let header = TxFrameHeader {
-    //     bit_rate_switching: false,
-    //     frame_format: stm32g4xx_hal::fdcan::frame::FrameFormat::Standard,
-    //     id: Id::Extended(ExtendedId::new(0x1).unwrap()),
-    //     len: payload.len() as u8,
-    //     marker: None,
-    // };
-    // block!(can.transmit(header, &mut |b| {
-    //     insert_u8_array_in_u32_array(&payload, b)
-    // },))
-    // .unwrap();
-
-    // loop {}
 }
 
 fn transmit_fdcan(frame: CanFrame<StmClock>, can: &mut FdCan<FDCAN1, NormalOperationMode>) {
