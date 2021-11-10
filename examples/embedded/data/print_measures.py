@@ -102,12 +102,12 @@ def arduino_send_transfer(plt: plt.Axes):
 
 
 def rust_send_transfer(plt):
-    y = [0, 3, 5, 7, 8, 10, 11, 12]
-    x = [1, 2, 3, 4, 5, 6, 7, 8]
+    y = [1.799, 5.416, 7.457, 9.568, 11.702, 13.614, 15.802, 18.024, 35.421]
+    x = [1, 2, 3, 4, 5, 6, 7, 8, 16]
 
     # plt.subplot(1, 2, 1)
     plt.title.set_text("Senden einer Übertragung")
-    plt.plot(x, y, 'g')
+    plt.plot(x, y, 'g-o')
 
     plt.legend(["gesamt"])
 
@@ -120,26 +120,36 @@ def rust_send_transfer(plt):
 
 
 def rust_rec_transfer(plt):
-    y = [6, 15, 22, 22, 22, 22, 22, 44]
-    y_no_realloc = [5, 9, 12, 12, 12, 12, 12, 29]
-    y_subscr_func_reimpl_worst = [5, 9, 12, 15, 17, 20, 23, 26.5]
-    y_subscr_func_reimpl_best = [2, 5, 8, 11, 14, 17, 20, 22.5]
-    x = [1, 2, 3, 4, 5, 6, 7, 8]
+    y_worst = [8.258, 18.270, 27.693, 32.569,
+               42.339, 47.216, 52.103, 57.355, 101.706]
+    y_best = [7.364, 17.652, 27.075, 31.951,
+              41.721, 46.598, 51.485, 56.725, 101.105]
+    y_no_realloc_worst = [7.152, 13.052, 17.928,
+                          22.793, 27.639, 32.503, 37.367, 42.614, 81.209]
+    y_no_realloc_best = [6.294, 12.187, 17.057,
+                         21.922, 26.804, 31.632, 36.496, 41.761, 80.338]
+    y_subscr_func_reimpl_worst = [6.523, 12.029,
+                                  16.564, 21.057, 25.539, 30.039, 34.539, 38.679, 75.114]
+    y_subscr_func_reimpl_best = [3.123, 8.570,
+                                 13.099, 17.604, 22.110, 26.574, 31.074, 35.232, 71.649]
+    x = [1, 2, 3, 4, 5, 6, 7, 8, 16]
 
     # plt.subplot(1, 2, 1)
     plt.title.set_text("Empfangen von Rahmen")
-    plt.plot(x, y, 'g')
-    plt.plot(x, y_no_realloc, 'r')
-    plt.plot(x, y_subscr_func_reimpl_worst, 'b--')
-    plt.plot(x, y_subscr_func_reimpl_best, 'b')
+    plt.plot(x, y_worst, 'g--o')
+    plt.plot(x, y_best, 'g-o')
+    plt.plot(x, y_no_realloc_worst, 'r--o')
+    plt.plot(x, y_no_realloc_best, 'r-o')
+    plt.plot(x, y_subscr_func_reimpl_worst, 'b--o')
+    plt.plot(x, y_subscr_func_reimpl_best, 'b-o')
 
-    plt.legend(["erste Messung", "erste Optimierung",
-               "zweite Optimierung Worst Case", "zweite Optimierung Best Case"])
+    plt.legend(["erste Messung Worst Case", "erste Messung Best Case", "erste Optimierung Worst Case",
+               "zweite Optimierung Best Case", "zweite Optimierung Worst Case", "zweite Optimierung Best Case"])
 
     plt.set_xlabel("Rahmen-Anzahl")
 
-    elevation_from_two = sum(np.array(list(y[i] - y[i - 1]
-                                           for i in range(len(y) - 1, 1, -1)))) / (len(y) - 2)
+    elevation_from_two = sum(np.array(list(y_best[i] - y_best[i - 1]
+                                           for i in range(len(y_best) - 1, 1, -1)))) / (len(y_best) - 2)
     print("rust receive statistics:")
     print("elev. from 2-8 frames: " + str(elevation_from_two) + " micros/frame")
 
