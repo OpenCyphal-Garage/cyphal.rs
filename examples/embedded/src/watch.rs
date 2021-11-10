@@ -2,7 +2,7 @@ use core::ops::Add;
 
 use cortex_m::peripheral::{DCB, DWT};
 use embedded_time::{
-    duration::{Generic, Nanoseconds},
+    duration::{Generic, Milliseconds, Nanoseconds},
     Instant,
 };
 
@@ -11,7 +11,7 @@ pub type TraceWatch<'a> = Watch<'a, StmClock>;
 pub struct StmClock;
 
 impl StmClock {
-    pub fn new(mut dwt: DWT, mut dcb: DCB) -> Self {
+    pub fn new(dwt: DWT, dcb: DCB) -> Self {
         init_timer(dwt, dcb);
         Self {}
     }
@@ -24,12 +24,14 @@ impl embedded_time::Clock for StmClock {
         embedded_time::rate::Fraction::new(1, 170_000_000);
 
     fn try_now(&self) -> Result<embedded_time::Instant<Self>, embedded_time::clock::Error> {
-        Ok(embedded_time::Instant::new(DWT::get_cycle_count()))
+        let ticks = DWT::get_cycle_count();
+        Ok(embedded_time::Instant::new(ticks))
     }
 }
 
 fn init_timer(mut dwt: DWT, mut dcb: DCB) {
     dcb.enable_trace();
+    unsafe { dwt.cyccnt.write(0) };
     dwt.enable_cycle_counter();
 
     // now the CYCCNT counter can't be stopped or reset
@@ -38,12 +40,14 @@ fn init_timer(mut dwt: DWT, mut dcb: DCB) {
 
 pub trait Elapsed<C: embedded_time::Clock> {
     fn elapsed(&self, since: &Instant<C>) -> Generic<C::T>;
-    fn elapsed_nanos(&self, since: &Instant<C>) -> Nanoseconds<C::T>;
+    fn elapsed_nanos(&self, since: &Instant<C>) -> Nanoseconds<u64>;
+    fn elapsed_millis(&self, since: &Instant<C>) -> Milliseconds<u64>;
 }
 
 impl<C> Elapsed<C> for C
 where
     C: embedded_time::Clock,
+    <C as embedded_time::Clock>::T: Into<u64>,
 {
     fn elapsed(&self, since: &Instant<C>) -> Generic<C::T> {
         let now = self.try_now().unwrap();
@@ -53,17 +57,29 @@ where
         }
     }
 
-    fn elapsed_nanos(&self, since: &Instant<C>) -> Nanoseconds<C::T> {
-        Nanoseconds::try_from(self.elapsed(since)).unwrap()
+    fn elapsed_nanos(&self, since: &Instant<C>) -> Nanoseconds<u64> {
+        let elapsed = self.elapsed(since);
+        Nanoseconds::try_from(elapsed).unwrap()
+    }
+
+    fn elapsed_millis(&self, since: &Instant<C>) -> Milliseconds<u64> {
+        let elapsed = self.elapsed(since);
+        Milliseconds::try_from(elapsed).unwrap()
     }
 }
 
-pub struct RunningWatch<'a, 'b, C: embedded_time::Clock> {
+pub struct RunningWatch<'a, 'b, C: embedded_time::Clock>
+where
+    <C as embedded_time::Clock>::T: Into<u64>,
+{
     watch: &'a mut Watch<'b, C>,
     aborted: bool,
 }
 
-impl<'a, 'b, C: embedded_time::Clock> RunningWatch<'a, 'b, C> {
+impl<'a, 'b, C: embedded_time::Clock> RunningWatch<'a, 'b, C>
+where
+    <C as embedded_time::Clock>::T: Into<u64>,
+{
     fn new(watch: &'a mut Watch<'b, C>) -> Self {
         Self {
             watch,
@@ -76,7 +92,10 @@ impl<'a, 'b, C: embedded_time::Clock> RunningWatch<'a, 'b, C> {
     }
 }
 
-impl<'b, C: embedded_time::Clock> Drop for RunningWatch<'_, 'b, C> {
+impl<'b, C: embedded_time::Clock> Drop for RunningWatch<'_, 'b, C>
+where
+    <C as embedded_time::Clock>::T: Into<u64>,
+{
     fn drop(&mut self) {
         if !self.aborted {
             self.watch.stop()
@@ -84,13 +103,19 @@ impl<'b, C: embedded_time::Clock> Drop for RunningWatch<'_, 'b, C> {
     }
 }
 
-pub struct Watch<'a, C: embedded_time::Clock> {
-    elapsed: Option<Nanoseconds<C::T>>,
+pub struct Watch<'a, C: embedded_time::Clock>
+where
+    <C as embedded_time::Clock>::T: Into<u64>,
+{
+    elapsed: Option<Nanoseconds<u64>>,
     last_start: Option<Instant<C>>,
     clock: &'a C,
 }
 
-impl<'a, C: embedded_time::Clock> Watch<'a, C> {
+impl<'a, C: embedded_time::Clock> Watch<'a, C>
+where
+    <C as embedded_time::Clock>::T: Into<u64>,
+{
     pub(crate) fn new(clock: &'a C) -> Self {
         Self {
             elapsed: None,
@@ -136,7 +161,7 @@ impl<'a, C: embedded_time::Clock> Watch<'a, C> {
     }
 
     /// returns None if watch never started to run
-    pub fn get_elapsed(&mut self) -> Option<Nanoseconds<C::T>> {
+    pub fn get_elapsed(&mut self) -> Option<Nanoseconds<u64>> {
         if self.last_start.is_some() {
             self.stop();
         }
