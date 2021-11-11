@@ -94,7 +94,7 @@ fn discard_empty_frame() {
     let clock = TestClock::default();
     let frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: 0,
+        id: ExtendedId::ZERO,
         payload: ArrayVec::new(),
     };
     let result = Can::rx_process_frame(&Some(42), &frame);
@@ -234,7 +234,7 @@ fn transfer_valid_ids() {
         .unwrap()
         .next()
         .expect("Failed to create iter");
-    let id = CanMessageId(frame.id);
+    let id = CanMessageId::from(frame.id);
     assert!(id.is_message());
     assert!(id.is_anon());
     assert!(id.subject_id() == 0);
@@ -243,7 +243,7 @@ fn transfer_valid_ids() {
 
     let frame: CanFrame<TestClock<u32>> =
         CanIter::new(&transfer, Some(12)).unwrap().next().expect("");
-    let id = CanMessageId(frame.id);
+    let id = CanMessageId::from(frame.id);
     assert!(id.is_message());
     assert!(!id.is_anon());
     assert!(id.subject_id() == 0);

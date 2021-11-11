@@ -107,11 +107,7 @@ impl CanServiceId {
         service_id: PortId,
         destination: NodeId,
         source: NodeId,
-<<<<<<< HEAD
-    ) -> Self {
-=======
     ) -> ExtendedId {
->>>>>>> 142e514 (added ExtendedId conversions)
         let mut id = CanServiceId(0);
         id.set_priority(priority.to_u8().unwrap());
         id.set_svc(true);
@@ -120,11 +116,7 @@ impl CanServiceId {
         id.set_service_id(service_id);
         id.set_destination_id(destination);
         id.set_source_id(source);
-<<<<<<< HEAD
-        id
-=======
         ExtendedId::new(id.0).expect("not a extended CAN ID")
->>>>>>> 142e514 (added ExtendedId conversions)
     }
 
     pub fn valid(&self) -> bool {
