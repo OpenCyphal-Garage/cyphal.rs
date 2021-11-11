@@ -5,6 +5,7 @@
 //! are able to do some of the more basic checks that they are valid.
 
 use bitfield::bitfield;
+use embedded_hal::can::ExtendedId;
 use num_traits::ToPrimitive;
 
 use crate::types::*;
@@ -36,7 +37,7 @@ bitfield! {
 
 impl CanMessageId {
     // TODO bounds checks (can these be auto-implemented?)
-    pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> Self {
+    pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> ExtendedId {
         let is_anon = source_id.is_none();
         // TODO do better than XKCD 221
         let source_id = source_id.unwrap_or(4);
@@ -52,7 +53,7 @@ impl CanMessageId {
         id.set_rsvd2(true);
         id.set_rsvd3(false);
         // Return data
-        id
+        ExtendedId::new(id.0).expect("not a extended CAN ID")
     }
 
     /// Is this a message or a service ID?
@@ -70,6 +71,12 @@ impl CanMessageId {
         }
 
         true
+    }
+}
+
+impl From<ExtendedId> for CanMessageId {
+    fn from(id: ExtendedId) -> Self {
+        Self(id.as_raw())
     }
 }
 
@@ -100,7 +107,11 @@ impl CanServiceId {
         service_id: PortId,
         destination: NodeId,
         source: NodeId,
+<<<<<<< HEAD
     ) -> Self {
+=======
+    ) -> ExtendedId {
+>>>>>>> 142e514 (added ExtendedId conversions)
         let mut id = CanServiceId(0);
         id.set_priority(priority.to_u8().unwrap());
         id.set_svc(true);
@@ -109,7 +120,11 @@ impl CanServiceId {
         id.set_service_id(service_id);
         id.set_destination_id(destination);
         id.set_source_id(source);
+<<<<<<< HEAD
         id
+=======
+        ExtendedId::new(id.0).expect("not a extended CAN ID")
+>>>>>>> 142e514 (added ExtendedId conversions)
     }
 
     pub fn valid(&self) -> bool {
@@ -118,6 +133,12 @@ impl CanServiceId {
         }
 
         true
+    }
+}
+
+impl From<ExtendedId> for CanServiceId {
+    fn from(id: ExtendedId) -> Self {
+        Self(id.as_raw())
     }
 }
 
