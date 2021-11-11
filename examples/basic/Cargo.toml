@@ -10,6 +10,8 @@ edition = "2018"
 socketcan = "1.7.0"
 arrayvec = "0.5.2"
 embedded-time = "0.12.0"
+
+# TODO: if new embedded-hal version releases, this can be changed to crates.io
 embedded-hal = {version = "0.2.6", git = "https://github.com/rust-embedded/embedded-hal/", branch = "v0.2.x"}
 
 [dependencies.uavcan]
