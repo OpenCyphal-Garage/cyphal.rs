@@ -10,6 +10,8 @@ use core::marker::PhantomData;
 
 use core::clone::Clone;
 
+use alloc::borrow::ToOwned;
+
 use crate::session::SessionManager;
 use crate::transfer::Transfer;
 use crate::transport::Transport;
@@ -86,5 +88,74 @@ where
     // to implement for the user.
     pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
         T::transmit(transfer)
+    }
+}
+
+pub struct Rx<S, T, C> {
+    id: Option<NodeId>,
+    sessions: S,
+    _transport: PhantomData<T>,
+    _clock: PhantomData<C>,
+}
+
+impl<S, T, C> Rx<S, T, C>
+where
+    T: Transport<C>,
+    S: SessionManager<C>,
+    C: embedded_time::Clock + Clone,
+{
+    pub fn try_receive_frame<'a>(
+        &mut self,
+        frame: T::Frame,
+    ) -> Result<Option<Transfer<C>>, RxError> {
+        let frame = T::rx_process_frame(&self.id, &frame)?;
+
+        if let Some(frame) = frame {
+            match self.sessions.ingest(frame) {
+                Ok(frame) => Ok(frame),
+                Err(err) => Err(RxError::SessionError(err)),
+            }
+        } else {
+            Ok(None)
+        }
+    }
+}
+
+pub struct Tx<T, C> {
+    _id: Option<NodeId>,
+    _transport: PhantomData<T>,
+    _clock: PhantomData<C>,
+}
+
+impl<T, C> Tx<T, C>
+where
+    T: Transport<C>,
+    C: embedded_time::Clock + Clone,
+{
+    pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
+        T::transmit(transfer)
+    }
+}
+
+impl<S, T, C> Node<S, T, C>
+where
+    T: Transport<C>,
+    S: SessionManager<C>,
+    C: embedded_time::Clock + Clone,
+{
+    pub fn split(self) -> (Tx<T, C>, Rx<S, T, C>) {
+        (
+            Tx {
+                _id: self.id.to_owned(),
+                _clock: PhantomData::default(),
+                _transport: PhantomData::default(),
+            },
+            Rx {
+                id: self.id,
+                sessions: self.sessions,
+                _clock: PhantomData::default(),
+                _transport: PhantomData::default(),
+            },
+        )
     }
 }
