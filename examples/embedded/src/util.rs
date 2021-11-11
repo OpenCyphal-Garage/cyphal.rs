@@ -26,13 +26,13 @@ fn slice_into_u32(slice: &[u8]) -> u32 {
     // TODO nicer algorithm
     match slice.len() {
         1 => return (slice[0] as u32) << 24,
-        2 => return (slice[0] as u32) << 24 | (slice[1] as u32) << 16,
-        3 => return (slice[0] as u32) << 24 | (slice[1] as u32) << 16 | (slice[2] as u32) << 8,
+        2 => return (slice[1] as u32) << 24 | (slice[0] as u32) << 16,
+        3 => return (slice[2] as u32) << 24 | (slice[1] as u32) << 16 | (slice[0] as u32) << 8,
         4 => {
-            return (slice[0] as u32) << 24
-                | (slice[1] as u32) << 16
-                | (slice[2] as u32) << 8
-                | (slice[3] as u32)
+            return (slice[3] as u32) << 24
+                | (slice[2] as u32) << 16
+                | (slice[1] as u32) << 8
+                | (slice[0] as u32)
         }
         _ => return 0,
     }
@@ -48,10 +48,10 @@ mod test {
         let val = slice_into_u32(&array);
         assert_eq!(
             val,
-            (array[0] as u32) << 24
-                | (array[1] as u32) << 16
-                | (array[2] as u32) << 8
-                | (array[3] as u32)
+            (array[3] as u32) << 24
+                | (array[2] as u32) << 16
+                | (array[1] as u32) << 8
+                | (array[0] as u32)
         );
     }
 
@@ -61,7 +61,7 @@ mod test {
         let val = slice_into_u32(&array[..3]);
         assert_eq!(
             val,
-            (array[0] as u32) << 24 | (array[1] as u32) << 16 | (array[2] as u32) << 8
+            (array[2] as u32) << 24 | (array[1] as u32) << 16 | (array[0] as u32) << 8
         );
     }
 
@@ -69,7 +69,7 @@ mod test {
     fn test_slice_2_to_u32() {
         let array = [23, 34, 23, 56];
         let val = slice_into_u32(&array[..2]);
-        assert_eq!(val, (array[0] as u32) << 24 | (array[1] as u32) << 16);
+        assert_eq!(val, (array[1] as u32) << 24 | (array[0] as u32) << 16);
     }
 
     #[test]
