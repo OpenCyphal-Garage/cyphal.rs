@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+MARKER = "|"
+
 
 def arduino_rec_frames(plt: plt.Axes):
     y_best = [9.4, 17.6, 23.4, 29.2, 35, 40.7, 46.4, 52.2]
@@ -31,10 +33,10 @@ def arduino_rec_frames(plt: plt.Axes):
 
     # ax.subplot(1, 2, 2)
     plt.title.set_text("Empfangen von Rahmen")
-    plt.plot(x, y_best, 'g')
-    plt.plot(x, y_worst, 'g--')
-    plt.plot(x, y_best_tlsf, 'r')
-    plt.plot(x, y_worst_tlsf, 'r--')
+    plt.plot(x, y_best, 'g-', marker=MARKER)
+    plt.plot(x, y_worst, 'g--', marker=MARKER)
+    plt.plot(x, y_best_tlsf, 'r-', marker=MARKER)
+    plt.plot(x, y_worst_tlsf, 'r--', marker=MARKER)
 
     plt.set_xlabel("Rahmen-Anzahl")
     plt.legend(["Best Case", "Worst Case",
@@ -48,16 +50,7 @@ def arduino_rec_frames(plt: plt.Axes):
     print("elev. from 2-8 frames: " + str(elevation_from_two) + " micros/frame")
 
 
-def arduino_send_transfer(plt: plt.Axes):
-
-    y = [11.3, 22.2, 31.3, 39.8, 48.6, 57.1, 65.9, 74.4]
-    y_enqueue = [7.1, 15.9, 22.5, 29.1, 35.8, 42.4, 49.1, 55.7]
-    y_tlsf = np.array([9.929, 19.658, 27.035, 34.411,
-                      41.411, 49.282, 56.800, 64.152])
-    y_tlsf_enqueue = [6.405, 13.211, 18.958,
-                      24.611, 30.423, 36.076, 41.888, 47.541]
-    x = [1, 2, 3, 4, 5, 6, 7, 8]
-
+def calc_arduino_send_without_heap(y):
     allocs = np.array([
         0.552,
         0.976,
@@ -80,15 +73,28 @@ def arduino_send_transfer(plt: plt.Axes):
     ])
 
     heap_time = allocs + frees
-    y_without_heap = y_tlsf - heap_time
+    return y - heap_time
+
+
+def arduino_send_transfer(plt: plt.Axes):
+
+    y = [11.3, 22.2, 31.3, 39.8, 48.6, 57.1, 65.9, 74.4]
+    y_enqueue = [7.1, 15.9, 22.5, 29.1, 35.8, 42.4, 49.1, 55.7]
+    y_tlsf = np.array([9.929, 19.658, 27.035, 34.411,
+                      41.411, 49.282, 56.800, 64.152])
+    y_tlsf_enqueue = [6.405, 13.211, 18.958,
+                      24.611, 30.423, 36.076, 41.888, 47.541]
+    x = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    y_without_heap = calc_arduino_send_without_heap(y_tlsf)
 
     # plt.subplot(1, 2, 1)
     plt.title.set_text("Senden einer Übertragung")
-    plt.plot(x, y, 'g')
-    plt.plot(x, y_enqueue, 'g--')
-    plt.plot(x, y_tlsf, 'r')
-    plt.plot(x, y_tlsf_enqueue, 'r--')
-    plt.plot(x, y_without_heap, 'y')
+    plt.plot(x, y, 'g-', marker=MARKER)
+    plt.plot(x, y_enqueue, 'g--', marker=MARKER)
+    plt.plot(x, y_tlsf, 'r-', marker=MARKER)
+    plt.plot(x, y_tlsf_enqueue, 'r--', marker=MARKER)
+    plt.plot(x, y_without_heap, 'y-', marker=MARKER)
 
     plt.legend(["gesamt", "enqeueTransfer()",
                "gesamt mit tlsf", "tlsf enqeueTransfer()", "gesamt ohne heap"])
@@ -107,7 +113,7 @@ def rust_send_transfer(plt):
 
     # plt.subplot(1, 2, 1)
     plt.title.set_text("Senden einer Übertragung")
-    plt.plot(x, y, 'g-o')
+    plt.plot(x, y, 'g-', marker=MARKER)
 
     plt.legend(["gesamt"])
 
@@ -136,12 +142,12 @@ def rust_rec_transfer(plt):
 
     # plt.subplot(1, 2, 1)
     plt.title.set_text("Empfangen von Rahmen")
-    plt.plot(x, y_worst, 'g--o')
-    plt.plot(x, y_best, 'g-o')
-    plt.plot(x, y_no_realloc_worst, 'r--o')
-    plt.plot(x, y_no_realloc_best, 'r-o')
-    plt.plot(x, y_subscr_func_reimpl_worst, 'b--o')
-    plt.plot(x, y_subscr_func_reimpl_best, 'b-o')
+    plt.plot(x, y_worst, 'g--', marker=MARKER)
+    plt.plot(x, y_best, 'g-', marker=MARKER)
+    plt.plot(x, y_no_realloc_worst, 'r--', marker=MARKER)
+    plt.plot(x, y_no_realloc_best, 'r-', marker=MARKER)
+    plt.plot(x, y_subscr_func_reimpl_worst, 'b--', marker=MARKER)
+    plt.plot(x, y_subscr_func_reimpl_best, 'b-', marker=MARKER)
 
     plt.legend(["erste Messung Worst Case", "erste Messung Best Case", "erste Optimierung Worst Case",
                "zweite Optimierung Best Case", "zweite Optimierung Worst Case", "zweite Optimierung Best Case"])
@@ -154,16 +160,80 @@ def rust_rec_transfer(plt):
     print("elev. from 2-8 frames: " + str(elevation_from_two) + " micros/frame")
 
 
+def arduino_rust_diff():
+    f, (ax, bx) = plt.subplots(1, 2, sharey='row')
+    ax.set_ylabel("Mikrosekunden")
+
+    y_tlsf = np.array([9.929, 19.658, 27.035, 34.411,
+                      41.411, 49.282, 56.800, 64.152])
+    y_arduino_send = calc_arduino_send_without_heap(y_tlsf)
+    y_arduino_receive = [
+        8.429,
+        16.605,
+        22.223,
+        27.905,
+        33.588,
+        39.264,
+        45.035,
+        50.723,
+    ]
+    y_rust_send = [1.799, 5.416, 7.457, 9.568,
+                   11.702, 13.614, 15.802, 18.024]
+    y_rust_receive = [3.123, 8.570,
+                      13.099, 17.604, 22.110, 26.574, 31.074, 35.232]
+    x = [1, 2, 3, 4, 5, 6, 7, 8]
+
+    # TODO - init value
+    y_send_per_frame_arduino = [None] + list(
+        y_arduino_send[i] - y_arduino_send[i - 1] for i in range(len(y_arduino_send) - 1, 0, -1))
+    y_send_per_frame_rust = [None] + list(
+        y_rust_send[i] - y_rust_send[i - 1] for i in range(len(y_rust_send) - 1, 0, -1))
+
+    y_rec_per_frame_arduino = [None] + list(
+        y_arduino_receive[i] - y_arduino_receive[i - 1] for i in range(len(y_arduino_receive) - 1, 0, -1))
+    y_rec_per_frame_rust = [None] + list(
+        y_rust_receive[i] - y_rust_receive[i - 1] for i in range(len(y_rust_receive) - 1, 0, -1))
+
+    # plt.subplot(1, 2, 1)
+    ax.title.set_text("Senden von Übertragungen")
+    ax.plot(x, y_arduino_send, 'r-', marker=MARKER)
+    ax.plot(x, y_rust_send, 'g-', marker=MARKER)
+
+    ax.plot(x, y_send_per_frame_arduino, 'r--')
+    ax.plot(x, y_send_per_frame_rust, 'g--')
+
+    ax.legend(["Arduino (C++)", "Rust", "Arduino pro Rahmen", "Rust pro Rahmen"])
+
+    ax.set_xlabel("Rahmen-Anzahl")
+
+    bx.title.set_text("Empfangen von Rahmen")
+    bx.plot(x, y_arduino_receive, 'r-', marker=MARKER)
+    bx.plot(x, y_rust_receive, 'g-', marker=MARKER)
+
+    bx.plot(x, y_rec_per_frame_arduino, 'r--')
+    bx.plot(x, y_rec_per_frame_rust, 'g--')
+
+    bx.legend(["Arduino (C++)", "Rust", "Arduino pro Rahmen", "Rust pro Rahmen"])
+
+    bx.set_xlabel("Rahmen-Anzahl")
+
+
 def main():
-    # f, (ax, bx) = plt.subplots(1, 2, sharey='row')
-    # ax.set_ylabel("Mikrosekunden")
-    # arduino_send_transfer(ax)
-    # arduino_rec_frames(bx)
+    f, (ax, bx) = plt.subplots(1, 2, sharey='row')
+
+    ax.set_ylabel("Mikrosekunden")
+    arduino_send_transfer(ax)
+    arduino_rec_frames(bx)
+    plt.show()
+
     f, (ax, bx) = plt.subplots(1, 2, sharey='row')
     ax.set_ylabel("Mikrosekunden")
     rust_send_transfer(ax)
     rust_rec_transfer(bx)
 
+    plt.show()
+
+    arduino_rust_diff()
     plt.show()
 
 
