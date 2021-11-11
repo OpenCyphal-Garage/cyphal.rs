@@ -47,7 +47,7 @@ use embedded_time::{
     Clock,
 };
 use hal::{
-    delay::{Delay, SYSTDelayExt},
+    delay::SYSTDelayExt,
     fdcan::{
         config::{ClockDivider, NominalBitTiming},
         filter::{StandardFilter, StandardFilterSlot},
@@ -56,7 +56,7 @@ use hal::{
         id::Id,
         FdCan, NormalOperationMode,
     },
-    gpio::{gpioa::PA5, GpioExt, Output, PushPull, Speed},
+    gpio::{GpioExt, Speed},
     nb::block,
     prelude::*,
     rcc::{Config, PLLSrc, PllConfig, Rcc, RccExt, SysClockSrc},
@@ -77,107 +77,133 @@ use uavcan::{
 
 use util::insert_u8_array_in_u32_array;
 
-use watch::{Elapsed, TraceWatch};
+use watch::Elapsed;
+
+// #[pre_init]
+// unsafe fn before_main() {
+//     stack_analysis::fill_stack()
+// }
 
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
 #[global_allocator]
 static ALLOCATOR: MyAllocator = MyAllocator::INIT;
 
-const RECEIVE_PORT_ID: u16 = 1001;
-const SEND_PORT_ID: u16 = 1000;
+#[no_mangle]
+fn measure_receive(
+    clock: &StmClock,
+    watch: &mut watch::TraceWatch,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+    port_id: PortId,
+    transfer_id: &mut u8,
+) {
+    let mut frame_count = 0;
+    let message_id = CanMessageId::new(uavcan::Priority::Immediate, port_id, Some(1));
+    let payload_iter = FakePayloadIter::<8>::multi_frame(2, *transfer_id);
+    for payload in payload_iter {
+        let payload = arrayvec::ArrayVec::from_iter(payload);
+        let frame = CanFrame {
+            id: message_id,
+            payload,
+            timestamp: clock.try_now().unwrap(),
+        };
+        watch.start();
+        if let Some(frame) = node
+            .try_receive_frame(core::hint::black_box(frame))
+            .unwrap()
+        {
+            core::hint::black_box(frame);
+        }
+        watch.stop();
+        frame_count += 1;
+    }
 
-const PAYLOADS: [usize; 9] = [7, 12, 19, 26, 33, 40, 47, 54, 110];
-const PAYLOAD_LEN: usize = PAYLOADS[7];
+    let nanos = watch.get_elapsed().unwrap().0;
+    info!("elapsed: {} nanos for {} frames", nanos, frame_count);
+    watch.reset();
+    *transfer_id = transfer_id.wrapping_add(1);
+}
 
-fn logic(
-    mut can: FdCan<FDCAN1, NormalOperationMode>,
-    node: Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
-    clock: StmClock,
-    mut led: PA5<Output<PushPull>>,
-    mut delay: Delay,
-    mut watch: TraceWatch,
-) -> ! {
-    let (tx, mut rx) = node.split();
-    let mut transfer_id: TransferId = 0;
-    let mut last_published = clock.try_now().unwrap();
-    loop {
-        watch.reset();
-        if clock.elapsed_millis(&last_published).0 >= 1_000 {
-            let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
-                core::iter::from_fn(|| {
-                    static mut COUNT: u8 = 0;
-                    unsafe {
-                        COUNT += 1;
-                        Some(COUNT)
-                    }
-                })
-                .take(PAYLOAD_LEN),
-            );
-
-            watch.start();
-            let transfer = Transfer {
-                timestamp: clock.try_now().unwrap(),
-                priority: Priority::Nominal,
-                transfer_kind: TransferKind::Message,
-                port_id: SEND_PORT_ID,
-                remote_node_id: None,
-                transfer_id,
-                payload: &data,
-            };
-
-            let mut frame_iter = tx.transmit(&transfer).unwrap();
-            while let Some(frame) = frame_iter.next() {
-                delay.delay_us(100);
-                transmit_fdcan(frame, &mut can);
+#[no_mangle]
+fn measure_send(
+    clock: &StmClock,
+    watch: &mut watch::TraceWatch,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+    port_id: PortId,
+    transfer_id: &mut u8,
+) {
+    const PAYLOADS: [usize; 9] = [7, 12, 19, 26, 33, 40, 47, 54, 110];
+    const PAYLOAD_LEN: usize = PAYLOADS[6];
+    let data = heapless::Vec::<u8, PAYLOAD_LEN>::from_iter(
+        core::iter::from_fn(|| {
+            static mut COUNT: u8 = 0;
+            unsafe {
+                COUNT += 1;
+                Some(COUNT)
             }
+        })
+        .take(PAYLOAD_LEN),
+    );
 
-            // loop {
-            //     let frame = frame_iter.next();
-            //     if let Some(frame) = frame {
-            //         watch.stop();
-            //         transmit_fdcan(frame, &mut can);
-            //         watch.start();
-            //     } else {
-            //         watch.stop();
-            //         break;
-            //     }
-            // }
+    let transfer = Transfer {
+        timestamp: clock.try_now().unwrap(),
+        priority: Priority::Nominal,
+        transfer_kind: TransferKind::Message,
+        port_id: 100,
+        remote_node_id: None,
+        transfer_id: *transfer_id,
+        payload: &data,
+    };
 
-            let _ = block!(can.receive0(&mut |frame, payload| {
-                // watch.start();
-                let mut payload_ptr = payload.as_ptr() as *const u8;
-                let ptr_end = unsafe { payload_ptr.add((frame.len + 1) as usize) };
-                let payload_iter = core::iter::from_fn(|| {
-                    if payload_ptr == ptr_end {
-                        None
-                    } else {
-                        let byte = unsafe { *payload_ptr };
-                        payload_ptr = unsafe { payload_ptr.add(1) };
-                        Some(byte)
-                    }
-                });
-                let uavcan_can_frame = CanFrame {
-                    id: match frame.id {
-                        Id::Extended(id) => id.as_raw(),
-                        _ => panic!("support only extended can ID"),
-                    },
-                    payload: ArrayVec::from_iter(payload_iter),
-                    timestamp: clock.try_now().unwrap(),
-                };
-                if let Some(transfer) = rx.try_receive_frame(uavcan_can_frame).unwrap() {
-                    let _ = core::hint::black_box(transfer);
-                    watch.stop();
+    *transfer_id = transfer_id.wrapping_add(1);
 
-                    info!("took {} nanos", watch.get_elapsed().unwrap().0);
-                }
-            }));
+    publish(watch, node, transfer, can);
+}
 
-            transfer_id = transfer_id.wrapping_add(1);
-            last_published = clock.try_now().unwrap();
+fn publish(
+    watch: &mut watch::TraceWatch,
+    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    transfer: Transfer<StmClock>,
+    can: &mut FdCan<FDCAN1, NormalOperationMode>,
+) {
+    let mut frame_count = 0;
+    watch.start();
+    let mut frame_iter = node.transmit(&transfer).unwrap();
+    watch.stop();
+    loop {
+        watch.start();
+        let frame = frame_iter.next();
+        watch.stop();
+        if let Some(frame) = frame {
+            // transmit_fdcan(frame, can);
+
+            frame_count += 1;
+            core::hint::black_box(frame);
+        } else {
+            break;
         }
     }
+
+    let nanos = watch.get_elapsed().unwrap().0;
+    info!("elapsed: {} nanos for {} frames", nanos, frame_count);
+    watch.reset();
 }
+
+// #[no_mangle]
+// fn test(clock: &StmClock) {
+//     let now = clock.try_now().unwrap();
+//     let start = DWT::get_cycle_count();
+//     loop {
+//         if clock.elapsed_millis(&now).0 >= 10 {
+//             break;
+//         }
+//     }
+//     let stop = DWT::get_cycle_count();
+
+//     info!("took {}", (stop - start) * 1000 / 170);
+// }
 
 #[entry]
 fn main() -> ! {
@@ -198,7 +224,7 @@ fn main() -> ! {
     let mut delay_syst = cp.SYST.delay(&rcc.clocks);
 
     // init can
-    let can = {
+    let mut can = {
         let rx = gpioa.pa11.into_alternate().set_speed(Speed::VeryHigh);
         let tx = gpioa.pa12.into_alternate().set_speed(Speed::VeryHigh);
 
@@ -233,26 +259,55 @@ fn main() -> ! {
     };
 
     let measure_clock = watch::StmClock::new(cp.DWT, cp.DCB);
-    let watch = watch::TraceWatch::new(&measure_clock);
+    let mut watch = watch::TraceWatch::new(&measure_clock);
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
+
+    let port_id: PortId = 7168;
 
     let mut session_manager = HeapSessionManager::<CanMetadata, Milliseconds, StmClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
-            RECEIVE_PORT_ID, // TODO check
-            PAYLOAD_LEN,
+            port_id, // TODO check
+            12 + 0 * 7,
             embedded_time::duration::Milliseconds(10000),
         ))
         .unwrap();
 
-    let node = Node::<_, Can, StmClock>::new(Some(100), session_manager);
+    let mut node = Node::<_, Can, StmClock>::new(Some(100), session_manager);
 
-    logic(can, node, clock, led, delay_syst, watch)
+    let mut transfer_id = 0u8;
+    let mut last_published = clock.try_now().unwrap();
+
+    loop {
+        // if clock.elapsed_millis(&last_published).0 >= 1_000 {
+        //     measure_send(
+        //         &clock,
+        //         &mut watch,
+        //         &mut node,
+        //         &mut can,
+        //         port_id,
+        //         &mut transfer_id,
+        //     );
+        //     last_published = clock.try_now().unwrap();
+        // }
+
+        if clock.elapsed_millis(&last_published).0 >= 1_000 {
+            measure_receive(
+                &clock,
+                &mut watch,
+                &mut node,
+                &mut can,
+                port_id,
+                &mut transfer_id,
+            );
+            last_published = clock.try_now().unwrap();
+        }
+    }
 }
 
-fn transmit_fdcan(frame: &CanFrame<StmClock>, can: &mut FdCan<FDCAN1, NormalOperationMode>) {
+fn transmit_fdcan(frame: CanFrame<StmClock>, can: &mut FdCan<FDCAN1, NormalOperationMode>) {
     let header = TxFrameHeader {
         bit_rate_switching: false,
         frame_format: stm32g4xx_hal::fdcan::frame::FrameFormat::Standard,
