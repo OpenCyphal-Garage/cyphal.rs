@@ -20,6 +20,7 @@ license = "Apache-2.0/MIT"
 num-derive = "0.3"
 bitfield = "0.13"
 
+embedded-hal = {version = "0.2.6", git = "https://github.com/rust-embedded/embedded-hal/", branch = "v0.2.x"}
 embedded-time = "0.12.0"
 
 # should only in no_std, so if feature std not set - ref: https://github.com/rust-lang/cargo/issues/1839
