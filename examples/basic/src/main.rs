@@ -1,3 +1,4 @@
+use embedded_hal::can::ExtendedId;
 use embedded_time::duration::Milliseconds;
 use embedded_time::Clock;
 use uavcan::session::StdVecSessionManager;
@@ -46,7 +47,7 @@ fn main() {
             // 2: I don't like how the payload is working
             let mut uavcan_frame = UavcanFrame {
                 timestamp: clock.try_now().unwrap(),
-                id: socketcan_frame.id(),
+                id: ExtendedId::new(socketcan_frame.id()).expect("not a extended CAN ID"),
                 payload: ArrayVec::new(),
             };
             uavcan_frame
@@ -104,8 +105,10 @@ fn main() {
             transfer_id = (std::num::Wrapping(transfer_id) + std::num::Wrapping(1)).0;
 
             for frame in node.transmit(&transfer).unwrap() {
-                sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap())
-                    .unwrap();
+                sock.write_frame(
+                    &CANFrame::new(frame.id.as_raw(), &frame.payload, false, false).unwrap(),
+                )
+                .unwrap();
 
                 //print!("Can frame {}: ", i);
                 //for byte in &frame.payload {

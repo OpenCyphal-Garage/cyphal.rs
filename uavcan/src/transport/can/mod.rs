@@ -10,6 +10,7 @@
 //! for quite a while... :(.
 
 use arrayvec::ArrayVec;
+use embedded_hal::can::ExtendedId;
 use embedded_time::Clock;
 use num_traits::FromPrimitive;
 
@@ -64,9 +65,10 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
             return Err(RxError::NonLastUnderUtilization);
         }
 
-        if CanServiceId(frame.id).is_svc() {
+        let service_id = CanServiceId::from(frame.id);
+        if service_id.is_svc() {
             // Handle services
-            let id = CanServiceId(frame.id);
+            let id = service_id;
 
             // Ignore invalid frames
             if !id.valid() {
@@ -98,7 +100,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
             )));
         } else {
             // Handle messages
-            let id = CanMessageId(frame.id);
+            let id: CanMessageId = frame.id.into();
 
             // We can ignore ID in anonymous transfers
             let source_node_id = if id.is_anon() {
@@ -144,7 +146,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
 #[derive(Debug)]
 pub struct CanIter<'a, C: embedded_time::Clock> {
     transfer: &'a crate::transfer::Transfer<'a, C>,
-    frame_id: u32,
+    frame_id: ExtendedId,
     payload_offset: usize,
     crc_left: u8,
     crc: Crc16,
@@ -163,7 +165,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     return Err(TxError::AnonNotSingleFrame);
                 }
 
-                CanMessageId::new(transfer.priority, transfer.port_id, node_id).0
+                CanMessageId::new(transfer.priority, transfer.port_id, node_id)
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
@@ -178,7 +180,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     transfer.port_id,
                     destination,
                     source,
-                ).0
+                )
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
@@ -191,7 +193,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     transfer.port_id,
                     destination,
                     source,
-                ).0
+                )
             }
         };
 
@@ -321,7 +323,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
 #[derive(Clone, Debug)]
 pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
-    pub id: u32,
+    pub id: ExtendedId,
     pub payload: ArrayVec<[u8; 8]>,
 }
 
