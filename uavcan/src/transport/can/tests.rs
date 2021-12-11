@@ -32,7 +32,7 @@ fn receive_anon_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None).0,
+        id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
 
@@ -52,7 +52,7 @@ fn receive_message_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, Some(41)).0,
+        id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
         payload: ArrayVec::new(),
     };
 
@@ -70,7 +70,7 @@ fn receive_service_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41).0,
+        id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
         payload: ArrayVec::new(),
     };
 
@@ -81,7 +81,7 @@ fn receive_service_frame() {
     all_frame_asserts(internal_frame, Some(41), Some(42), true, true, &[224]);
 
     let mut frame = frame;
-    frame.id = CanServiceId::new(Priority::Nominal, true, 0, 42, 41).0;
+    frame.id = CanServiceId::new(Priority::Nominal, true, 0, 42, 41);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing service request frame");
     let internal_frame = result.expect("Failed to process valid service request frame");
@@ -111,7 +111,7 @@ fn discard_anon_multi_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None).0,
+        id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
 
@@ -140,7 +140,7 @@ fn discard_misguided_service_frames() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41).0,
+        id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
         payload: ArrayVec::new(),
     };
 
@@ -162,7 +162,7 @@ fn discard_misguided_service_frames() {
     );
 
     // Response
-    frame.id = CanServiceId::new(Priority::Nominal, false, 0, 31, 41).0;
+    frame.id = CanServiceId::new(Priority::Nominal, false, 0, 31, 41);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
     assert!(
@@ -185,7 +185,7 @@ fn tail_byte_checks() {
     // Start with invalid tail byte - toggle should be true to start transfer
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None).0,
+        id: CanMessageId::new(Priority::Nominal, 0, None),
         payload: ArrayVec::new(),
     };
 
