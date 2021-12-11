@@ -1,0 +1,6 @@
+{
+    "recommendations": [
+        "marus25.cortex-debug",
+        "matklad.rust-analyzer"
+    ]
+}

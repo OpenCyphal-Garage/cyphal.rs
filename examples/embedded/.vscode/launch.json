@@ -1,0 +1,29 @@
+{
+    /* 
+     * Requires the Rust Language Server (RLS) and Cortex-Debug extensions
+     * https://marketplace.visualstudio.com/items?itemName=rust-lang.rust
+     * https://marketplace.visualstudio.com/items?itemName=marus25.cortex-debug
+     */
+    "version": "0.2.0",
+    "configurations": [
+        {
+            /* Configuration for the STM32G431 board */
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug (OpenOCD)",
+            "servertype": "external",
+            "gdbPath": "C:\\Users\\alext\\toolchains\\gcc-arm-none-eabi-10.3-2021.07\\bin\\arm-none-eabi-gdb.exe",
+            "gdbTarget": "localhost:3333",
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "Cargo Build (debug)",
+            "runToMain": true,
+            "executable": "./target/thumbv7em-none-eabihf/debug/embedded",
+            "svdFile": "${workspaceRoot}/STM32G431xx.svd",
+            "device": "STM32G431B",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32g4x.cfg"
+            ],
+        },
+    ]
+}

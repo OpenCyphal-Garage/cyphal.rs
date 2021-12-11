@@ -4,8 +4,6 @@
 
 **Meanwhile consider using [Canadensis](https://github.com/samcrow/canadensis) instead, which is an independent effort.**
 
-> The primary (core) part of the uavcan implementation in rust. Core is also fitting as this crate is and always will be no_std
-
 # License
 
 Licensed under either of
