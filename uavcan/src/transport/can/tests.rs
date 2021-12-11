@@ -32,12 +32,12 @@ fn receive_anon_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None),
+        id: CanMessageId::new(Priority::Nominal, 0, None).0,
         payload: ArrayVec::new(),
     };
 
     frame.payload.extend(0..5);
-    frame.payload.push(TailByte::new(true, true, true, 0));
+    frame.payload.push(TailByte::new(true, true, true, 0).0);
 
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing anon frame");
@@ -52,11 +52,11 @@ fn receive_message_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, Some(41)),
+        id: CanMessageId::new(Priority::Nominal, 0, Some(41)).0,
         payload: ArrayVec::new(),
     };
 
-    frame.payload.push(TailByte::new(true, true, true, 0));
+    frame.payload.push(TailByte::new(true, true, true, 0).0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing message frame");
     let frame = result.expect("Failed to process message frame");
@@ -70,18 +70,18 @@ fn receive_service_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41),
+        id: CanServiceId::new(Priority::Nominal, false, 0, 42, 41).0,
         payload: ArrayVec::new(),
     };
 
-    frame.payload.push(TailByte::new(true, true, true, 0));
+    frame.payload.push(TailByte::new(true, true, true, 0).0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing service response frame");
     let internal_frame = result.expect("Failed to process valid service response frame");
     all_frame_asserts(internal_frame, Some(41), Some(42), true, true, &[224]);
 
     let mut frame = frame;
-    frame.id = CanServiceId::new(Priority::Nominal, true, 0, 42, 41);
+    frame.id = CanServiceId::new(Priority::Nominal, true, 0, 42, 41).0;
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.expect("Error processing service request frame");
     let internal_frame = result.expect("Failed to process valid service request frame");
@@ -111,24 +111,24 @@ fn discard_anon_multi_frame() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None),
+        id: CanMessageId::new(Priority::Nominal, 0, None).0,
         payload: ArrayVec::new(),
     };
 
     // Need to fill frame to avoid tail_byte_checks() cases
     frame.payload.extend(0..7);
 
-    frame.payload.push(TailByte::new(false, true, true, 0));
+    frame.payload.push(TailByte::new(false, true, true, 0).0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
     assert!(matches!(err, RxError::AnonNotSingleFrame));
 
-    frame.payload[7] = TailByte::new(true, false, true, 0);
+    frame.payload[7] = TailByte::new(true, false, true, 0).0;
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
     assert!(matches!(err, RxError::AnonNotSingleFrame));
 
-    frame.payload[7] = TailByte::new(false, false, true, 0);
+    frame.payload[7] = TailByte::new(false, false, true, 0).0;
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
     assert!(matches!(err, RxError::AnonNotSingleFrame));
@@ -140,12 +140,12 @@ fn discard_misguided_service_frames() {
     let clock = TestClock::default();
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41),
+        id: CanServiceId::new(Priority::Nominal, true, 0, 31, 41).0,
         payload: ArrayVec::new(),
     };
 
     // Request
-    frame.payload.push(TailByte::new(true, true, true, 0));
+    frame.payload.push(TailByte::new(true, true, true, 0).0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
     assert!(
@@ -162,7 +162,7 @@ fn discard_misguided_service_frames() {
     );
 
     // Response
-    frame.id = CanServiceId::new(Priority::Nominal, false, 0, 31, 41);
+    frame.id = CanServiceId::new(Priority::Nominal, false, 0, 31, 41).0;
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
     assert!(
@@ -183,14 +183,13 @@ fn discard_misguided_service_frames() {
 fn tail_byte_checks() {
     let clock = TestClock::default();
     // Start with invalid tail byte - toggle should be true to start transfer
-    let tail_byte = TailByte::new(true, true, false, 0);
     let mut frame = CanFrame {
         timestamp: clock.try_now().unwrap(),
-        id: CanMessageId::new(Priority::Nominal, 0, None),
+        id: CanMessageId::new(Priority::Nominal, 0, None).0,
         payload: ArrayVec::new(),
     };
 
-    frame.payload.push(tail_byte.to_u8().unwrap());
+    frame.payload.push(TailByte::new(true, true, false, 0).0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
     assert!(
@@ -198,8 +197,7 @@ fn tail_byte_checks() {
         "Did not catch invalid start toggle"
     );
 
-    let tail_byte = TailByte::new(true, false, true, 0);
-    frame.payload[0] = tail_byte.to_u8().unwrap();
+    frame.payload[0] = TailByte::new(true, false, true, 0).0;
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
     assert!(

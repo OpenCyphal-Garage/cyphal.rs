@@ -11,7 +11,7 @@
 
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::FromPrimitive;
 
 use crate::time::Timestamp;
 use crate::Priority;
@@ -48,7 +48,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
-        if frame.payload.len() == 0 {
+        if frame.payload.is_empty() {
             return Err(RxError::FrameEmpty);
         }
 
@@ -163,9 +163,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     return Err(TxError::AnonNotSingleFrame);
                 }
 
-                CanMessageId::new(transfer.priority, transfer.port_id, node_id)
-                    .to_u32()
-                    .unwrap()
+                CanMessageId::new(transfer.priority, transfer.port_id, node_id).0
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
@@ -180,9 +178,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     transfer.port_id,
                     destination,
                     source,
-                )
-                .to_u32()
-                .unwrap()
+                ).0
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
@@ -195,9 +191,7 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     transfer.port_id,
                     destination,
                     source,
-                )
-                .to_u32()
-                .unwrap()
+                ).0
             }
         };
 
@@ -237,9 +231,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
             self.payload_offset += bytes_left;
             unsafe {
                 frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id)
-                        .to_u8()
-                        .unwrap(),
+                    TailByte::new(true, true, true, self.transfer.transfer_id).0
                 )
             }
         } else {
@@ -293,7 +285,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                     is_end,
                     self.toggle,
                     self.transfer.transfer_id,
-                ));
+                ).0);
             }
 
             // Advance state of iter
@@ -384,6 +376,6 @@ impl<C: embedded_time::Clock> super::SessionMetadata<C> for CanMetadata {
             return true;
         }
 
-        return false;
+        false
     }
 }

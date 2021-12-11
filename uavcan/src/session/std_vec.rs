@@ -72,12 +72,11 @@ where
         // TODO maybe some of the logic here can be skipped with anon transfers.
         let session = frame.source_node_id.unwrap();
         // Create default session if it doesn't exist
-        if !self.sessions.contains_key(&session) {
+        if let std::collections::hash_map::Entry::Vacant(e) = self.sessions.entry(session) {
             if !frame.start_of_transfer {
                 return Err(SessionError::NewSessionNoStart);
             }
-            self.sessions
-                .insert(session, Session::new(frame.transfer_id));
+            e.insert(Session::new(frame.transfer_id));
         }
 
         if self.sessions[&session].transfer_id != frame.transfer_id {
@@ -214,6 +213,18 @@ where
             }
             None => Err(SubscriptionError::SubscriptionDoesNotExist),
         }
+    }
+}
+
+impl<T, D, C> Default for StdVecSessionManager<T, D, C>
+where
+    T: crate::transport::SessionMetadata<C>,
+    D: embedded_time::duration::Duration + FixedPoint,
+    C: embedded_time::Clock,
+    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }
 

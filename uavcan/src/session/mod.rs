@@ -76,7 +76,7 @@ pub trait SessionManager<C: embedded_time::Clock> {
             return false;
         }
 
-        return true;
+        true
     }
 }
 
@@ -95,5 +95,5 @@ where
         }
     }
 
-    return false;
+    false
 }
