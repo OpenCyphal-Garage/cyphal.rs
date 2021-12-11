@@ -1,6 +1,7 @@
 use embedded_hal::can::ExtendedId;
 use embedded_time::duration::Milliseconds;
 use embedded_time::Clock;
+use streaming_iterator::StreamingIterator;
 use uavcan::session::StdVecSessionManager;
 use uavcan::time::StdClock;
 use uavcan::transport::can::{Can, CanFrame as UavcanFrame, CanMetadata};
@@ -104,11 +105,10 @@ fn main() {
             // unsafe { transfer_id.unchecked_add(1); }
             transfer_id = (std::num::Wrapping(transfer_id) + std::num::Wrapping(1)).0;
 
-            for frame in node.transmit(&transfer).unwrap() {
-                sock.write_frame(
-                    &CANFrame::new(frame.id.as_raw(), &frame.payload, false, false).unwrap(),
-                )
-                .unwrap();
+            let mut frame_iter = node.transmit(&transfer).unwrap();
+            while let Some(frame) = frame_iter.next() {
+                sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap())
+                    .unwrap();
 
                 //print!("Can frame {}: ", i);
                 //for byte in &frame.payload {

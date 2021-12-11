@@ -13,6 +13,7 @@ use arrayvec::ArrayVec;
 use embedded_hal::can::ExtendedId;
 use embedded_time::Clock;
 use num_traits::FromPrimitive;
+use streaming_iterator::StreamingIterator;
 
 use crate::time::Timestamp;
 use crate::Priority;
@@ -152,6 +153,7 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
     crc: Crc16,
     toggle: bool,
     is_start: bool,
+    can_frame: Option<CanFrame<C>>,
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
@@ -205,25 +207,37 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
             crc: Crc16::init(),
             toggle: true,
             is_start: true,
+            can_frame: None,
         })
     }
 }
 
-impl<'a, C: Clock> Iterator for CanIter<'a, C> {
+impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     type Item = CanFrame<C>;
 
-    // I'm sure I could take an optimization pass at the logic here
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut frame = CanFrame {
-            // TODO enough to use the transfer timestamp, or need actual timestamp
-            timestamp: self.transfer.timestamp,
-            id: self.frame_id,
-            payload: ArrayVec::new(),
-        };
+    fn get(&self) -> Option<&Self::Item> {
+        self.can_frame.as_ref()
+    }
 
+    // I'm sure I could take an optimization pass at the logic here
+    fn advance(&mut self) {
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
+
+        // Nothing left to transmit, we are done
+        if bytes_left == 0 && self.crc_left == 0 {
+            let _ = self.can_frame.take();
+            return;
+        }
+
         let is_end = bytes_left <= 7;
         let copy_len = core::cmp::min(bytes_left, 7);
+
+        // TODO enough to use the transfer timestamp, or need actual timestamp
+        let frame = self
+            .can_frame
+            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
+
+        frame.payload.clear();
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -231,22 +245,18 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                 .payload
                 .extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
+            self.crc_left = 0;
             unsafe {
                 frame.payload.push_unchecked(
                     TailByte::new(true, true, true, self.transfer.transfer_id).0
                 )
             }
         } else {
-            // Nothing left to transmit, we are done
-            if bytes_left == 0 && self.crc_left == 0 {
-                return None;
-            }
-
             // Handle CRC
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend(out_data.iter().copied());
+            frame.payload.extend(out_data.into_iter().copied());
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -261,8 +271,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
-                        frame.payload.push(crc[0]);
-                        frame.payload.push(crc[1]);
+                        frame.payload.extend(crc.into_iter());
                         self.crc_left = 0;
                     } else {
                         // SAFETY: only written if we have enough space
@@ -295,8 +304,6 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
         }
 
         self.is_start = false;
-
-        Some(frame)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -325,6 +332,17 @@ pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
     pub id: ExtendedId,
     pub payload: ArrayVec<[u8; 8]>,
+}
+
+impl<C: embedded_time::Clock> CanFrame<C> {
+    fn new(timestamp: Timestamp<C>, id: u32) -> Self {
+        Self {
+            timestamp,
+            // TODO get rid of this expect, it probably isn't necessary, just added quickly
+            id: ExtendedId::new(id).expect("invalid ID"),
+            payload: ArrayVec::<[u8; 8]>::new(),
+        }
+    }
 }
 
 /// Keeps track of toggle bit and CRC during frame processing.

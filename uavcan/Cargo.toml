@@ -2,7 +2,7 @@
 name = "uavcan"
 authors = ["David Lenfesty <lenfesty@ualberta.ca>"]
 version = "0.2.0-preview0"
-edition = "2018"
+edition = "2021"
 
 description = "Full functionality reference implementation of UAVCAN/CAN in Rust"
 
@@ -23,6 +23,7 @@ bitfield = "0.13"
 # TODO: if new embedded-hal version releases, this can be changed to crates.io
 embedded-hal = {version = "0.2.6", git = "https://github.com/rust-embedded/embedded-hal/", branch = "v0.2.x"}
 embedded-time = "0.12.0"
+streaming-iterator = "0.1.5"
 
 # should only in no_std, so if feature std not set - ref: https://github.com/rust-lang/cargo/issues/1839
 heapless = "0.7.7"
