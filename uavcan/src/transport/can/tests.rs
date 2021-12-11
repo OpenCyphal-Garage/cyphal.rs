@@ -1,3 +1,5 @@
+use alloc::vec;
+
 use crate::time::TestClock;
 
 use super::*;
@@ -98,7 +100,7 @@ fn discard_empty_frame() {
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Empty frame did not error out.");
     assert!(
-        std::matches!(err, RxError::FrameEmpty),
+        matches!(err, RxError::FrameEmpty),
         "Did not catch empty frame!"
     );
 }
@@ -119,17 +121,17 @@ fn discard_anon_multi_frame() {
     frame.payload.push(TailByte::new(false, true, true, 0));
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
-    assert!(std::matches!(err, RxError::AnonNotSingleFrame));
+    assert!(matches!(err, RxError::AnonNotSingleFrame));
 
     frame.payload[7] = TailByte::new(true, false, true, 0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
-    assert!(std::matches!(err, RxError::AnonNotSingleFrame));
+    assert!(matches!(err, RxError::AnonNotSingleFrame));
 
     frame.payload[7] = TailByte::new(false, false, true, 0);
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.unwrap_err();
-    assert!(std::matches!(err, RxError::AnonNotSingleFrame));
+    assert!(matches!(err, RxError::AnonNotSingleFrame));
 }
 
 /// Service transfers to non-local nodes can safely be ignored.
@@ -147,7 +149,7 @@ fn discard_misguided_service_frames() {
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
     assert!(
-        std::matches!(result, None),
+        matches!(result, None),
         "Didn't discard misguided service request"
     );
 
@@ -155,7 +157,7 @@ fn discard_misguided_service_frames() {
     let result = Can::rx_process_frame(&None, &frame);
     let result = result.unwrap();
     assert!(
-        std::matches!(result, None),
+        matches!(result, None),
         "Didn't discard service request to anonymous node"
     );
 
@@ -164,14 +166,14 @@ fn discard_misguided_service_frames() {
     let result = Can::rx_process_frame(&Some(42), &frame);
     let result = result.unwrap();
     assert!(
-        std::matches!(result, None),
+        matches!(result, None),
         "Didn't discard misguided service response"
     );
 
     let result = Can::rx_process_frame(&None, &frame);
     let result = result.unwrap();
     assert!(
-        std::matches!(result, None),
+        matches!(result, None),
         "Didn't discard service response to anonymous node"
     );
 }
@@ -192,7 +194,7 @@ fn tail_byte_checks() {
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
     assert!(
-        std::matches!(err, RxError::TransferStartMissingToggle),
+        matches!(err, RxError::TransferStartMissingToggle),
         "Did not catch invalid start toggle"
     );
 
@@ -200,9 +202,8 @@ fn tail_byte_checks() {
     frame.payload[0] = tail_byte.to_u8().unwrap();
     let result = Can::rx_process_frame(&Some(42), &frame);
     let err = result.expect_err("Invalid toggle");
-    println!("{:?}", err);
     assert!(
-        std::matches!(err, RxError::NonLastUnderUtilization),
+        matches!(err, RxError::NonLastUnderUtilization),
         "Did not catch unfilled non-end frame"
     );
 }
@@ -252,7 +253,7 @@ fn transfer_valid_ids() {
 
     transfer.transfer_kind = TransferKind::Request;
     let err = CanIter::new(&transfer, None).expect_err("Anonymous service transfers not allowed");
-    assert!(std::matches!(err, TxError::ServiceNoSourceID));
+    assert!(matches!(err, TxError::ServiceNoSourceID));
 
     // TODO finish out these tests. Maybe split this into more tests as well?
 }

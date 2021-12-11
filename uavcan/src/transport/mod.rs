@@ -35,7 +35,9 @@ pub trait SessionMetadata<C: embedded_time::Clock> {
 /// for different transport types.
 pub trait Transport<C: embedded_time::Clock> {
     type Frame;
-    type FrameIter<'a>: Iterator;
+    // TODO does this properly describe the lifetime semantics of this type?
+    // I implemented this as a quick fix to get the PR tests going - David
+    type FrameIter<'a>: Iterator where C: 'a;
 
     /// Process a frame, returning the internal transport-independant representation,
     /// or errors if invalid.

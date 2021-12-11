@@ -15,7 +15,7 @@ mod test_clock {
         ops::{Add, AddAssign, Deref},
     };
 
-    use std::rc::Rc;
+    use alloc::rc::Rc;
 
     use embedded_time::{
         duration::{Duration, Microseconds, Milliseconds},
