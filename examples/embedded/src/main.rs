@@ -1,5 +1,6 @@
 #![no_main]
 #![no_std]
+#![deny(warnings)]
 // to use the global allocator
 #![feature(alloc_error_handler)]
 
@@ -7,17 +8,10 @@
 #[macro_use]
 extern crate std;
 
-#[cfg(feature = "logging")]
-mod logging;
-#[cfg(feature = "logging")]
-use defmt::info;
-
 mod allocator;
 mod clock;
+mod logging;
 mod util;
-
-#[cfg(not(feature = "logging"))]
-use panic_halt as _;
 
 use core::{
     alloc::Layout,
@@ -28,10 +22,9 @@ use core::{
 use allocator::MyAllocator;
 use clock::StmClock;
 
-use cortex_m as _;
 use cortex_m_rt::entry;
 
-use embedded_time::{duration::Milliseconds, Clock};
+use embedded_time::Clock;
 use hal::{
     delay::SYSTDelayExt,
     fdcan::{
@@ -47,7 +40,6 @@ use hal::{
     prelude::*,
     rcc::{Config, PLLSrc, PllConfig, Rcc, RccExt, SysClockSrc},
     stm32::{Peripherals, FDCAN1},
-    timer::MonoTimer,
 };
 use stm32g4xx_hal as hal;
 
@@ -55,7 +47,7 @@ use uavcan::{
     session::HeapSessionManager,
     transfer::Transfer,
     transport::can::{Can, CanMetadata},
-    Node, Priority, Subscription, TransferKind,
+    Node, Priority, StreamingIterator, Subscription, TransferKind,
 };
 
 use util::insert_u8_array_in_u32_array;
@@ -118,8 +110,6 @@ fn main() -> ! {
         can.into_normal()
     };
 
-    let measure_clock = MonoTimer::new(cp.DWT, cp.DCB, &rcc.clocks);
-
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
@@ -178,11 +168,12 @@ pub fn publish(
     transfer: Transfer<StmClock>,
     can: &mut FdCan<FDCAN1, NormalOperationMode>,
 ) {
-    for frame in node.transmit(&transfer).unwrap() {
+    let mut iter = node.transmit(&transfer).unwrap();
+    while let Some(frame) = iter.next() {
         let header = TxFrameHeader {
             bit_rate_switching: false,
             frame_format: hal::fdcan::frame::FrameFormat::Standard,
-            id: Id::Extended(ExtendedId::new(frame.id).unwrap()),
+            id: Id::Extended(ExtendedId::new(frame.id.as_raw()).unwrap()),
             len: frame.payload.len() as u8,
             marker: None,
         };
