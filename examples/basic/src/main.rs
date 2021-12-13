@@ -1,11 +1,13 @@
 use embedded_hal::can::ExtendedId;
-use embedded_time::duration::Milliseconds;
-use embedded_time::Clock;
-use streaming_iterator::StreamingIterator;
-use uavcan::session::StdVecSessionManager;
-use uavcan::time::StdClock;
-use uavcan::transport::can::{Can, CanFrame as UavcanFrame, CanMetadata};
-use uavcan::{transfer::Transfer, types::TransferId, Node, Priority, Subscription, TransferKind};
+use embedded_time::{duration::Milliseconds, Clock};
+use uavcan::{
+    session::StdVecSessionManager,
+    time::StdClock,
+    transfer::Transfer,
+    transport::can::{Can, CanFrame as UavcanFrame, CanMetadata},
+    types::TransferId,
+    Node, Priority, StreamingIterator, Subscription, TransferKind,
+};
 
 use arrayvec::ArrayVec;
 use socketcan::{CANFrame, CANSocket};
