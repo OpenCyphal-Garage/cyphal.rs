@@ -1,5 +1,7 @@
+#![deny(warnings)]
+
 use embedded_hal::can::ExtendedId;
-use embedded_time::{duration::Milliseconds, Clock};
+use embedded_time::Clock;
 use uavcan::{
     session::StdVecSessionManager,
     time::StdClock,
@@ -14,7 +16,7 @@ use socketcan::{CANFrame, CANSocket};
 
 fn main() {
     let clock = StdClock::new();
-    let mut session_manager = StdVecSessionManager::<CanMetadata, Milliseconds, StdClock>::new();
+    let mut session_manager = StdVecSessionManager::<CanMetadata, StdClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
@@ -109,8 +111,10 @@ fn main() {
 
             let mut frame_iter = node.transmit(&transfer).unwrap();
             while let Some(frame) = frame_iter.next() {
-                sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap())
-                    .unwrap();
+                sock.write_frame(
+                    &CANFrame::new(frame.id.as_raw(), &frame.payload, false, false).unwrap(),
+                )
+                .unwrap();
 
                 //print!("Can frame {}: ", i);
                 //for byte in &frame.payload {
