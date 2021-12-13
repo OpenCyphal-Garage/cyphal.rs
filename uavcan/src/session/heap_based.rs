@@ -217,6 +217,18 @@ where
     }
 }
 
+impl<T, C> Default for HeapSessionManager<T, C>
+where
+    T: crate::transport::SessionMetadata<C>,
+    C: Clock,
+{
+    fn default() -> Self {
+        Self {
+            subscriptions: Default::default(),
+        }
+    }
+}
+
 impl<T, C> SessionManager<C> for HeapSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,

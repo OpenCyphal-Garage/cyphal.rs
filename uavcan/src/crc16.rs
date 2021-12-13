@@ -53,7 +53,7 @@ impl Crc16 {
     /// Process the current crc sum further with the supplied data.
     pub fn digest<T: ?Sized + AsRef<[u8]>>(&mut self, data: &T) {
         for n in data.as_ref().iter().copied() {
-            let index = ((self.0 >> u16::from(Self::BITS - 8)) as u8 ^ n) as usize;
+            let index = ((self.0 >> (Self::BITS - 8)) as u8 ^ n) as usize;
             self.0 = (self.0 << 8) ^ NO_REF_16_1021[index];
         }
     }
@@ -62,15 +62,12 @@ impl Crc16 {
     pub fn get_crc(&self) -> u16 {
         let final_xor = 0x0000;
 
-        let sum = (self.0 ^ final_xor) & Crc16::mask();
-
-        sum
+        (self.0 ^ final_xor) & Crc16::mask()
     }
 
     const fn mask() -> u16 {
         let high_bit = 1 << (Self::BITS - 1);
-        let mask = ((high_bit - 1) << 1) | 1;
-        mask
+        ((high_bit - 1) << 1) | 1
     }
 }
 

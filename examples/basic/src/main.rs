@@ -75,7 +75,7 @@ fn main() {
                         for byte in xfer.payload {
                             print!("0x{:02x} ", byte);
                         }
-                        println!("");
+                        println!();
                     }
                     TransferKind::Request => {
                         println!("Request Received!");

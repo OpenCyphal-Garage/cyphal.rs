@@ -4,10 +4,10 @@
 pub fn insert_u8_array_in_u32_array(u8_array: &[u8], u32_array: &mut [u32]) {
     let u32_final_len = (u8_array.len() + 3) / 4;
     // only iterate over n - 1
-    for i in 0..u32_final_len - 1 {
-        let index = i * 4;
+    for (index, item) in u32_array.iter_mut().enumerate().take(u32_final_len - 1) {
+        let index = index * 4;
         let val = slice_into_u32(&u8_array[index..index + 4]);
-        u32_array[i] = val;
+        *item = val;
     }
     let remaining = match u8_array.len() % 4 {
         0 => 4,
@@ -25,16 +25,16 @@ pub fn insert_u8_array_in_u32_array(u8_array: &[u8], u32_array: &mut [u32]) {
 fn slice_into_u32(slice: &[u8]) -> u32 {
     // TODO nicer algorithm
     match slice.len() {
-        1 => return (slice[0] as u32) << 24,
-        2 => return (slice[0] as u32) << 24 | (slice[1] as u32) << 16,
-        3 => return (slice[0] as u32) << 24 | (slice[1] as u32) << 16 | (slice[2] as u32) << 8,
+        1 => (slice[0] as u32) << 24,
+        2 => (slice[0] as u32) << 24 | (slice[1] as u32) << 16,
+        3 => (slice[0] as u32) << 24 | (slice[1] as u32) << 16 | (slice[2] as u32) << 8,
         4 => {
-            return (slice[0] as u32) << 24
+            (slice[0] as u32) << 24
                 | (slice[1] as u32) << 16
                 | (slice[2] as u32) << 8
                 | (slice[3] as u32)
         }
-        _ => return 0,
+        _ => 0,
     }
 }
 

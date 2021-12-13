@@ -135,6 +135,6 @@ impl Subscription {
 
 impl PartialEq for Subscription {
     fn eq(&self, other: &Self) -> bool {
-        return self.transfer_kind == other.transfer_kind && self.port_id == other.port_id;
+        self.transfer_kind == other.transfer_kind && self.port_id == other.port_id
     }
 }

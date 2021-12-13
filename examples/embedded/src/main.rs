@@ -55,14 +55,14 @@ use util::insert_u8_array_in_u32_array;
 static mut POOL: MaybeUninit<[u8; 1024]> = MaybeUninit::uninit();
 
 #[global_allocator]
-static ALLOCATOR: MyAllocator = MyAllocator::INIT;
+static ALLOCATOR: MyAllocator = MyAllocator::init();
 
 #[entry]
 fn main() -> ! {
     // init heap
     let cursor = unsafe { POOL.as_mut_ptr() } as *mut u8;
     let size = 1024;
-    unsafe { ALLOCATOR.init(cursor, size) };
+    unsafe { ALLOCATOR.set_pool(cursor, size) };
 
     // define peripherals of the board
     let dp = Peripherals::take().unwrap();
@@ -200,6 +200,7 @@ fn config_rcc(rcc: Rcc) -> Rcc {
     )
 }
 
+#[allow(clippy::empty_loop)]
 #[alloc_error_handler]
 fn oom(_: Layout) -> ! {
     loop {}

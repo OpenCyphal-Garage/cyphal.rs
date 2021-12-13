@@ -247,16 +247,16 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             self.payload_offset += bytes_left;
             self.crc_left = 0;
             unsafe {
-                frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id).0
-                )
+                frame
+                    .payload
+                    .push_unchecked(TailByte::new(true, true, true, self.transfer.transfer_id).0)
             }
         } else {
             // Handle CRC
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend(out_data.into_iter().copied());
+            frame.payload.extend(out_data.iter().copied());
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -291,12 +291,15 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
 
             // SAFETY: should only copy at most 7 elements prior to here
             unsafe {
-                frame.payload.push_unchecked(TailByte::new(
-                    self.is_start,
-                    is_end,
-                    self.toggle,
-                    self.transfer.transfer_id,
-                ).0);
+                frame.payload.push_unchecked(
+                    TailByte::new(
+                        self.is_start,
+                        is_end,
+                        self.toggle,
+                        self.transfer.transfer_id,
+                    )
+                    .0,
+                );
             }
 
             // Advance state of iter

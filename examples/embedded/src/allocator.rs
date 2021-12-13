@@ -7,9 +7,11 @@ extern crate alloc;
 pub struct MyAllocator(Mutex<RefCell<Tlsf<'static, u8, u8, 8, 8>>>);
 
 impl MyAllocator {
-    pub const INIT: MyAllocator = MyAllocator(Mutex::new(RefCell::new(Tlsf::INIT)));
+    pub const fn init() -> Self {
+        Self(Mutex::new(RefCell::new(Tlsf::INIT)))
+    }
 
-    pub unsafe fn init(&self, pool: *mut u8, len: usize) -> usize {
+    pub unsafe fn set_pool(&self, pool: *mut u8, len: usize) -> usize {
         cortex_m::interrupt::free(|cs| {
             let mut tlsf = self.0.borrow(cs).borrow_mut();
 
