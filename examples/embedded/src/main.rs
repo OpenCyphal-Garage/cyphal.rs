@@ -16,7 +16,6 @@ mod allocator;
 mod clock;
 mod util;
 
-
 #[cfg(not(feature = "logging"))]
 use panic_halt as _;
 
@@ -124,7 +123,7 @@ fn main() -> ! {
     // init clock
     let clock = StmClock::new(dp.TIM7, &rcc.clocks);
 
-    let mut session_manager = HeapSessionManager::<CanMetadata, Milliseconds, StmClock>::new();
+    let mut session_manager = HeapSessionManager::<CanMetadata, StmClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
@@ -175,7 +174,7 @@ fn main() -> ! {
 }
 
 pub fn publish(
-    node: &mut Node<HeapSessionManager<CanMetadata, Milliseconds<u32>, StmClock>, Can, StmClock>,
+    node: &mut Node<HeapSessionManager<CanMetadata, StmClock>, Can, StmClock>,
     transfer: Transfer<StmClock>,
     can: &mut FdCan<FDCAN1, NormalOperationMode>,
 ) {
