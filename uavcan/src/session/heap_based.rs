@@ -3,9 +3,7 @@
 //! This is intended to be the lowest-friction interface to get
 //! started, both for library development and eventually for using the library.
 
-extern crate alloc;
-
-use embedded_time::{duration::Duration, fixed_point::FixedPoint, Clock};
+use embedded_time::Clock;
 
 use crate::session::*;
 use crate::types::NodeId;
@@ -54,24 +52,21 @@ where
 }
 
 /// Internal subscription object. Contains hash map of sessions.
-struct Subscription<T, D, C>
+struct Subscription<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: Duration + FixedPoint,
     C: Clock,
 {
-    sub: crate::Subscription<D>,
+    sub: crate::Subscription,
     sessions: BTreeMap<NodeId, Session<T, C>>,
 }
 
-impl<T, D, C> Subscription<T, D, C>
+impl<T, C> Subscription<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: Duration + FixedPoint,
     C: Clock,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
-    pub fn new(sub: crate::Subscription<D>) -> Self {
+    pub fn new(sub: crate::Subscription) -> Self {
         Self {
             sub,
             sessions: BTreeMap::new(),
@@ -123,6 +118,7 @@ where
 
         if let Some(len) = session.md.update(&frame) {
             // Truncate payload if subscription extent is less than the incoming data
+            // TODO not working.
             let payload_to_copy = if session.payload.len() + len > self.sub.extent {
                 session.payload.len() + len - self.sub.extent
             } else {
@@ -152,21 +148,18 @@ where
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct HeapSessionManager<T, D, C>
+pub struct HeapSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: Duration + FixedPoint,
     C: Clock,
 {
-    subscriptions: Vec<Subscription<T, D, C>>,
+    subscriptions: Vec<Subscription<T, C>>,
 }
 
-impl<T, D, C> HeapSessionManager<T, D, C>
+impl<T, C> HeapSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
-    D: embedded_time::duration::Duration + FixedPoint,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
     pub fn new() -> Self {
         Self {
@@ -177,7 +170,7 @@ where
     /// Add a subscription
     pub fn subscribe(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         if self.subscriptions.iter().any(|s| s.sub == subscription) {
             return Err(SubscriptionError::SubscriptionExists);
@@ -190,7 +183,7 @@ where
     /// Modify subscription in place, creating a new one if not found.
     pub fn edit_subscription(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -208,7 +201,7 @@ where
     /// Removes a subscription from the list.
     pub fn unsubscribe(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -224,12 +217,10 @@ where
     }
 }
 
-impl<T, D, C> SessionManager<C> for HeapSessionManager<T, D, C>
+impl<T, C> SessionManager<C> for HeapSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
-    D: embedded_time::duration::Duration + FixedPoint,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
     fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         match self

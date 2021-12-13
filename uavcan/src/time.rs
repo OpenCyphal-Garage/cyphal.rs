@@ -1,4 +1,5 @@
 pub type Timestamp<C> = embedded_time::Instant<C>;
+pub type Duration = embedded_time::duration::Milliseconds;
 
 #[cfg(test)]
 pub use test_clock::TestClock;
@@ -180,12 +181,6 @@ mod std_clock {
         /// The clock is zeroed at this time point.  
         pub fn new() -> Self {
             Self(Rc::new(RefCell::new(Instant::now())))
-        }
-    }
-
-    impl Default for StdClock {
-        fn default() -> Self {
-            Self::new()
         }
     }
 

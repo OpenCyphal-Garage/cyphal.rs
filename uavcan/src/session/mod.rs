@@ -64,10 +64,7 @@ pub trait SessionManager<C: embedded_time::Clock> {
     ///
     /// It's not necessary to use this in your implementation, you may have
     /// a more efficient way to check, but this is a spec-compliant function.
-    fn matches_sub<D: embedded_time::duration::Duration + FixedPoint>(
-        subscription: &crate::Subscription<D>,
-        frame: &InternalRxFrame<C>,
-    ) -> bool {
+    fn matches_sub(subscription: &crate::Subscription, frame: &InternalRxFrame<C>) -> bool {
         // Order is chosen to short circuit the most common inconsistencies.
         if frame.port_id != subscription.port_id {
             return false;
@@ -76,7 +73,7 @@ pub trait SessionManager<C: embedded_time::Clock> {
             return false;
         }
 
-        true
+        return true;
     }
 }
 
@@ -95,5 +92,5 @@ where
         }
     }
 
-    false
+    return false;
 }
