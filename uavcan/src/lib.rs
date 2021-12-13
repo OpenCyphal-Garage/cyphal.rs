@@ -49,6 +49,8 @@ pub use node::Node;
 use time::Duration;
 pub use transfer::TransferKind;
 
+pub use streaming_iterator::StreamingIterator;
+
 mod internal;
 mod node;
 pub mod session;
