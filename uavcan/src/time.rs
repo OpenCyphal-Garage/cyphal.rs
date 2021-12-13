@@ -184,6 +184,12 @@ mod std_clock {
         }
     }
 
+    impl Default for StdClock {
+        fn default() -> Self {
+            Self(Rc::new(RefCell::new(Instant::now())))
+        }
+    }
+
     impl embedded_time::Clock for StdClock {
         type T = u64;
 
