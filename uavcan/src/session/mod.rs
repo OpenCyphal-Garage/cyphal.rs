@@ -78,6 +78,9 @@ pub trait SessionManager<C: embedded_time::Clock> {
 
     /// Add a subscription
     fn subscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError>;
+
+    /// Removes a subscription from the list.
+    fn unsubscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError>;
 }
 
 fn timestamp_expired<C: embedded_time::Clock, D>(
