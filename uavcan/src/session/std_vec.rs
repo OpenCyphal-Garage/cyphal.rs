@@ -175,24 +175,6 @@ where
             None => Err(SubscriptionError::SubscriptionDoesNotExist),
         }
     }
-
-    /// Removes a subscription from the list.
-    pub fn unsubscribe(
-        &mut self,
-        subscription: crate::Subscription,
-    ) -> Result<(), SubscriptionError> {
-        match self
-            .subscriptions
-            .iter()
-            .position(|x| x.sub == subscription)
-        {
-            Some(pos) => {
-                self.subscriptions.remove(pos);
-                Ok(())
-            }
-            None => Err(SubscriptionError::SubscriptionDoesNotExist),
-        }
-    }
 }
 
 impl<T, C> Default for StdVecSessionManager<T, C>
@@ -218,6 +200,21 @@ where
 
         self.subscriptions.push(Subscription::new(subscription));
         Ok(())
+    }
+
+    /// Removes a subscription from the list.
+    fn unsubscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError> {
+        match self
+            .subscriptions
+            .iter()
+            .position(|x| x.sub == subscription)
+        {
+            Some(pos) => {
+                self.subscriptions.remove(pos);
+                Ok(())
+            }
+            None => Err(SubscriptionError::SubscriptionDoesNotExist),
+        }
     }
 
     fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
