@@ -158,19 +158,6 @@ where
         }
     }
 
-    /// Add a subscription
-    pub fn subscribe(
-        &mut self,
-        subscription: crate::Subscription,
-    ) -> Result<(), SubscriptionError> {
-        if self.subscriptions.iter().any(|s| s.sub == subscription) {
-            return Err(SubscriptionError::SubscriptionExists);
-        }
-
-        self.subscriptions.push(Subscription::new(subscription));
-        Ok(())
-    }
-
     /// Modify subscription in place, creating a new one if not found.
     pub fn edit_subscription(
         &mut self,
@@ -223,6 +210,16 @@ where
     T: crate::transport::SessionMetadata<C>,
     C: embedded_time::Clock,
 {
+    /// Add a subscription
+    fn subscribe(&mut self, subscription: crate::Subscription) -> Result<(), SubscriptionError> {
+        if self.subscriptions.iter().any(|s| s.sub == subscription) {
+            return Err(SubscriptionError::SubscriptionExists);
+        }
+
+        self.subscriptions.push(Subscription::new(subscription));
+        Ok(())
+    }
+
     fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         match self
             .subscriptions
