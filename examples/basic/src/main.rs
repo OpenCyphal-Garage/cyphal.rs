@@ -1,18 +1,22 @@
+#![deny(warnings)]
+
 use embedded_hal::can::ExtendedId;
-use embedded_time::duration::Milliseconds;
 use embedded_time::Clock;
-use streaming_iterator::StreamingIterator;
-use uavcan::session::StdVecSessionManager;
-use uavcan::time::StdClock;
-use uavcan::transport::can::{Can, CanFrame as UavcanFrame, CanMetadata};
-use uavcan::{transfer::Transfer, types::TransferId, Node, Priority, Subscription, TransferKind};
+use uavcan::{
+    session::StdVecSessionManager,
+    time::StdClock,
+    transfer::Transfer,
+    transport::can::{Can, CanFrame as UavcanFrame, CanMetadata},
+    types::TransferId,
+    Node, Priority, StreamingIterator, Subscription, TransferKind,
+};
 
 use arrayvec::ArrayVec;
 use socketcan::{CANFrame, CANSocket};
 
 fn main() {
     let clock = StdClock::new();
-    let mut session_manager = StdVecSessionManager::<CanMetadata, Milliseconds, StdClock>::new();
+    let mut session_manager = StdVecSessionManager::<CanMetadata, StdClock>::new();
     session_manager
         .subscribe(Subscription::new(
             TransferKind::Message,
@@ -71,7 +75,7 @@ fn main() {
                         for byte in xfer.payload {
                             print!("0x{:02x} ", byte);
                         }
-                        println!("");
+                        println!();
                     }
                     TransferKind::Request => {
                         println!("Request Received!");
@@ -107,8 +111,10 @@ fn main() {
 
             let mut frame_iter = node.transmit(&transfer).unwrap();
             while let Some(frame) = frame_iter.next() {
-                sock.write_frame(&CANFrame::new(frame.id, &frame.payload, false, false).unwrap())
-                    .unwrap();
+                sock.write_frame(
+                    &CANFrame::new(frame.id.as_raw(), &frame.payload, false, false).unwrap(),
+                )
+                .unwrap();
 
                 //print!("Can frame {}: ", i);
                 //for byte in &frame.payload {

@@ -37,6 +37,7 @@ bitfield! {
 
 impl CanMessageId {
     // TODO bounds checks (can these be auto-implemented?)
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(priority: Priority, subject_id: PortId, source_id: Option<NodeId>) -> ExtendedId {
         let is_anon = source_id.is_none();
         // TODO do better than XKCD 221
@@ -101,6 +102,7 @@ bitfield! {
 }
 
 impl CanServiceId {
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(
         priority: Priority,
         is_request: bool,

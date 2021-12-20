@@ -22,6 +22,7 @@
 //! this. I can see issues with this running into issues in multi-threaded
 //! environments, but I'll get to those when I get to them.
 #![no_std]
+#![deny(warnings)]
 #![feature(generic_associated_types)]
 #![feature(test)]
 
@@ -45,9 +46,11 @@ pub mod transfer;
 pub mod transport;
 pub mod types;
 
-use embedded_time::fixed_point::FixedPoint;
 pub use node::Node;
+use time::Duration;
 pub use transfer::TransferKind;
+
+pub use streaming_iterator::StreamingIterator;
 
 mod internal;
 mod node;
@@ -107,15 +110,20 @@ pub enum Priority {
 }
 
 /// Simple subscription type to
-pub struct Subscription<D: embedded_time::duration::Duration + FixedPoint> {
+pub struct Subscription {
     transfer_kind: TransferKind,
     port_id: PortId,
     extent: usize,
-    timeout: D,
+    timeout: Duration,
 }
 
-impl<D: embedded_time::duration::Duration + FixedPoint> Subscription<D> {
-    pub fn new(transfer_kind: TransferKind, port_id: PortId, extent: usize, timeout: D) -> Self {
+impl Subscription {
+    pub fn new(
+        transfer_kind: TransferKind,
+        port_id: PortId,
+        extent: usize,
+        timeout: Duration,
+    ) -> Self {
         Self {
             transfer_kind,
             port_id,
@@ -125,7 +133,7 @@ impl<D: embedded_time::duration::Duration + FixedPoint> Subscription<D> {
     }
 }
 
-impl<D: embedded_time::duration::Duration + FixedPoint> PartialEq for Subscription<D> {
+impl PartialEq for Subscription {
     fn eq(&self, other: &Self) -> bool {
         self.transfer_kind == other.transfer_kind && self.port_id == other.port_id
     }

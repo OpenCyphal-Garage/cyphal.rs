@@ -20,6 +20,7 @@ defmt::timestamp!("{=usize}", {
 });
 
 /// Terminates the application and makes `probe-run` exit with exit-code = 0
+#[allow(unused)]
 pub fn exit() -> ! {
     loop {
         cortex_m::asm::bkpt();

@@ -3,8 +3,6 @@
 //! This is intended to be the lowest-friction interface to get
 //! started, both for library development and eventually for using the library.
 
-use embedded_time::fixed_point::FixedPoint;
-
 use crate::session::*;
 use crate::time::Timestamp;
 use crate::types::NodeId;
@@ -43,24 +41,21 @@ where
 }
 
 /// Internal subscription object. Contains hash map of sessions.
-struct Subscription<T, D, C>
+struct Subscription<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
 {
-    sub: crate::Subscription<D>,
+    sub: crate::Subscription,
     sessions: HashMap<NodeId, Session<T, C>>,
 }
 
-impl<T, D, C> Subscription<T, D, C>
+impl<T, C> Subscription<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
-    pub fn new(sub: crate::Subscription<D>) -> Self {
+    pub fn new(sub: crate::Subscription) -> Self {
         Self {
             sub,
             sessions: HashMap::new(),
@@ -144,21 +139,18 @@ where
 /// SessionManager based on full std support. Meant to be lowest
 /// barrier to entry and greatest flexibility at the cost of resource usage
 /// and not being no_std.
-pub struct StdVecSessionManager<T, D, C>
+pub struct StdVecSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
 {
-    subscriptions: Vec<Subscription<T, D, C>>,
+    subscriptions: Vec<Subscription<T, C>>,
 }
 
-impl<T, D, C> StdVecSessionManager<T, D, C>
+impl<T, C> StdVecSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
     pub fn new() -> Self {
         Self {
@@ -169,7 +161,7 @@ where
     /// Add a subscription
     pub fn subscribe(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         if self.subscriptions.iter().any(|s| s.sub == subscription) {
             return Err(SubscriptionError::SubscriptionExists);
@@ -182,7 +174,7 @@ where
     /// Modify subscription in place, creating a new one if not found.
     pub fn edit_subscription(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -200,7 +192,7 @@ where
     /// Removes a subscription from the list.
     pub fn unsubscribe(
         &mut self,
-        subscription: crate::Subscription<D>,
+        subscription: crate::Subscription,
     ) -> Result<(), SubscriptionError> {
         match self
             .subscriptions
@@ -216,24 +208,20 @@ where
     }
 }
 
-impl<T, D, C> Default for StdVecSessionManager<T, D, C>
+impl<T, C> Default for StdVecSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<T, D, C> SessionManager<C> for StdVecSessionManager<T, D, C>
+impl<T, C> SessionManager<C> for StdVecSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
-    D: embedded_time::duration::Duration + FixedPoint,
     C: embedded_time::Clock,
-    <C as embedded_time::Clock>::T: From<<D as FixedPoint>::T>,
 {
     fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
         match self
