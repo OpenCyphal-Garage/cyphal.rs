@@ -39,7 +39,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
         // Frames cannot be empty. They must at least have a tail byte.
         // NOTE: libcanard specifies this as only for multi-frame transfers but uses
         // this logic.
-        if frame.payload.len() == 0 {
+        if frame.payload.is_empty() {
             return Err(RxError::FrameEmpty);
         }
 
@@ -244,7 +244,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend(out_data.into_iter().copied());
+            frame.payload.extend(out_data.iter().copied());
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -387,6 +387,6 @@ impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetada
             return true;
         }
 
-        return false;
+        false
     }
 }

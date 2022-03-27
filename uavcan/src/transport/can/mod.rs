@@ -75,6 +75,6 @@ impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetada
             return true;
         }
 
-        return false;
+        false
     }
 }
