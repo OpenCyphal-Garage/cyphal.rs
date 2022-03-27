@@ -1,17 +1,17 @@
 //! UAVCAN/CAN-FD transport implementation WIP
 
 use arrayvec::ArrayVec;
+use embedded_hal::can::ExtendedId;
 use embedded_time::Clock;
 use num_traits::FromPrimitive;
-use embedded_hal::can::ExtendedId;
 
 use super::bitfields::*;
+use crate::crc16::Crc16;
 use crate::internal::InternalRxFrame;
 use crate::time::Timestamp;
 use crate::transport::Transport;
-use crate::{NodeId, Priority, RxError, TransferKind, TxError};
-use crate::crc16::Crc16;
 use crate::StreamingIterator;
+use crate::{NodeId, Priority, RxError, TransferKind, TxError};
 
 /// Unit struct for declaring transport type
 #[derive(Copy, Clone, Debug)]
@@ -211,9 +211,9 @@ impl<'a, C: Clock> StreamingIterator for FdCanIter<'a, C> {
         let is_end = bytes_left <= 63;
         let mut copy_len = core::cmp::min(bytes_left, 63);
 
-        let frame = self
-            .can_frame
-            .get_or_insert_with(|| FdCanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
+        let frame = self.can_frame.get_or_insert_with(|| {
+            FdCanFrame::new(self.transfer.timestamp, self.frame_id.as_raw())
+        });
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -222,9 +222,9 @@ impl<'a, C: Clock> StreamingIterator for FdCanIter<'a, C> {
                 .extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
             unsafe {
-                frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id).0
-                )
+                frame
+                    .payload
+                    .push_unchecked(TailByte::new(true, true, true, self.transfer.transfer_id).0)
             }
         } else {
             // Handle CRC
@@ -270,12 +270,15 @@ impl<'a, C: Clock> StreamingIterator for FdCanIter<'a, C> {
 
             // SAFETY: should only copy at most 7 elements prior to here
             unsafe {
-                frame.payload.push_unchecked(TailByte::new(
-                    self.is_start,
-                    is_end,
-                    self.toggle,
-                    self.transfer.transfer_id,
-                ).0);
+                frame.payload.push_unchecked(
+                    TailByte::new(
+                        self.is_start,
+                        is_end,
+                        self.toggle,
+                        self.transfer.transfer_id,
+                    )
+                    .0,
+                );
             }
             copy_len += 1;
 
@@ -291,33 +294,54 @@ impl<'a, C: Clock> StreamingIterator for FdCanIter<'a, C> {
         frame.dlc = match copy_len {
             0..=8 => copy_len as u8,
             9..=12 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..12-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..12 - copy_len])
+                    .unwrap();
                 9
-            },
+            }
             13..=16 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..16-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..16 - copy_len])
+                    .unwrap();
                 10
-            },
+            }
             17..=20 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..20-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..20 - copy_len])
+                    .unwrap();
                 11
-            },
+            }
             21..=24 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..24-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..24 - copy_len])
+                    .unwrap();
                 12
-            },
+            }
             25..=32 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..32-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..32 - copy_len])
+                    .unwrap();
                 13
-            },
+            }
             33..=48 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..48-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..48 - copy_len])
+                    .unwrap();
                 14
-            },
+            }
             49..=64 => {
-                frame.payload.try_extend_from_slice(&zeroes[0..64-copy_len]).unwrap();
+                frame
+                    .payload
+                    .try_extend_from_slice(&zeroes[0..64 - copy_len])
+                    .unwrap();
                 15
-            },
+            }
             _ => panic!("Copied data should never exceed 64 bytes!"),
         };
     }
@@ -363,4 +387,3 @@ impl<C: embedded_time::Clock> FdCanFrame<C> {
         }
     }
 }
-

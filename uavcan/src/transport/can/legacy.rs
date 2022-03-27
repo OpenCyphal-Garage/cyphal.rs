@@ -10,17 +10,17 @@
 //! for quite a while... :(.
 
 use arrayvec::ArrayVec;
+use embedded_hal::can::ExtendedId;
 use embedded_time::Clock;
 use num_traits::FromPrimitive;
-use embedded_hal::can::ExtendedId;
 
 use super::bitfields::*;
+use crate::crc16::Crc16;
 use crate::internal::InternalRxFrame;
 use crate::time::Timestamp;
 use crate::transport::Transport;
-use crate::{NodeId, Priority, RxError, TransferKind, TxError};
-use crate::crc16::Crc16;
 use crate::StreamingIterator;
+use crate::{NodeId, Priority, RxError, TransferKind, TxError};
 
 /// Unit struct for declaring transport type
 #[derive(Copy, Clone, Debug)]
@@ -235,9 +235,9 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             self.payload_offset += bytes_left;
             self.crc_left = 0;
             unsafe {
-                frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id).0
-                )
+                frame
+                    .payload
+                    .push_unchecked(TailByte::new(true, true, true, self.transfer.transfer_id).0)
             }
         } else {
             // Handle CRC
@@ -279,12 +279,15 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
 
             // SAFETY: should only copy at most 7 elements prior to here
             unsafe {
-                frame.payload.push_unchecked(TailByte::new(
-                    self.is_start,
-                    is_end,
-                    self.toggle,
-                    self.transfer.transfer_id,
-                ).0);
+                frame.payload.push_unchecked(
+                    TailByte::new(
+                        self.is_start,
+                        is_end,
+                        self.toggle,
+                        self.transfer.transfer_id,
+                    )
+                    .0,
+                );
             }
 
             // Advance state of iter

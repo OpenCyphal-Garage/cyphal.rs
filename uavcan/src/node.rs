@@ -60,10 +60,7 @@ where
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame(
-        &mut self,
-        frame: T::Frame,
-    ) -> Result<Option<Transfer<C>>, RxError> {
+    pub fn try_receive_frame(&mut self, frame: T::Frame) -> Result<Option<Transfer<C>>, RxError> {
         let frame = T::rx_process_frame(&self.id, &frame)?;
 
         if let Some(frame) = frame {

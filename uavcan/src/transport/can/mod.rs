@@ -11,16 +11,16 @@
 
 use crate::crc16::Crc16;
 
+mod bitfields;
 mod fd;
 mod legacy;
-mod bitfields;
 
 #[cfg(test)]
 mod tests;
 
+pub use bitfields::{CanMessageId, CanServiceId};
 pub use fd::*;
 pub use legacy::*;
-pub use bitfields::{CanMessageId, CanServiceId};
 
 use bitfields::TailByte;
 
@@ -78,4 +78,3 @@ impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetada
         return false;
     }
 }
-
