@@ -73,7 +73,7 @@ impl Crc16 {
 
 #[cfg(test)]
 mod test {
-    use test::Bencher;
+    use ::test::Bencher;
 
     use super::*;
     #[test]

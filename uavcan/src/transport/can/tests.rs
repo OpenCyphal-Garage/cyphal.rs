@@ -3,7 +3,7 @@ use alloc::vec;
 use crate::time::TestClock;
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
-use num_traits::ToPrimitive;
+use embedded_hal::can::ExtendedId;
 
 use super::bitfields::TailByte;
 use super::*;
