@@ -11,13 +11,16 @@
 
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::FromPrimitive;
+use embedded_hal::can::ExtendedId;
 
 use super::bitfields::*;
 use crate::internal::InternalRxFrame;
 use crate::time::Timestamp;
 use crate::transport::Transport;
 use crate::{NodeId, Priority, RxError, TransferKind, TxError};
+use crate::crc16::Crc16;
+use crate::StreamingIterator;
 
 /// Unit struct for declaring transport type
 #[derive(Copy, Clone, Debug)]
@@ -52,9 +55,9 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
             return Err(RxError::NonLastUnderUtilization);
         }
 
-        if CanServiceId(frame.id).is_svc() {
+        if CanServiceId(frame.id.as_raw()).is_svc() {
             // Handle services
-            let id = CanServiceId(frame.id);
+            let id = CanServiceId(frame.id.as_raw());
 
             // Ignore invalid frames
             if !id.valid() {
@@ -86,7 +89,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
             )));
         } else {
             // Handle messages
-            let id = CanMessageId(frame.id);
+            let id = CanMessageId(frame.id.as_raw());
 
             // We can ignore ID in anonymous transfers
             let source_node_id = if id.is_anon() {
@@ -132,12 +135,13 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
 #[derive(Debug)]
 pub struct CanIter<'a, C: embedded_time::Clock> {
     transfer: &'a crate::transfer::Transfer<'a, C>,
-    frame_id: u32,
+    frame_id: ExtendedId,
     payload_offset: usize,
-    crc: crc_any::CRCu16,
+    crc: Crc16,
     crc_left: u8,
     toggle: bool,
     is_start: bool,
+    can_frame: Option<CanFrame<C>>,
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
@@ -152,8 +156,6 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                 }
 
                 CanMessageId::new(transfer.priority, transfer.port_id, node_id)
-                    .to_u32()
-                    .unwrap()
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
@@ -169,8 +171,6 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     destination,
                     source,
                 )
-                .to_u32()
-                .unwrap()
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
@@ -184,8 +184,6 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
                     destination,
                     source,
                 )
-                .to_u32()
-                .unwrap()
             }
         };
 
@@ -193,28 +191,41 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
             transfer,
             frame_id,
             payload_offset: 0,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
+            crc: Crc16::init(),
             crc_left: 2,
             toggle: true,
             is_start: true,
+            can_frame: None,
         })
     }
 }
 
-impl<'a, C: Clock> Iterator for CanIter<'a, C> {
+impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     type Item = CanFrame<C>;
 
-    // I'm sure I could take an optimization pass at the logic here
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut frame = CanFrame {
-            timestamp: self.transfer.timestamp,
-            id: self.frame_id,
-            payload: ArrayVec::new(),
-        };
+    fn get(&self) -> Option<&Self::Item> {
+        self.can_frame.as_ref()
+    }
 
+    // I'm sure I could take an optimization pass at the logic here
+    fn advance(&mut self) {
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
+
+        // Nothing left to transmit, we are done
+        if bytes_left == 0 && self.crc_left == 0 {
+            let _ = self.can_frame.take();
+            return;
+        }
+
         let is_end = bytes_left <= 7;
         let copy_len = core::cmp::min(bytes_left, 7);
+
+        // TODO enough to use the transfer timestamp, or need actual timestamp
+        let frame = self
+            .can_frame
+            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
+
+        frame.payload.clear();
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -222,24 +233,18 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                 .payload
                 .extend(self.transfer.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
+            self.crc_left = 0;
             unsafe {
                 frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id)
-                        .to_u8()
-                        .unwrap(),
+                    TailByte::new(true, true, true, self.transfer.transfer_id).0
                 )
             }
         } else {
-            // Nothing left to transmit, we are done
-            if bytes_left == 0 && self.crc_left == 0 {
-                return None;
-            }
-
             // Handle CRC
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
-            frame.payload.extend(out_data.iter().copied());
+            frame.payload.extend(out_data.into_iter().copied());
 
             // Increment offset
             self.payload_offset += copy_len;
@@ -247,15 +252,14 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
             // Finished with our data, now we deal with crc
             // (we can't do anything if bytes_left == 7, so ignore that case)
             if bytes_left < 7 {
-                let crc = &self.crc.get_crc().to_be_bytes();
+                let crc = self.crc.get_crc().to_be_bytes();
 
                 // TODO I feel like this logic could be cleaned up somehow
                 if self.crc_left == 2 {
                     if 7 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
-                        frame.payload.push(crc[0]);
-                        frame.payload.push(crc[1]);
+                        frame.payload.extend(crc.into_iter());
                         self.crc_left = 0;
                     } else {
                         // SAFETY: only written if we have enough space
@@ -280,7 +284,7 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
                     is_end,
                     self.toggle,
                     self.transfer.transfer_id,
-                ));
+                ).0);
             }
 
             // Advance state of iter
@@ -288,8 +292,6 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
         }
 
         self.is_start = false;
-
-        Some(frame)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -316,15 +318,26 @@ impl<'a, C: Clock> Iterator for CanIter<'a, C> {
 #[derive(Clone, Debug)]
 pub struct CanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
-    pub id: u32,
+    pub id: ExtendedId,
     pub payload: ArrayVec<[u8; 8]>,
+}
+
+impl<C: embedded_time::Clock> CanFrame<C> {
+    fn new(timestamp: Timestamp<C>, id: u32) -> Self {
+        Self {
+            timestamp,
+            // TODO get rid of this expect, it probably isn't necessary, just added quickly
+            id: ExtendedId::new(id).expect("invalid ID"),
+            payload: ArrayVec::<[u8; 8]>::new(),
+        }
+    }
 }
 
 /// Keeps track of toggle bit and CRC during frame processing.
 #[derive(Debug)]
 pub struct CanMetadata {
     toggle: bool,
-    crc: crc_any::CRCu16,
+    crc: Crc16,
 }
 
 impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetadata {
@@ -332,7 +345,7 @@ impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetada
         Self {
             // Toggle starts off true, but we compare against the opposite value.
             toggle: false,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
+            crc: Crc16::init(),
         }
     }
 

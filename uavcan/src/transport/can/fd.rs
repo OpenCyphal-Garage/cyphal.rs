@@ -2,13 +2,16 @@
 
 use arrayvec::ArrayVec;
 use embedded_time::Clock;
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_traits::FromPrimitive;
+use embedded_hal::can::ExtendedId;
 
 use super::bitfields::*;
 use crate::internal::InternalRxFrame;
 use crate::time::Timestamp;
 use crate::transport::Transport;
 use crate::{NodeId, Priority, RxError, TransferKind, TxError};
+use crate::crc16::Crc16;
+use crate::StreamingIterator;
 
 /// Unit struct for declaring transport type
 #[derive(Copy, Clone, Debug)]
@@ -43,9 +46,9 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for FdCan {
             return Err(RxError::NonLastUnderUtilization);
         }
 
-        if CanServiceId(frame.id).is_svc() {
+        if CanServiceId(frame.id.as_raw()).is_svc() {
             // Handle services
-            let id = CanServiceId(frame.id);
+            let id = CanServiceId(frame.id.as_raw());
 
             // Ignore invalid frames
             if !id.valid() {
@@ -77,7 +80,7 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for FdCan {
             )));
         } else {
             // Handle messages
-            let id = CanMessageId(frame.id);
+            let id = CanMessageId(frame.id.as_raw());
 
             // We can ignore ID in anonymous transfers
             let source_node_id = if id.is_anon() {
@@ -123,12 +126,13 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for FdCan {
 #[derive(Debug)]
 pub struct FdCanIter<'a, C: embedded_time::Clock> {
     transfer: &'a crate::transfer::Transfer<'a, C>,
-    frame_id: u32,
+    frame_id: ExtendedId,
     payload_offset: usize,
-    crc: crc_any::CRCu16,
+    crc: Crc16,
     crc_left: u8,
     toggle: bool,
     is_start: bool,
+    can_frame: Option<FdCanFrame<C>>,
 }
 
 // TODO there must be a way to link the MTU sizes into here? I tried with const generics but that got complicated and unstable
@@ -144,8 +148,6 @@ impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
                 }
 
                 CanMessageId::new(transfer.priority, transfer.port_id, node_id)
-                    .to_u32()
-                    .unwrap()
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
@@ -161,8 +163,6 @@ impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
                     destination,
                     source,
                 )
-                .to_u32()
-                .unwrap()
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
@@ -176,8 +176,6 @@ impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
                     destination,
                     source,
                 )
-                .to_u32()
-                .unwrap()
             }
         };
 
@@ -185,29 +183,37 @@ impl<'a, C: embedded_time::Clock> FdCanIter<'a, C> {
             transfer,
             frame_id,
             payload_offset: 0,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
+            crc: Crc16::init(),
             crc_left: 2,
             toggle: true,
             is_start: true,
+            can_frame: None,
         })
     }
 }
 
-impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
+impl<'a, C: Clock> StreamingIterator for FdCanIter<'a, C> {
     type Item = FdCanFrame<C>;
 
-    // I'm sure I could take an optimization pass at the logic here
-    fn next(&mut self) -> Option<Self::Item> {
-        let mut frame = FdCanFrame {
-            timestamp: self.transfer.timestamp,
-            id: self.frame_id,
-            dlc: 0,
-            payload: ArrayVec::new(),
-        };
+    fn get(&self) -> Option<&Self::Item> {
+        self.can_frame.as_ref()
+    }
 
+    // I'm sure I could take an optimization pass at the logic here
+    fn advance(&mut self) {
         let bytes_left = self.transfer.payload.len() - self.payload_offset;
+
+        if bytes_left == 0 && self.crc_left == 0 {
+            let _ = self.can_frame.take();
+            return;
+        }
+
         let is_end = bytes_left <= 63;
         let mut copy_len = core::cmp::min(bytes_left, 63);
+
+        let frame = self
+            .can_frame
+            .get_or_insert_with(|| FdCanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
 
         if self.is_start && is_end {
             // Single frame transfer, no CRC
@@ -217,17 +223,10 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
             self.payload_offset += bytes_left;
             unsafe {
                 frame.payload.push_unchecked(
-                    TailByte::new(true, true, true, self.transfer.transfer_id)
-                        .to_u8()
-                        .unwrap(),
+                    TailByte::new(true, true, true, self.transfer.transfer_id).0
                 )
             }
         } else {
-            // Nothing left to transmit, we are done
-            if bytes_left == 0 && self.crc_left == 0 {
-                return None;
-            }
-
             // Handle CRC
             let out_data =
                 &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
@@ -239,12 +238,12 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
 
             // Finished with our data, now we deal with crc
             // (we can't do anything if bytes_left == 7, so ignore that case)
-            if bytes_left < 7 {
+            if bytes_left < 63 {
                 let crc = &self.crc.get_crc().to_be_bytes();
 
                 // TODO I feel like this logic could be cleaned up somehow
                 if self.crc_left == 2 {
-                    if 7 - bytes_left >= 2 {
+                    if 63 - bytes_left >= 2 {
                         // Iter doesn't work. Internal type is &u8 but extend
                         // expects u8
                         frame.payload.push(crc[0]);
@@ -276,7 +275,7 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
                     is_end,
                     self.toggle,
                     self.transfer.transfer_id,
-                ));
+                ).0);
             }
             copy_len += 1;
 
@@ -321,8 +320,6 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
             },
             _ => panic!("Copied data should never exceed 64 bytes!"),
         };
-
-        Some(frame)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -349,8 +346,21 @@ impl<'a, C: Clock> Iterator for FdCanIter<'a, C> {
 #[derive(Clone, Debug)]
 pub struct FdCanFrame<C: embedded_time::Clock> {
     pub timestamp: Timestamp<C>,
-    pub id: u32,
+    pub id: ExtendedId,
     // Seperate here because there are extra semantics around CAN-FD DLC
     pub dlc: u8,
     pub payload: ArrayVec<[u8; 64]>,
 }
+
+impl<C: embedded_time::Clock> FdCanFrame<C> {
+    fn new(timestamp: Timestamp<C>, id: u32) -> Self {
+        Self {
+            timestamp,
+            // TODO get rid of this expect, it probably isn't necessary, just added quickly
+            id: ExtendedId::new(id).expect("invalid ID"),
+            dlc: 0,
+            payload: ArrayVec::<[u8; 64]>::new(),
+        }
+    }
+}
+

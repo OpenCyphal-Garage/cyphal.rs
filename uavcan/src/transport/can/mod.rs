@@ -9,22 +9,7 @@
 //! trait in stable unfortunately because it would require GATs, which won't be stable
 //! for quite a while... :(.
 
-use arrayvec::ArrayVec;
-use embedded_hal::can::ExtendedId;
-use embedded_time::Clock;
-use num_traits::FromPrimitive;
-use streaming_iterator::StreamingIterator;
-
-use crate::time::Timestamp;
-use crate::Priority;
-use crate::TxError;
-
-use super::Transport;
 use crate::crc16::Crc16;
-use crate::internal::InternalRxFrame;
-use crate::NodeId;
-use crate::RxError;
-use crate::TransferKind;
 
 mod fd;
 mod legacy;
@@ -43,7 +28,7 @@ use bitfields::TailByte;
 #[derive(Debug)]
 pub struct CanMetadata {
     toggle: bool,
-    crc: crc_any::CRCu16,
+    crc: Crc16,
 }
 
 impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetadata {
@@ -51,7 +36,7 @@ impl<C: embedded_time::Clock> crate::transport::SessionMetadata<C> for CanMetada
         Self {
             // Toggle starts off true, but we compare against the opposite value.
             toggle: false,
-            crc: crc_any::CRCu16::crc16ccitt_false(),
+            crc: Crc16::init(),
         }
     }
 
