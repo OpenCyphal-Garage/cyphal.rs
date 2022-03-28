@@ -19,8 +19,6 @@ mod legacy;
 mod tests;
 
 pub use bitfields::{CanMessageId, CanServiceId};
-pub use fd::*;
-pub use legacy::*;
 
 use bitfields::TailByte;
 

@@ -2,11 +2,11 @@ use alloc::vec;
 
 use crate::time::TestClock;
 use arrayvec::ArrayVec;
-use embedded_time::Clock;
 use embedded_hal::can::ExtendedId;
+use embedded_time::Clock;
 
 use super::bitfields::TailByte;
-use super::*;
+use super::{legacy::*, *};
 use crate::internal::InternalRxFrame;
 use crate::transport::Transport;
 use crate::*;
