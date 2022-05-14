@@ -1,16 +1,16 @@
 [package]
-name = "uavcan"
+name = "cyphal"
 authors = ["David Lenfesty <lenfesty@ualberta.ca>"]
 version = "0.2.0-preview0"
 edition = "2021"
 
-description = "Full functionality reference implementation of UAVCAN/CAN in Rust"
+description = "Full functionality reference implementation of OpenCyphal in Rust"
 
-repository = "https://github.com/davidlenfesty/uavcan.rs"
+repository = "https://github.com/davidlenfesty/cyphal.rs"
 
 readme = "README.md"
 
-keywords = ["uavcan", "can", "uav", "embedded"]
+keywords = ["cyphal", "opencyphal", "can", "uav", "embedded"]
 categories = ["no-std", "embedded"]
 
 license = "Apache-2.0/MIT"
