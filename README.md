@@ -1,4 +1,4 @@
-# uavcan.rs [![Build Status](https://travis-ci.org/UAVCAN/uavcan.rs.svg?branch=master)](https://travis-ci.org/UAVCAN/uavcan.rs) [![Crates.io](https://img.shields.io/crates/UAVCAN/uavcan-core.svg)](https://crates.io/crates/uavcan-core)
+# cyphal.rs
 
 **EXPERIMENTAL, UNFINISHED, AND SUBJECT TO CHANGE AT ANY TIME. USE AT YOUR OWN RISK**
 

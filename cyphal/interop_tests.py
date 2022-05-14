@@ -1,6 +1,6 @@
 #### Suite of interoperability tests.
 #
-# We use pyuavcan as that is generally considered the reference implementation,
+# We use pycyphal as that is generally considered the reference implementation,
 # and it is the easiest to write tooling for.
 #
 # Note that we don't test any DSDL generation here, simply message passing with
@@ -12,10 +12,10 @@ import argparse
 import pathlib
 import sys
 
-# PyUAVCAN imports
-import pyuavcan
-import pyuavcan.transport.can
-import pyuavcan.transport.can.media.socketcan
+# pycyphal imports
+import pycyphal
+import pycyphal.transport.can
+import pycyphal.transport.can.media.socketcan
 
 # DSDL compilation/imports
 compiled_dsdl_dir = pathlib.Path(__file__).resolve().parent / ".test_dsdl_compiled"
@@ -26,8 +26,8 @@ try:
 except (ImportError, AttributeError):
     print("Compiling DSDL, this may take a bit...")
     src_dir = pathlib.Path(__file__).resolve().parent / "public_regulated_data_types/uavcan"
-    print(dir(pyuavcan.dsdl))
-    pyuavcan.dsdl.compile_all([src_dir], output_directory=compiled_dsdl_dir)
+    print(dir(pycyphal.dsdl))
+    pycyphal.dsdl.compile_all([src_dir], output_directory=compiled_dsdl_dir)
     print("Finished compiling.")
 
 _test_registry = {}
@@ -38,9 +38,9 @@ def register_test(test: Callable):
 
 @register_test
 def hello_world():
-    media = pyuavcan.transport.can.media.socketcan.SocketCANMedia("vcan0", 8)
-    transport = pyuavcan.transport.can.CANTransport(media, 41)
-    presentation = pyuavcan.presentation.Presentation(transport)
+    media = pycyphal.transport.can.media.socketcan.SocketCANMedia("vcan0", 8)
+    transport = pycyphal.transport.can.CANTransport(media, 41)
+    presentation = pycyphal.presentation.Presentation(transport)
 
     pub = presentation.make_publisher(uavcan.node.Heartbeat_1_0, 100)
 
