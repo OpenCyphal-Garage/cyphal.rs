@@ -14,6 +14,7 @@ use streaming_iterator::StreamingIterator;
 use crate::internal::InternalRxFrame;
 use crate::NodeId;
 use crate::{RxError, TxError};
+use crate::transfer::Transfer;
 
 /// Describes any transport-specific metadata required to construct a session.
 ///
@@ -53,7 +54,7 @@ pub trait Transport<C: embedded_time::Clock> {
     ) -> Result<Option<InternalRxFrame<'a, C>>, RxError>;
 
     /// Prepare an iterator of frames to send out on the wire.
-    fn transmit<'a>(
-        transfer: &'a crate::transfer::Transfer<C>,
+    fn transmit<'a, X: Transfer<'a, C>>(
+        transfer: &'a X,
     ) -> Result<Self::FrameIter<'a>, TxError>;
 }

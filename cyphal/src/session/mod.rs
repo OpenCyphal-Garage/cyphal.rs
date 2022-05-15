@@ -9,7 +9,7 @@
 
 use crate::internal::InternalRxFrame;
 use crate::time::Timestamp;
-use crate::transfer::Transfer;
+use crate::transfer::RefTransfer;
 use crate::types::*;
 
 #[cfg(not(feature = "std"))]
@@ -55,7 +55,7 @@ pub enum SubscriptionError {
 /// your own.
 pub trait SessionManager<C: embedded_time::Clock> {
     /// Process incoming frame.
-    fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError>;
+    fn ingest<'a>(&mut self, frame: InternalRxFrame<C>) -> Result<Option<RefTransfer<C>>, SessionError>;
 
     /// Housekeeping function called to clean up timed-out sessions.
     fn update_sessions(&mut self, timestamp: Timestamp<C>);

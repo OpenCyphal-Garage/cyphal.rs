@@ -11,7 +11,7 @@ use core::marker::PhantomData;
 use core::clone::Clone;
 
 use crate::session::SessionManager;
-use crate::transfer::Transfer;
+use crate::transfer::{Transfer, RefTransfer};
 use crate::transport::Transport;
 use crate::types::*;
 use crate::{RxError, TxError};
@@ -32,7 +32,7 @@ pub struct Node<S: SessionManager<C>, T: Transport<C>, C: embedded_time::Clock> 
     _clock: PhantomData<C>,
 }
 
-impl<S, T, C> Node<S, T, C>
+impl<'a, S, T, C> Node<S, T, C>
 where
     T: Transport<C>,
     S: SessionManager<C>,
@@ -60,7 +60,7 @@ where
 
     /// Attempts to receive frame. Returns error when frame is invalid, Some(Transfer) at the end of
     /// a transfer, and None if we haven't finished the transfer.
-    pub fn try_receive_frame(&mut self, frame: T::Frame) -> Result<Option<Transfer<C>>, RxError> {
+    pub fn try_receive_frame(&mut self, frame: T::Frame) -> Result<Option<RefTransfer<C>>, RxError> {
         let frame = T::rx_process_frame(&self.id, &frame)?;
 
         if let Some(frame) = frame {
@@ -81,7 +81,7 @@ where
     //
     // 1 and 3 provide the user with more options but also make it harder
     // to implement for the user.
-    pub fn transmit<'a>(&self, transfer: &'a Transfer<C>) -> Result<T::FrameIter<'a>, TxError> {
+    pub fn transmit<X: Transfer<'a, C>>(&self, transfer: &'a X) -> Result<T::FrameIter<'a>, TxError> {
         T::transmit(transfer)
     }
 }

@@ -21,6 +21,7 @@ use crate::time::Timestamp;
 use crate::transport::Transport;
 use crate::StreamingIterator;
 use crate::{NodeId, Priority, RxError, TransferKind, TxError};
+use crate::transfer::{Transfer, TransferMetadata};
 
 /// Unit struct for declaring transport type
 #[derive(Copy, Clone, Debug)]
@@ -120,8 +121,8 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
         }
     }
 
-    fn transmit<'a>(
-        transfer: &'a crate::transfer::Transfer<C>,
+    fn transmit<'a, X: Transfer<'a, C>>(
+        transfer: &'a X,
     ) -> Result<Self::FrameIter<'a>, TxError> {
         CanIter::new(transfer, Some(1))
     }
@@ -134,7 +135,8 @@ impl<C: embedded_time::Clock + 'static> Transport<C> for Can {
 /// having to commit to any proper memory model.
 #[derive(Debug)]
 pub struct CanIter<'a, C: embedded_time::Clock> {
-    transfer: &'a crate::transfer::Transfer<'a, C>,
+    transfer_metadata: &'a TransferMetadata<C>,
+    payload: &'a [u8],
     frame_id: ExtendedId,
     payload_offset: usize,
     crc: Crc16,
@@ -145,42 +147,44 @@ pub struct CanIter<'a, C: embedded_time::Clock> {
 }
 
 impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
-    pub fn new(
-        transfer: &'a crate::transfer::Transfer<C>,
+    pub fn new<X: Transfer<'a, C>>(
+        transfer: &'a X,
         node_id: Option<NodeId>,
     ) -> Result<Self, TxError> {
-        let frame_id = match transfer.transfer_kind {
+        let frame_id = match transfer.metadata().transfer_kind {
             TransferKind::Message => {
-                if node_id.is_none() && transfer.payload.len() > 7 {
+                if node_id.is_none() && transfer.payload().len() > 7 {
                     return Err(TxError::AnonNotSingleFrame);
                 }
 
-                CanMessageId::new(transfer.priority, transfer.port_id, node_id)
+                CanMessageId::new(transfer.metadata().priority, transfer.metadata().port_id, node_id)
             }
             TransferKind::Request => {
                 // These runtime checks should be removed via proper typing further up but we'll
                 // leave it as is for now.
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
-                let destination = transfer
+                let metadata = transfer.metadata();
+                let destination = metadata
                     .remote_node_id
                     .ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
-                    transfer.priority,
+                    metadata.priority,
                     true,
-                    transfer.port_id,
+                    metadata.port_id,
                     destination,
                     source,
                 )
             }
             TransferKind::Response => {
                 let source = node_id.ok_or(TxError::ServiceNoSourceID)?;
-                let destination = transfer
+                let metadata = transfer.metadata();
+                let destination = metadata
                     .remote_node_id
                     .ok_or(TxError::ServiceNoDestinationID)?;
                 CanServiceId::new(
-                    transfer.priority,
+                    metadata.priority,
                     false,
-                    transfer.port_id,
+                    metadata.port_id,
                     destination,
                     source,
                 )
@@ -188,7 +192,8 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
         };
 
         Ok(Self {
-            transfer,
+            transfer_metadata: transfer.metadata(),
+            payload: transfer.payload(),
             frame_id,
             payload_offset: 0,
             crc: Crc16::init(),
@@ -200,6 +205,8 @@ impl<'a, C: embedded_time::Clock> CanIter<'a, C> {
     }
 }
 
+// TODO can also impl regular Iterator on top of this
+// or build out some core function, and use in both StreamingIterator and Iterator
 impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     type Item = CanFrame<C>;
 
@@ -209,7 +216,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
 
     // I'm sure I could take an optimization pass at the logic here
     fn advance(&mut self) {
-        let bytes_left = self.transfer.payload.len() - self.payload_offset;
+        let bytes_left = self.payload.len() - self.payload_offset;
 
         // Nothing left to transmit, we are done
         if bytes_left == 0 && self.crc_left == 0 {
@@ -223,7 +230,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
         // TODO enough to use the transfer timestamp, or need actual timestamp
         let frame = self
             .can_frame
-            .get_or_insert_with(|| CanFrame::new(self.transfer.timestamp, self.frame_id.as_raw()));
+            .get_or_insert_with(|| CanFrame::new(self.transfer_metadata.timestamp, self.frame_id.as_raw()));
 
         frame.payload.clear();
 
@@ -231,18 +238,18 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
             // Single frame transfer, no CRC
             frame
                 .payload
-                .extend(self.transfer.payload[0..copy_len].iter().copied());
+                .extend(self.payload[0..copy_len].iter().copied());
             self.payload_offset += bytes_left;
             self.crc_left = 0;
             unsafe {
                 frame
                     .payload
-                    .push_unchecked(TailByte::new(true, true, true, self.transfer.transfer_id).0)
+                    .push_unchecked(TailByte::new(true, true, true, self.transfer_metadata.transfer_id).0)
             }
         } else {
             // Handle CRC
             let out_data =
-                &self.transfer.payload[self.payload_offset..self.payload_offset + copy_len];
+                &self.payload[self.payload_offset..self.payload_offset + copy_len];
             self.crc.digest(out_data);
             frame.payload.extend(out_data.iter().copied());
 
@@ -284,7 +291,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
                         self.is_start,
                         is_end,
                         self.toggle,
-                        self.transfer.transfer_id,
+                        self.transfer_metadata.transfer_id,
                     )
                     .0,
                 );
@@ -298,7 +305,7 @@ impl<'a, C: Clock> StreamingIterator for CanIter<'a, C> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let mut bytes_left = self.transfer.payload.len() - self.payload_offset;
+        let mut bytes_left = self.payload.len() - self.payload_offset;
 
         // Single frame transfer
         if self.is_start && bytes_left <= 7 {

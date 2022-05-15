@@ -12,13 +12,19 @@
 use crate::crc16::Crc16;
 
 mod bitfields;
-mod fd;
+// TODO temp uncomment
+//mod fd;
 mod legacy;
 
 #[cfg(test)]
 mod tests;
 
+// Exports
 pub use bitfields::{CanMessageId, CanServiceId};
+// TODO temp uncomment
+//pub use fd::*;
+pub use legacy::*;
+
 
 use bitfields::TailByte;
 

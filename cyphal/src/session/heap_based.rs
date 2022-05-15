@@ -7,6 +7,7 @@ use embedded_time::Clock;
 
 use crate::session::*;
 use crate::types::NodeId;
+use crate::transfer::RefTransfer;
 
 use alloc::{collections::BTreeMap, vec::Vec};
 
@@ -74,7 +75,7 @@ where
     }
 
     /// Update subscription with incoming frame
-    fn update(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
+    fn update<'a>(&'a mut self, frame: InternalRxFrame<C>) -> Result<Option<RefTransfer<'a, C>>, SessionError> {
         // TODO maybe some of the logic here can be skipped with anon transfers.
         let session_id = frame.source_node_id.unwrap();
 
@@ -105,11 +106,11 @@ where
         self.accept_frame(session_id, frame)
     }
 
-    fn accept_frame(
-        &mut self,
+    fn accept_frame<'a>(
+        &'a mut self,
         session: NodeId,
         frame: InternalRxFrame<C>,
-    ) -> Result<Option<Transfer<C>>, SessionError> {
+    ) -> Result<Option<RefTransfer<'a, C>>, SessionError> {
         let mut session = self.sessions.get_mut(&session).unwrap();
 
         if frame.start_of_transfer {
@@ -128,7 +129,7 @@ where
 
             if frame.end_of_transfer {
                 if session.md.is_valid(&frame) {
-                    Ok(Some(Transfer::from_frame(
+                    Ok(Some(RefTransfer::from_frame(
                         frame,
                         session.timestamp.unwrap(),
                         &session.payload,
@@ -161,6 +162,8 @@ where
     T: crate::transport::SessionMetadata<C>,
     C: Clock,
 {
+    // TODO add param to pre-allocate some values (can reduce fragmentation if
+    // everything gets allocated early and we don't touch it later)
     pub fn new() -> Self {
         Self {
             subscriptions: Vec::new(),
@@ -198,6 +201,9 @@ where
     }
 }
 
+// TODO maybe we want an API to send a ManagedTransfer or something, where it "leaks" the transfer
+// as a new type (w/ unsafe function?) that implements Drop. Drop could signal back somehow that it's
+// finished, and then some update management function on the HeapSessionManager can clean it up.
 impl<T, C> SessionManager<C> for HeapSessionManager<T, C>
 where
     T: crate::transport::SessionMetadata<C>,
@@ -226,7 +232,7 @@ where
         }
     }
 
-    fn ingest(&mut self, frame: InternalRxFrame<C>) -> Result<Option<Transfer<C>>, SessionError> {
+    fn ingest<'a>(&'a mut self, frame: InternalRxFrame<C>) -> Result<Option<RefTransfer<'a, C>>, SessionError> {
         match self
             .subscriptions
             .iter_mut()
