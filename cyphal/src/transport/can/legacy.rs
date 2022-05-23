@@ -10,7 +10,7 @@
 //! for quite a while... :(.
 
 use arrayvec::ArrayVec;
-use embedded_hal::can::ExtendedId;
+pub use embedded_hal::can::ExtendedId;
 use embedded_time::Clock;
 use num_traits::FromPrimitive;
 
