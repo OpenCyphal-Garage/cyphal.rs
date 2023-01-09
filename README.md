@@ -1,8 +1,6 @@
 # cyphal.rs
 
-**EXPERIMENTAL, UNFINISHED, AND SUBJECT TO CHANGE AT ANY TIME. USE AT YOUR OWN RISK**
-
-**Meanwhile consider using [Canadensis](https://github.com/samcrow/canadensis) instead, which is an independent effort.**
+**Please use [Canadensis](https://github.com/samcrow/canadensis) instead.**
 
 # License
 
